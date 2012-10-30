@@ -188,12 +188,16 @@ int foldCase(char *in,char *out)
 
 int mungeCase(char *m)
 {
-  int i;
+  int i,j;
 
-  /* flip case of first letter of message */
-  for(i=1;m[i];i++) if (isalpha(m[i])) break;
-    
-  if (isalpha(m[0])&&((m[0]^m[i])&0x20)) m[0]^=0x20;
+  /* flip case of first letter of message.
+     Ideally we would detect if the message looks like all-caps first,
+     but this is hard to do in practice.
+  */
+
+  if (isalpha(m[0])) {
+    m[0]^=0x20;
+  }
 
   /* Change isolated I's to i, provided preceeding char is lower-case
      (so that we don't mess up all-caps).
