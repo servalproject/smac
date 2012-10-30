@@ -191,8 +191,13 @@ int mungeCase(char *m)
   int i;
 
   /* flip case of first letter of message */
-  if (isalpha(m[0])) m[0]^=0x20;
+  for(i=1;m[i];i++) if (isalpha(m[i])) break;
+    
+  if (isalpha(m[0])&&((m[0]^m[i])&0x20)) m[0]^=0x20;
 
+  /* Change isolated I's to i, provided preceeding char is lower-case
+     (so that we don't mess up all-caps).
+  */
   for(i=1;m[i+1];i++)
     if (m[i]=='I'&&(!isalpha(m[i-1]))&&(!isalpha(m[i+1])))
       {
