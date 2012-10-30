@@ -39,12 +39,12 @@ double encodeLCAlphaSpace(char *s)
     int c3=charIdx(s[o]);
     float p=tweet_freqs[c1][c2][c3];
     float entropy=-log(p)/log(2);
-    printf("%c : p=%f, entropy=%f\n",s[o],p,entropy);
+    //    printf("%c : p=%f, entropy=%f\n",s[o],p,entropy);
     bits+=entropy;
     c1=c2; c2=c3;
   }
-  printf("%d chars could be encoded in %f bits (%f per char)\n",
-	 (int)strlen(s),bits,bits/strlen(s));
+  if (0) printf("%d chars could be encoded in %f bits (%f per char)\n",
+		(int)strlen(s),bits,bits/strlen(s));
   return bits;
 }
 
@@ -54,7 +54,7 @@ double encodeLength(char *m)
   int bits=1;
   while((1<<bits)<len) bits++;
   float countBits=1+2*(bits-1);
-  printf("Using %f bits to encode the length of the message.\n",countBits);
+  // printf("Using %f bits to encode the length of the message.\n",countBits);
 
   return countBits;
 }
@@ -71,16 +71,17 @@ float encodeNonAlpha(char *m)
   
   int i;
   for(i=0;m[i];i++)
-    if (charIdx(m[i])>=0) {
+    if (charIdx(tolower(m[i]))>=0) {
       /* alpha or space -- so ignore */
     } else {
       /* non-alpha, so remember it */
       v[count]=m[i];
+      printf("non-alpha char: 0x%02x '%c'\n",m[i],m[i]);
       pos[count++]=i;
     }
 
   if (!count) {
-    printf("Using 1 bit to indicate no non-alpha/space characters.\n");
+    // printf("Using 1 bit to indicate no non-alpha/space characters.\n");
     return 1;
   }
 
@@ -97,14 +98,14 @@ float encodeNonAlpha(char *m)
   int bits=1;
   while((1<<bits)<len) bits++;
   float countBits=1+2*(bits-1);
-  printf("Using %f bits to encode the number of non-alpha/space chars.\n",countBits);
+  // printf("Using %f bits to encode the number of non-alpha/space chars.\n",countBits);
 
   unsigned char out[1024];
   int posBits=0;
 
   ic_encode_heiriter(pos,count,NULL,NULL,len,len,out,&posBits);
   
-  printf("Using interpolative coding for positions, total = %d bits.\n",posBits);
+  // printf("Using interpolative coding for positions, total = %d bits.\n",posBits);
 
   return countBits+posBits+charBits;
 }
@@ -116,20 +117,23 @@ double encodeCase(char *m)
   
   int i;
   int o=0;
+  //  printf("caps eligble chars: ");
   for(i=0;m[i];i++) {
-    if (islower(m[i])||m[i]==' ') {
-      /* lower case, so ignore */
-    } else {
+    if (m[i]>='A'&&m[i]<='Z') {
       /* upper case, so remember */
       pos[count++]=o;
     }
     /* Spaces do not have case, so don't bother remembering their
        positions, since they just add entropy. */
-    if (m[i]!=' ') o++;
+    if (isalpha(m[i])) { 
+      //      printf("%c",m[i]);
+      o++; 
+    }
   }
+  //  printf("\n");
 
   if (!count) {
-    printf("Using 1 bit to indicate no upper-case characters.\n");
+    // printf("Using 1 bit to indicate no upper-case characters.\n");
     return 1;
   }
 
@@ -139,19 +143,28 @@ double encodeCase(char *m)
      Then n bits to encode the count.
      So 2*ceil(log2(count))+1 bits
   */
-  int len=strlen(m);
   int bits=1;
-  while((1<<bits)<len) bits++;
-  float countBits=1+2*(bits-1);
-  printf("Using %f bits to encode the number of upper-case chars.\n",countBits);
+  while((1<<bits)<o) bits++;
+  int countBits=1+2*(bits-1);
+  if (0) printf("Using %d bits to encode that there are %d upper-case chars.\n",
+	 countBits,count);
 
   unsigned char out[1024];
   int posBits=0;
-  ic_encode_heiriter(pos,count,NULL,NULL,len,len,out,&posBits);
+  ic_encode_heiriter(pos,count,NULL,NULL,o,o,out,&posBits);
   
-  printf("Using interpolative coding for upper-case positions, total = %d bits.\n",posBits);
+  //  printf("upper case cost = %d bits.\n",1+countBits+posBits);
 
-  return countBits+posBits;
+  if ((countBits+posBits)>o) {
+    /* more efficient to just use a bitmap */
+    return 1+o;
+  }
+
+  /* 1 bit = "there are upper case chars"
+     1 bit = 0 for not bitmap
+     then bits to encode count and positions.
+  */
+  return 1+1+countBits+posBits;
 }
 
 int stripNonAlpha(char *in,char *out)
@@ -159,7 +172,7 @@ int stripNonAlpha(char *in,char *out)
   int l=0;
   int i;
   for(i=0;in[i];i++)
-    if (isalpha(in[i])||in[i]==' ') out[l++]=in[i];
+    if (charIdx(tolower(in[i]))>=0) out[l++]=in[i];
   out[l]=0;
   return 0;
 }
@@ -170,6 +183,35 @@ int foldCase(char *in,char *out)
   int i;
   for(i=0;in[i];i++) out[l++]=tolower(in[i]);
   out[l]=0;
+  return 0;
+}
+
+int mungeCase(char *m)
+{
+  int i;
+
+  /* flip case of first letter of message */
+  if (isalpha(m[0])) m[0]^=0x20;
+
+  for(i=1;m[i+1];i++)
+    if (m[i]=='I'&&(!isalpha(m[i-1]))&&(!isalpha(m[i+1])))
+      {
+	int j;
+	int foo=0;
+	for(j=i-2;j>=0;j--) 
+	  if (isalpha(m[j])) 
+	    {
+	      foo=1;
+	      if ((m[j]^m[i])&0x20) {
+		/* case differs to previous character, so flip */
+		m[i]^=0x20;
+		printf("flipping I@%d in: %s\n",i,m);
+	      }
+	      break;
+	    }
+	if (!foo) m[i]^=0x20;
+      }
+     
   return 0;
 }
 
@@ -184,20 +226,47 @@ int main(int argc,char *argv[])
   char alpha[1024]; // message with all non alpha/spaces removed
   char lcalpha[1024]; // message with all alpha chars folded to lower-case
   
-  double length=0;
-
-  strcpy(m,argv[1]);
-
-  length+=encodeLength(m);
-  length+=encodeNonAlpha(m);
-  stripNonAlpha(m,alpha);
-  length+=encodeCase(alpha);
-  foldCase(alpha,lcalpha);
-  printf("XXX - do to: tokenisation of common words\n");
-  length+=encodeLCAlphaSpace(lcalpha);
+  m[0]=0; fgets(m,1024,stdin);
   
-  printf("Total encoded length = %fbits (%f bits/char)\n",
-	 length,length/strlen(m));
-  
+  int lines=0;
+  double runningPercent=0;
+  double worstPercent=0,bestPercent=100;
+
+  while(m[0]) {
+    /* chop newline */
+    m[strlen(m)-1]=0;
+    if (1) printf(">>> %s\n",m);
+
+    double lengthLength=encodeLength(m);
+    double binaryLength=encodeNonAlpha(m);
+    stripNonAlpha(m,alpha);
+    mungeCase(alpha);
+    double caseLength=encodeCase(alpha);
+    foldCase(alpha,lcalpha);
+    double alphaLength=encodeLCAlphaSpace(lcalpha);
+    
+    double length=lengthLength+binaryLength+caseLength+alphaLength;
+
+    if ((length>=(8*strlen(m)))
+	&&(binaryLength<=1)) {
+      /* we can't encode it more efficiently than 7-bit ASCII */
+      lengthLength=0;
+      binaryLength=0;
+      caseLength=0;
+      alphaLength=8*strlen(m);
+      length=alphaLength;
+    }
+
+    double percent=length*12.5/strlen(m);
+    if (percent<bestPercent) bestPercent=percent;
+    if (percent>worstPercent) worstPercent=percent;
+    runningPercent+=percent;
+    lines++;
+
+    printf("Total encoded length = L%.1f+B%.1f+C%.1f+A%.1f = %f bits = %.2f%% (best:avg:worst %.2f%%:%.2f%%:%.2f%%)\n",
+	   lengthLength,binaryLength,caseLength,alphaLength,
+	   length,percent,bestPercent,runningPercent/lines,worstPercent);
+    m[0]=0; fgets(m,1024,stdin);
+  }
   return 0;
 }

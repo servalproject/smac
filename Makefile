@@ -14,7 +14,9 @@ gen_stats:	gen_stats.c
 	gcc -g -Wall -o gen_stats gen_stats.c
 
 tweet_stats.c:	gen_stats some_tweets.txt
-	./gen_stats <some_tweets.txt >tweet_stats.c
+	# Exclude \uXXXX encoded unicode from the stats generation,
+	# because in practice we would process it as UTF8
+	grep -v "\\u" some_tweets.txt |./gen_stats > tweet_stats.c
 
 tweet_freq:	tweet_freq.o tweet_stats.o gsinterpolative.o
 	gcc -g -Wall -o tweet_freq tweet_freq.o tweet_stats.o gsinterpolative.o
