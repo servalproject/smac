@@ -29,8 +29,11 @@ void range_emitbit(range_coder *c,int b)
 
 void range_emit_stable_bits(range_coder *c)
 {
+
+  while(1) {
+
   /* look for actually stable bits */
-  while(!((c->low^c->high)&0x80000000))
+  if (!((c->low^c->high)&0x80000000))
     {
       printf("emit stable bit: ");
       range_status(c);
@@ -46,18 +49,19 @@ void range_emit_stable_bits(range_coder *c)
       c->high=c->high<<1;
       c->high|=1;
     }
-
   /* Now see if we have underflow, and need to count the number of underflowed
      bits. */
-  while (((c->low&0xc0000000)==0x40000000)
-	 &&((c->high&0xc0000000)==0x80000000))
+  else if (((c->low&0xc0000000)==0x40000000)
+	   &&((c->high&0xc0000000)==0x80000000))
     {
       c->underflow++;
       c->low=(c->low&0x80000000)|((c->low<<1)&0x7fffffff);
       c->high=(c->high&0x80000000)|((c->high<<1)&0x7fffffff);
       c->high|=1;
     }
-
+  else 
+    return;
+  }
   return;
 }
 
@@ -100,8 +104,9 @@ int range_encode(range_coder *c,double p_low,double p_high)
 
   c->entropy+=-log(p_high-p_low)/log(2);
 
+  printf("after symbol encode\n");
   range_status(c);
-
+  printf("emitting stable bits\n");
   range_emit_stable_bits(c);
   return 0;
 }
@@ -187,31 +192,32 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   c->low=new_low;
   c->high=new_high;
 
-  printf("after narrowing: ");
+  printf("after narrowing:\n");
   range_status(c);
 
-  if ((c->low&0x80000000)==(c->high&0x80000000))
-    {
-      
+  while(1) {
+    if ((c->low&0x80000000)==(c->high&0x80000000))
+      {
+	/* MSBs match, so bit will get shifted out */
+      }
+    else if (((c->low&0xc0000000)==0x40000000)
+	     &&((c->high&0xc0000000)==0x80000000))
+      {
+	c->value^=0x40000000;
+	c->low&=0x3fffffff;
+	c->high|=0x40000000;
+      }
+    else {
+      /* nothing can be done */
+      return s;
     }
-  else if (((c->low&0xc0000000)==0x40000000)
-	 &&((c->high&0xc0000000)==0x80000000))
-    {
-      c->value^=0x40000000;
-      c->low&=0x3fffffff;
-      c->high|=0x40000000;
-    }
-  else {
-    /* nothing can be done */
-    return 0;
+
+    c->low=c->low<<1;
+    c->high=c->high<<1;
+    c->high|=1;
+    c->value=c->value<<1; 
+    c->value|=range_decode_getnextbit(c);
   }
-
-  c->low=c->low<<1;
-  c->high=c->high<<1;
-  c->high|=1;
-  c->value=c->value<<1; 
-  c->value|=range_decode_getnextbit(c);
-
   return s;
 }
 
@@ -233,11 +239,16 @@ int main() {
 
   range_status(c);
   range_encode_symbol(c,frequencies,5,2);
+  printf("After encoding 2 (#1)\n");
   range_status(c);
   range_encode_symbol(c,frequencies,5,2);
+  printf("After encoding 2 (#2)\n");
   range_status(c);
   range_encode_symbol(c,frequencies,5,4);
+  printf("After encoding 4 (#3)\n");
   range_status(c);
+  //  range_encode_symbol(c,frequencies,5,1);
+  // range_status(c);
   range_conclude(c);
   printf("Wrote %d bits to encode %.3f bits of entropy.\n",
 	 c->bits_used,c->entropy);
@@ -261,6 +272,10 @@ int main() {
   printf("Decoded symbol #%d\n",s);
   printf("decode state: %s\n",asbits(c->value));
   range_status(c);
+  //  s=range_decode_symbol(c,frequencies,5);
+  //  printf("Decoded symbol #%d\n",s);
+  //  printf("decode state: %s\n",asbits(c->value));
+  //  range_status(c);
 
   return 0;
 }
