@@ -172,6 +172,7 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   double space=c->high-c->low;
   double v=(c->value-c->low)/space;
   
+  printf("p(v)=%f\n",v);
   for(s=0;s<alphabet_size;s++)
     if (v<frequencies[s]) break;
   
@@ -189,29 +190,27 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   printf("after narrowing: ");
   range_status(c);
 
-  int fetch_bits=0;
-
-  while (((c->low&0xc0000000)==0x40000000)
+  if ((c->low&0x80000000)==(c->high&0x80000000))
+    {
+      
+    }
+  else if (((c->low&0xc0000000)==0x40000000)
 	 &&((c->high&0xc0000000)==0x80000000))
     {
       c->value^=0x40000000;
       c->low&=0x3fffffff;
       c->high|=0x40000000;
-      fetch_bits++;
     }
-
-  while((c->low>>31)==(c->high>>31))
-    {
-      c->low=c->low<<1;
-      c->high=c->high<<1;
-      c->high|=1;
-      fetch_bits++;
-    }
-  
-  while(fetch_bits-->0) {
-    c->value=c->value<<1;
-    c->value|=range_decode_getnextbit(c);
+  else {
+    /* nothing can be done */
+    return 0;
   }
+
+  c->low=c->low<<1;
+  c->high=c->high<<1;
+  c->high|=1;
+  c->value=c->value<<1; 
+  c->value|=range_decode_getnextbit(c);
 
   return s;
 }
