@@ -16,7 +16,6 @@ int range_decode_getnextbit(range_coder *c)
 
 void range_emitbit(range_coder *c,int b)
 {
-  printf(">>> %d\n",b);
   if (c->bits_used>=(c->bit_stream_length)) {
     fprintf(stderr,"output overflow.\n");
     exit(-1);
@@ -35,8 +34,6 @@ void range_emit_stable_bits(range_coder *c)
   /* look for actually stable bits */
   if (!((c->low^c->high)&0x80000000))
     {
-      printf("emit stable bit:\n");
-      range_status(c);
       int msb=c->low>>31;
       range_emitbit(c,msb);
       if (c->underflow) {
@@ -106,9 +103,6 @@ int range_encode(range_coder *c,double p_low,double p_high)
 
   c->entropy+=-log(p_high-p_low)/log(2);
 
-  printf("after symbol encode\n");
-  range_status(c);
-  printf("emitting stable bits\n");
   range_emit_stable_bits(c);
   return 0;
 }
@@ -128,22 +122,15 @@ int range_conclude(range_coder *c)
   unsigned int v;
   unsigned int mean=((c->high-c->low)/2)+c->low;
 
-  printf("concluding:\n");
-  range_status(c);
-
   /* wipe out hopefully irrelevant bits from low part of range */
   v=0;
-  printf("v[0] = %s\n",asbits(v));
   while((v<=c->low)||(v>=c->high))
     {
       bits++;
       v=(mean>>(32-bits))<<(32-bits);
-      printf("v[%d] = %s\n",bits,asbits(v));
     }
-  printf("Need %d bits to conclude: %s\n",bits,asbits(v));
 
   int i,msb=(v>>31)&1;
-  printf("msb=%d\n",msb);
   range_emitbit(c,msb);
   while(c->underflow-->0) range_emitbit(c,msb^1);
   for(i=1;i<bits;i++) {
@@ -170,7 +157,6 @@ int range_encode_symbol(range_coder *c,double frequencies[],int alphabet_size,in
   if (symbol>0) p_low=frequencies[symbol-1];
   double p_high=1;
   if (symbol<(alphabet_size-1)) p_high=frequencies[symbol];
-  printf("encoding p=[%f--%f]\n",p_low,p_high);
   return range_encode(c,p_low,p_high);
 }
 
@@ -180,7 +166,6 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   double space=c->high-c->low;
   double v=(c->value-c->low)/space;
   
-  printf("p(v)=%f\n",v);
   for(s=0;s<(alphabet_size-1);s++)
     if (v<frequencies[s]) break;
   
@@ -194,9 +179,6 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   /* work out how many bits are still significant */
   c->low=new_low;
   c->high=new_high;
-
-  printf("after narrowing:\n");
-  range_status(c);
 
   while(1) {
     if ((c->low&0x80000000)==(c->high&0x80000000))
