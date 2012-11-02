@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h>
 #include <math.h>
 #include "arithmetic.h"
 
@@ -111,6 +112,7 @@ int range_status(range_coder *c)
 {
   printf("range=[%s,",asbits(c->low));
   printf("%s)\n",asbits(c->high));
+
   return 0;
 }
 
@@ -141,14 +143,25 @@ int range_conclude(range_coder *c)
   return 0;
 }
 
+int range_coder_reset(struct range_coder *c)
+{
+  c->low=0;
+  c->high=0xffffffff;
+  c->entropy=0;
+  c->bits_used=0;
+  return 0;
+}
+
 struct range_coder *range_new_coder(int bytes)
 {
   struct range_coder *c=calloc(sizeof(struct range_coder),1);
   c->bit_stream=malloc(bytes);
   c->bit_stream_length=bytes*8;
-  c->high=0xffffffff;
+  range_coder_reset(c);
   return c;
 }
+
+
 
 /* Assumes probabilities are cumulative */
 int range_encode_symbol(range_coder *c,double frequencies[],int alphabet_size,int symbol)
@@ -219,50 +232,90 @@ int range_decode_prefetch(range_coder *c)
   return 0;
 }
 
+int cmp_double(const void *a,const void *b)
+{
+  double *aa=(double *)a;
+  double *bb=(double *)b;
+
+  if (*aa<*bb) return -1;
+  if (*aa>*bb) return 1;
+  return 0;
+}
+
 int main() {
-  struct range_coder *c=range_new_coder(1024);
-  
-  double frequencies[4]={0.2,0.3,0.7,0.9};
+  struct range_coder *c=range_new_coder(8192);
+  struct range_coder d;
 
-  range_status(c);
-  range_encode_symbol(c,frequencies,5,2);
-  printf("After encoding 2 (#1)\n");
-  range_status(c);
-  range_encode_symbol(c,frequencies,5,2);
-  printf("After encoding 2 (#2)\n");
-  range_status(c);
-  range_encode_symbol(c,frequencies,5,4);
-  printf("After encoding 4 (#3)\n");
-  range_status(c);
-  //  range_encode_symbol(c,frequencies,5,1);
-  //  range_status(c);
-  range_conclude(c);
-  printf("Wrote %d bits to encode %.3f bits of entropy.\n",
-	 c->bits_used,c->entropy);
-  printf("wrote: %s\n",asbits(*(unsigned int *)&c->bit_stream[0]));
+  double frequencies[1024];
+  int sequence[1024];
+  int alphabet_size;
+  int length;
 
-  c->bit_stream_length=c->bits_used;
-  c->bits_used=0;
-  range_decode_prefetch(c);
-  printf("decode state: %s\n",asbits(c->value));
-  range_status(c);
-  int s;
-  s=range_decode_symbol(c,frequencies,5);
-  printf("Decoded symbol #%d\n",s);
-  printf("decode state: %s\n",asbits(c->value));
-  range_status(c);
-  s=range_decode_symbol(c,frequencies,5);
-  printf("Decoded symbol #%d\n",s);
-  printf("decode state: %s\n",asbits(c->value));
-  range_status(c);
-  s=range_decode_symbol(c,frequencies,5);
-  printf("Decoded symbol #%d\n",s);
-  printf("decode state: %s\n",asbits(c->value));
-  range_status(c);
-  //  s=range_decode_symbol(c,frequencies,5);
-  //  printf("Decoded symbol #%d\n",s);
-  //  printf("decode state: %s\n",asbits(c->value));
-  //  range_status(c);
+  int test,i,j;
+
+  srandom(0);
+
+  for(test=0;test<1024;test++)
+    {
+      /* Pick a random alphabet size */
+      alphabet_size=1+random()%1023;
+ 
+      /* Generate incremental probabilities.
+         Start out with randomly selected probabilities, then sort them.
+	 It may make sense later on to use some non-uniform distributions
+	 as well.
+      */
+      for(i=0;i<alphabet_size;i++)
+	frequencies[i]=random()*1.0/(0x7fffffff);
+
+      qsort(frequencies,alphabet_size,sizeof(double),cmp_double);
+
+      /* now generate random string to compress */
+      length=1+random()%1023;
+      for(i=0;i<length;i++) sequence[i]=random()%alphabet_size;
+      
+      printf("Test #%d : %d symbols, with %d symbol alphabet\n",
+	     test,length,alphabet_size);
+
+      /* Encode the random symbols */
+      range_coder_reset(c);
+      for(i=0;i<length;i++)
+	range_encode_symbol(c,frequencies,alphabet_size,sequence[i]);
+      range_conclude(c);
+      printf("  encoded %d symbols in %d bits (%f bits of entropy)\n",
+	     length,c->bits_used,c->entropy);
+      
+      /* Copy encoder state to a new decoder.
+         This also copies the pointer to the encoded data, which conveniently
+         makes it available without us having to copy it. */
+      bcopy(c,&d,sizeof(d));
+      /* Now convert encoder state into a decoder state */
+      d.bit_stream_length=d.bits_used;
+      d.bits_used=0;
+      range_decode_prefetch(&d);
+
+      for(i=0;i<length;i++)
+	{
+	  int s=range_decode_symbol(&d,frequencies,alphabet_size);
+	  if (s!=sequence[i]) {
+	    fprintf(stderr,"Verify error decoding symbol #%d (expected %d, but got %d)\n",i,sequence[i],s);
+	    range_status(&d);
+	    double space=d.high-d.low;
+	    double v=(d.value-d.low)/space;
+	    
+	    for(s=0;s<(alphabet_size-1);s++)
+	      if (v<frequencies[s]) break;
+	    
+	    double p_low=0;
+	    if (s>0) p_low=frequencies[s-1];
+	    double p_high=frequencies[s];
+	    fprintf(stderr,"  v=%f (0x%x)\n",v,d.value);
+
+	    exit(-1);
+	  }
+	}
+      printf("  successfully decoded and verified %d symbols.\n",length);
+    }
 
   return 0;
 }
