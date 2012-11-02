@@ -35,7 +35,7 @@ void range_emit_stable_bits(range_coder *c)
   /* look for actually stable bits */
   if (!((c->low^c->high)&0x80000000))
     {
-      printf("emit stable bit: ");
+      printf("emit stable bit:\n");
       range_status(c);
       int msb=c->low>>31;
       range_emitbit(c,msb);
@@ -49,6 +49,7 @@ void range_emit_stable_bits(range_coder *c)
       c->high=c->high<<1;
       c->high|=1;
     }
+#if 1
   /* Now see if we have underflow, and need to count the number of underflowed
      bits. */
   else if (((c->low&0xc0000000)==0x40000000)
@@ -59,6 +60,7 @@ void range_emit_stable_bits(range_coder *c)
       c->high=(c->high&0x80000000)|((c->high<<1)&0x7fffffff);
       c->high|=1;
     }
+#endif
   else 
     return;
   }
@@ -113,8 +115,8 @@ int range_encode(range_coder *c,double p_low,double p_high)
 
 int range_status(range_coder *c)
 {
-  printf("range=[%s,\n",asbits(c->low));
-  printf("       %s)\n",asbits(c->high));
+  printf("range=[%s,",asbits(c->low));
+  printf("%s)\n",asbits(c->high));
   return 0;
 }
 
@@ -168,6 +170,7 @@ int range_encode_symbol(range_coder *c,double frequencies[],int alphabet_size,in
   if (symbol>0) p_low=frequencies[symbol-1];
   double p_high=1;
   if (symbol<(alphabet_size-1)) p_high=frequencies[symbol];
+  printf("encoding p=[%f--%f]\n",p_low,p_high);
   return range_encode(c,p_low,p_high);
 }
 
@@ -178,7 +181,7 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   double v=(c->value-c->low)/space;
   
   printf("p(v)=%f\n",v);
-  for(s=0;s<alphabet_size;s++)
+  for(s=0;s<(alphabet_size-1);s++)
     if (v<frequencies[s]) break;
   
   double p_low=0;
@@ -200,6 +203,7 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
       {
 	/* MSBs match, so bit will get shifted out */
       }
+#if 1
     else if (((c->low&0xc0000000)==0x40000000)
 	     &&((c->high&0xc0000000)==0x80000000))
       {
@@ -207,6 +211,7 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
 	c->low&=0x3fffffff;
 	c->high|=0x40000000;
       }
+#endif
     else {
       /* nothing can be done */
       return s;
@@ -248,7 +253,7 @@ int main() {
   printf("After encoding 4 (#3)\n");
   range_status(c);
   //  range_encode_symbol(c,frequencies,5,1);
-  // range_status(c);
+  //  range_status(c);
   range_conclude(c);
   printf("Wrote %d bits to encode %.3f bits of entropy.\n",
 	 c->bits_used,c->entropy);
