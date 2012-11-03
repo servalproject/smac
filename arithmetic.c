@@ -16,7 +16,7 @@ int bits2bytes(int b)
 int range_decode_getnextbit(range_coder *c)
 {
   /* return 0s once we have used all bits */
-  if (c->bit_stream_length<(c->bits_used)) return 0;
+  if (c->bit_stream_length<=c->bits_used) return 0;
 
   int bit=c->bit_stream[c->bits_used>>3]&(1<<(7-(c->bits_used&7)));
   c->bits_used++;
@@ -313,12 +313,22 @@ int cmp_double(const void *a,const void *b)
 range_coder *range_coder_dup(range_coder *in)
 {
   range_coder *out=calloc(sizeof(range_coder),1);
+  if (!out) {
+    fprintf(stderr,"allocation of range_coder in range_coder_dup() failed.\n");
+    return NULL;
+  }
   bcopy(in,out,sizeof(range_coder));
-  out->bit_stream=malloc(bits2bytes(in->bit_stream_length));
+  out->bit_stream=malloc(bits2bytes(out->bit_stream_length));
   if (!out->bit_stream) {
     fprintf(stderr,"range_coder_dup() failed\n");
     free(out);
     return NULL;
+  }
+  if (out->bits_used>out->bit_stream_length) {
+    fprintf(stderr,"bits_used>bit_stream_length in range_coder_dup()\n");
+    fprintf(stderr,"  bits_used=%d, bit_stream_length=%d\n",
+	    out->bits_used,out->bit_stream_length);
+    exit(-1);
   }
   bcopy(in->bit_stream,out->bit_stream,bits2bytes(out->bits_used));
   return out;
@@ -408,7 +418,7 @@ int main() {
 	  if (!vc2) {
 	    fprintf(stderr,"vc2=range_coder_dup(vc) failed\n");
 	    exit(-1);
-	  }
+	  }	  
 
 	  if (j==i) {
 	    printf("coder status before emitting symbol #%d:\n  ",i); 
@@ -434,8 +444,8 @@ int main() {
 	    if (s<alphabet_size-1) p_high=frequencies[s];
 	    
 	    printf("  s=%d, v=%f, p_low=%f, p_high=%f\n",s,v,p_low,p_high);
-
 	  }
+	  range_coder_free(vc2);
 	  
 	  int s=range_decode_symbol(vc,frequencies,alphabet_size);
 	  if (s!=sequence[j]) {
@@ -450,7 +460,6 @@ int main() {
 
 	    exit(-1);
 	  }
-	  range_coder_free(vc2);
 	}
 
 	range_coder_free(vc);
