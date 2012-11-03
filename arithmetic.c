@@ -24,6 +24,7 @@ int range_emitbit(range_coder *c,int b)
     return -1;
 }
   int bit=(c->bits_used&7)^7;
+  if (bit==7) c->bit_stream[c->bits_used>>3]=0;
   if (b) c->bit_stream[c->bits_used>>3]|=(b<<bit);
   else c->bit_stream[c->bits_used>>3]&=~(b<<bit);
   c->bits_used++;
