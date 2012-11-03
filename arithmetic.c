@@ -6,6 +6,13 @@
 
 #undef UNDERFLOWFIX
 
+int bits2bytes(int b)
+{
+  int extra=0;
+  if (b&7) extra=1;
+  return (b>>3)+extra;
+}
+
 int range_decode_getnextbit(range_coder *c)
 {
   /* return 0s once we have used all bits */
@@ -301,8 +308,8 @@ range_coder *range_coder_dup(range_coder *in)
 {
   range_coder *out=calloc(sizeof(range_coder),1);
   bcopy(in,out,sizeof(range_coder));
-  out->bit_stream=malloc(in->bit_stream_length/8+1);
-  bcopy(in->bit_stream,out->bit_stream,1+(out->bits_used/8));
+  out->bit_stream=malloc(bits2bytes(in->bit_stream_length));
+  bcopy(in->bit_stream,out->bit_stream,bits2bytes(out->bits_used));
   return out;
 }
 
