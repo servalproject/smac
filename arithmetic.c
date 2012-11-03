@@ -29,7 +29,7 @@ int range_emitbit(range_coder *c,int b)
   if (c->bits_used>=(c->bit_stream_length)) {
     printf("out of bits\n");
     return -1;
-}
+  }
   int bit=(c->bits_used&7)^7;
   if (bit==7) c->bit_stream[c->bits_used>>3]=0;
   if (b) c->bit_stream[c->bits_used>>3]|=(b<<bit);
@@ -127,11 +127,11 @@ int range_encode(range_coder *c,double p_low,double p_high)
 
 int range_status(range_coder *c)
 {
+  if (!c) return -1;
   printf("range=[%s,",asbits(c->low));
   printf("%s), ",asbits(c->high));
   printf("value=%s\n",asbits(c->value));
  
-
   return 0;
 }
 
@@ -144,16 +144,19 @@ int range_conclude(range_coder *c)
   unsigned int mean=((c->high-c->low)/2)+c->low;
 
   /* wipe out hopefully irrelevant bits from low part of range */
-  v=0;
+  v=0xffffffff;
   while((v<=c->low)||(v>=c->high))
     {
       bits++;
       v=(mean>>(32-bits))<<(32-bits);
+      v|=0xffffffff>>bits;
     }
   /* Actually, apparently 2 bits is always the correct answer, because normalisation
      means that we always have 2 uncommitted bits in play, excepting for underflow
      bits, which we handle separately. */
   if (bits<2) bits=2;
+
+  if (bits<30) bits=30;
   c->value=mean;
   printf("%d bits to conclude. ",bits);
   range_status(c);
@@ -309,12 +312,21 @@ range_coder *range_coder_dup(range_coder *in)
   range_coder *out=calloc(sizeof(range_coder),1);
   bcopy(in,out,sizeof(range_coder));
   out->bit_stream=malloc(bits2bytes(in->bit_stream_length));
+  if (!out->bit_stream) {
+    fprintf(stderr,"range_coder_dup() failed\n");
+    free(out);
+    return NULL;
+  }
   bcopy(in->bit_stream,out->bit_stream,bits2bytes(out->bits_used));
   return out;
 }
 
 int range_coder_free(range_coder *c)
 {
+  if (!c->bit_stream) {
+    fprintf(stderr,"range_coder_free() asked to free apparently already freed context.\n");
+    exit(-1);
+  }
   free(c->bit_stream); c->bit_stream=NULL;
   bzero(c,sizeof(range_coder));
   free(c);
@@ -336,7 +348,7 @@ int main() {
   for(test=0;test<1024;test++)
     {
       /* Pick a random alphabet size */
-      alphabet_size=1+random()%1023;
+      // alphabet_size=1+random()%1023;
       alphabet_size=1+test%1023;
  
       /* Generate incremental probabilities.
@@ -390,6 +402,10 @@ int main() {
 
 	for(j=0;j<=i;j++) {
 	  range_coder *vc2=range_coder_dup(vc);
+	  if (!vc2) {
+	    fprintf(stderr,"vc2=range_coder_dup(vc) failed\n");
+	    exit(-1);
+	  }
 
 	  if (j==i) {
 	    printf("coder status before emitting symbol #%d:\n  ",i); 
