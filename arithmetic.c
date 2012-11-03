@@ -24,7 +24,8 @@ int range_emitbit(range_coder *c,int b)
     return -1;
 }
   int bit=(c->bits_used&7)^7;
-  c->bit_stream[c->bits_used>>3]|=(b<<bit);
+  if (b) c->bit_stream[c->bits_used>>3]|=(b<<bit);
+  else c->bit_stream[c->bits_used>>3]&=~(b<<bit);
   c->bits_used++;
   return 0;
 }
@@ -141,12 +142,28 @@ int range_conclude(range_coder *c)
       bits++;
       v=(mean>>(32-bits))<<(32-bits);
     }
+  /* Actually, apparently 2 bits is always the correct answer, because normalisation
+     means that we always have 2 uncommitted bits in play, excepting for underflow
+     bits, which we handle separately. */
+  if (bits<2) bits=2;
+  c->value=mean;
+  printf("%d bits to conclude. ",bits);
+  range_status(c);
+  c->value=0;
 
   int i,msb=(v>>31)&1;
+
+  /* output msb and any deferred underflow bits. */
+  printf("emit msb %d\n",msb);
   if (range_emitbit(c,msb)) return -1;
+  if (c->underflow>0) printf("  plus %d underflow bits.\n",c->underflow);
   while(c->underflow-->0) if (range_emitbit(c,msb^1)) return -1;
+
+  /* now push bits until we know we have enough to unambiguously place the value
+     within the final probability range. */
   for(i=1;i<bits;i++) {
     int b=(v>>(31-i))&1;
+    printf("emit %d\n",b);
     if (range_emitbit(c,b)) return -1;
   }
 
@@ -180,7 +197,7 @@ int range_encode_symbol(range_coder *c,double frequencies[],int alphabet_size,in
   if (symbol>0) p_low=frequencies[symbol-1];
   double p_high=1;
   if (symbol<(alphabet_size-1)) p_high=frequencies[symbol];
-  printf("symbol=%d, p_low=%f, p_high=%f\n",symbol,p_low,p_high);
+  // printf("symbol=%d, p_low=%f, p_high=%f\n",symbol,p_low,p_high);
   return range_encode(c,p_low,p_high);
 }
 
@@ -191,6 +208,7 @@ int range_check(range_coder *c,int line)
     range_status(c);
     exit(-1);
   }
+  return 0;
 }
 
 int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
@@ -199,8 +217,8 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   double space=c->high-c->low;
   double v=(c->value-c->low)/space;
   
-  printf(" decode: v=%f; ",v);
-  range_status(c);
+  //  printf(" decode: v=%f; ",v);
+  // range_status(c);
 
   for(s=0;s<(alphabet_size-1);s++)
     if (v<frequencies[s]) break;
@@ -210,7 +228,8 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   double p_high=1;
   if (s<alphabet_size-1) p_high=frequencies[s];
 
-  printf("s=%d, p_low=%f, p_high=%f\n",s,p_low,p_high);
+  // printf("s=%d, v=%f, p_low=%f, p_high=%f\n",s,v,p_low,p_high);
+  // range_status(c);
 
   double new_low=c->low+p_low*space;
   double new_high=c->low+p_high*space;
@@ -219,8 +238,8 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   c->low=new_low;
   c->high=new_high;
 
-  printf("after decode before renormalise: ");
-  range_status(c);
+  // printf("after decode before renormalise: ");
+  // range_status(c);
 
   while(1) {
     if ((c->low&0x80000000)==(c->high&0x80000000))
@@ -360,31 +379,51 @@ int main() {
 	vc->bit_stream_length=vc->bits_used;
 	vc->bits_used=0;
 	range_decode_prefetch(vc);
+
 	for(j=0;j<=i;j++) {
-	  int s=range_decode_symbol(vc,frequencies,alphabet_size);
-	  if (s!=sequence[j]) {
-	    fprintf(stderr,"Verify error decoding symbol %d of [0,%d] (expected %d, but got %d)\n",j,i,sequence[j],s);
-	    if (j==i-1) {
-	      fflush(stdout);
-	      fprintf(stderr,"Verify is on final character.\n"
-		      "Encoder state before encoding final symbol was as follows:\n");
-	      fflush(stderr);
-	      range_status(dup);
-	    }
-	    range_status(vc);
-	    double space=vc->high-vc->low;
-	    double v=(vc->value-vc->low)/space;
+	  range_coder *vc2=range_coder_dup(vc);
+
+	  if (j==i) {
+	    printf("coder status before emitting symbol #%d:\n  ",i); 
+	    range_status(dup);
+	    printf("coder status after emitting symbol #%d:\n  ",i); 
+	    range_status(c);
+	    printf("decoder status before extracting symbol #%d:\n  ",i);
+	    range_status(vc2);
+
+	    int s;
+	    double space=vc2->high-vc2->low;
+	    double v=(vc2->value-vc2->low)/space;
+	    
+	    //  printf(" decode: v=%f; ",v);
+	    // range_status(c);
 	    
 	    for(s=0;s<(alphabet_size-1);s++)
 	      if (v<frequencies[s]) break;
 	    
 	    double p_low=0;
 	    if (s>0) p_low=frequencies[s-1];
-	    double p_high=frequencies[s];
-	    fprintf(stderr,"  v=%f (0x%x)\n",v,vc->value);
+	    double p_high=1;
+	    if (s<alphabet_size-1) p_high=frequencies[s];
+	    
+	    printf("  s=%d, v=%f, p_low=%f, p_high=%f\n",s,v,p_low,p_high);
+
+	  }
+	  
+	  int s=range_decode_symbol(vc,frequencies,alphabet_size);
+	  if (s!=sequence[j]) {
+	    fflush(stdout);
+	    fprintf(stderr,"Verify error decoding symbol %d of [0,%d] (expected %d, but got %d)\n",j,i,sequence[j],s);
+	    if (j==i-1) {
+	      fflush(stdout);
+	      fprintf(stderr,"Verify is on final character.\n"
+		      "Encoder state before encoding final symbol was as follows:\n");
+	      fflush(stderr);
+	    }
 
 	    exit(-1);
 	  }
+	  range_coder_free(vc2);
 	}
 
 	range_coder_free(vc);
