@@ -144,28 +144,31 @@ int range_conclude(range_coder *c)
   unsigned int mean=((c->high-c->low)/2)+c->low;
 
   /* wipe out hopefully irrelevant bits from low part of range */
-  v=0xffffffff;
-  while((v<=c->low)||(v>=c->high))
+  v=0;
+  int mask=0xffffffff;
+  while((v<=c->low)||((v+mask)>=c->high))
     {
       bits++;
       v=(mean>>(32-bits))<<(32-bits);
-      v|=0xffffffff>>bits;
+      mask=0xffffffff>>bits;
     }
   /* Actually, apparently 2 bits is always the correct answer, because normalisation
      means that we always have 2 uncommitted bits in play, excepting for underflow
      bits, which we handle separately. */
   if (bits<2) bits=2;
 
-  if (bits<30) bits=30;
-  c->value=mean;
-  printf("%d bits to conclude. ",bits);
+  v=(mean>>(32-bits))<<(32-bits);
+  v|=0xffffffff>>bits;
+  
+  c->value=v;
+  printf("%d bits to conclude 0x%08x\n",bits,v);
   range_status(c);
   c->value=0;
 
   int i,msb=(v>>31)&1;
 
   /* output msb and any deferred underflow bits. */
-  printf("emit msb %d\n",msb);
+  printf("conclude emit: %d",msb);
   if (range_emitbit(c,msb)) return -1;
   if (c->underflow>0) printf("  plus %d underflow bits.\n",c->underflow);
   while(c->underflow-->0) if (range_emitbit(c,msb^1)) return -1;
@@ -174,10 +177,10 @@ int range_conclude(range_coder *c)
      within the final probability range. */
   for(i=1;i<bits;i++) {
     int b=(v>>(31-i))&1;
-    printf("emit %d\n",b);
+    printf("%d",b);
     if (range_emitbit(c,b)) return -1;
   }
-
+  printf(" (of %s)\n",asbits(mean));
   return 0;
 }
 
