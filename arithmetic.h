@@ -11,9 +11,9 @@ typedef struct range_coder {
   unsigned int bits_used;
 } range_coder;
 
-void range_emitbit(range_coder *c,int b);
-void range_emitbits(range_coder *c,int n);
-void range_emit_stable_bits(range_coder *c);
+int range_emitbit(range_coder *c,int b);
+int range_emitbits(range_coder *c,int n);
+int range_emit_stable_bits(range_coder *c);
 int range_encode(range_coder *c,double p_low,double p_high);
 int range_status(range_coder *c);
 int range_encode_symbol(range_coder *c,double frequencies[],int alphabet_size,int symbol);
