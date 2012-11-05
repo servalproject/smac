@@ -125,13 +125,43 @@ int range_encode(range_coder *c,double p_low,double p_high)
   return 0;
 }
 
-int range_status(range_coder *c)
+char bitstring2[8193];
+char *range_coder_lastbits(range_coder *c,int count)
+{
+  if (count>c->bits_used) {
+    count=c->bits_used;
+  }
+  if (count>8192) count=8192;
+  int i;
+  int l=0;
+
+  for(i=(c->bits_used-count);i<c->bits_used;i++)
+    {
+      int byte=i>>3;
+      int bit=(i&7)^7;
+      bit=c->bit_stream[byte]&(1<<bit);
+      if (bit) bitstring2[l++]='1'; else bitstring2[l++]='0';
+    }
+  bitstring2[l]=0;
+  return bitstring2;
+}
+
+int range_status(range_coder *c,int decoderP)
 {
   if (!c) return -1;
-  printf("range=[%s,",asbits(c->low));
-  printf("%s), ",asbits(c->high));
-  printf("value=%s\n",asbits(c->value));
- 
+  char *prefix=range_coder_lastbits(c,8192);
+  char spaces[8193];
+  int i;
+  for(i=0;prefix[i];i++) spaces[i]=' '; 
+  if (decoderP&&(i>=32)) i-=32;
+  spaces[i]=0; prefix[i]=0;
+
+  printf("range  low: %s%s (offset=%d bits)\n",spaces,asbits(c->low),c->bits_used);
+  printf("     value: %s%s (%d/%d = %f)\n",
+	 range_coder_lastbits(c,8192),decoderP?"":asbits(c->value),
+	 (c->value-c->low),(c->high-c->low),
+	 (c->value-c->low)*1.0/(c->high-c->low));
+  printf("range high: %s%s\n",spaces,asbits(c->high));
   return 0;
 }
 
@@ -161,8 +191,9 @@ int range_conclude(range_coder *c)
   v|=0xffffffff>>bits;
   
   c->value=v;
-  printf("%d bits to conclude 0x%08x\n",bits,v);
-  range_status(c);
+  printf("%d bits to conclude 0x%08x (low=%08x, mean=%08x, high=%08x\n",
+	 bits,v,c->low,mean,c->high);
+  range_status(c,0);
   c->value=0;
 
   int i,msb=(v>>31)&1;
@@ -208,7 +239,7 @@ struct range_coder *range_new_coder(int bytes)
 int range_encode_symbol(range_coder *c,double frequencies[],int alphabet_size,int symbol)
 {
   double p_low=0;
-  if (symbol>0) p_low=frequencies[symbol-1];
+  if (symbol>0) p_low=frequencies[symbol-1]+0.000001;
   double p_high=1;
   if (symbol<(alphabet_size-1)) p_high=frequencies[symbol];
   // printf("symbol=%d, p_low=%f, p_high=%f\n",symbol,p_low,p_high);
@@ -219,7 +250,7 @@ int range_check(range_coder *c,int line)
 {
   if (c->value>c->high||c->value<c->low) {
     fprintf(stderr,"c->value out of bounds %d\n",line);
-    range_status(c);
+    range_status(c,1);
     exit(-1);
   }
   return 0;
@@ -235,10 +266,10 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
   // range_status(c);
 
   for(s=0;s<(alphabet_size-1);s++)
-    if (v<frequencies[s]) break;
+    if (v<=frequencies[s]) break;
   
   double p_low=0;
-  if (s>0) p_low=frequencies[s-1];
+  if (s>0) p_low=frequencies[s-1]+0.000001;
   double p_high=1;
   if (s<alphabet_size-1) p_high=frequencies[s];
 
@@ -387,9 +418,12 @@ int main() {
 	     test,length,alphabet_size);
       {
 	int k;
-	fprintf(stderr,"symbol probability steps: ");
-	for(k=0;k<alphabet_size-1;k++) fprintf(stderr," %f",frequencies[k]);
-	fprintf(stderr,"\n");
+	printf("symbol probability steps: ");
+	for(k=0;k<alphabet_size-1;k++) printf(" %f",frequencies[k]);
+	printf("\n");
+	printf("symbol list: ");
+	for(k=0;k<length;k++) printf(" %d#%d",sequence[k],k);
+	printf("\n");
       }
 
       /* Encode the random symbols */
@@ -408,6 +442,7 @@ int main() {
 	   notice. */
 	range_coder *vc=range_coder_dup(c);
 	range_conclude(vc);
+	printf("bit sequence: %s\n",range_coder_lastbits(vc,8192));
 	/* Now convert encoder state into a decoder state */
 	vc->bit_stream_length=vc->bits_used;
 	vc->bits_used=0;
@@ -421,12 +456,14 @@ int main() {
 	  }	  
 
 	  if (j==i) {
-	    printf("coder status before emitting symbol #%d:\n  ",i); 
-	    range_status(dup);
-	    printf("coder status after emitting symbol #%d:\n  ",i); 
-	    range_status(c);
-	    printf("decoder status before extracting symbol #%d:\n  ",i);
-	    range_status(vc2);
+	    printf("coder status before emitting symbol #%d:\n",i); 
+	    range_status(dup,0);
+	    printf("coder status after emitting symbol #%d:\n",i); 
+	    range_status(c,0);
+	  }
+	  if (1) {
+	    printf("decoder status before extracting symbol #%d:\n",j);
+	    range_status(vc2,1);
 
 	    int s;
 	    double space=vc2->high-vc2->low;
