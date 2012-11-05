@@ -190,11 +190,13 @@ int range_conclude(range_coder *c)
   v=(mean>>(32-bits))<<(32-bits);
   v|=0xffffffff>>bits;
   
-  c->value=v;
-  printf("%d bits to conclude 0x%08x (low=%08x, mean=%08x, high=%08x\n",
+  if (0) {
+    c->value=v;
+    printf("%d bits to conclude 0x%08x (low=%08x, mean=%08x, high=%08x\n",
 	 bits,v,c->low,mean,c->high);
-  range_status(c,0);
-  c->value=0;
+    range_status(c,0);
+    c->value=0;
+  }
 
   int i,msb=(v>>31)&1;
 
@@ -415,7 +417,7 @@ int main() {
       for(i=0;i<length;i++) sequence[i]=random()%alphabet_size;
       
       printf("Test #%d : %d symbols, with %d symbol alphabet\n",
-	     test,length,alphabet_size);
+	     test,length,alphabet_size);\
       {
 	int k;
 	printf("symbol probability steps: ");
@@ -425,6 +427,36 @@ int main() {
 	for(k=0;k<length;k++) printf(" %d#%d",sequence[k],k);
 	printf("\n");
       }
+
+      /* Quick test. If it works, no need to go into more thorough examination. */
+      range_coder_reset(c);
+      for(i=0;i<length;i++) {
+	if (range_encode_symbol(c,frequencies,alphabet_size,sequence[i]))
+	  {
+	    fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
+		    i,length);
+	    exit(-1);
+	  }
+      }
+      range_conclude(c);
+      /* Now convert encoder state into a decoder state */
+      int error=0;
+      range_coder *vc=range_coder_dup(c);
+      vc->bit_stream_length=vc->bits_used;
+      vc->bits_used=0;
+      range_decode_prefetch(vc);
+      for(i=0;i<length;i++) {
+	if (range_decode_symbol(vc,frequencies,alphabet_size)!=sequence[i])
+	  { error++; break; }
+      }
+      range_coder_free(vc);
+      /* go to next test if this one passes. */
+      if (!error) {
+	fprintf(stderr,"Test #%d passed: encoded %d symbols in %d bits (%f bits of entropy)\n",
+	       test,length,c->bits_used,c->entropy);
+	continue;
+      }
+      fprintf(stderr,"Test #%d failed: verify error of symbol %d\n",test,i);
 
       /* Encode the random symbols */
       range_coder_reset(c);
@@ -503,10 +535,6 @@ int main() {
 	range_coder_free(dup);
       }
       range_conclude(c);
-      printf("  encoded %d symbols in %d bits (%f bits of entropy)\n",
-	     length,c->bits_used,c->entropy);
-      
-      printf("  successfully decoded and verified %d symbols.\n",length);
     }
 
   return 0;
