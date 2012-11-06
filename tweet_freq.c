@@ -15,8 +15,12 @@
 #include <strings.h>
 #include <math.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <ctype.h>
 
-extern float tweet_freqs[72][72][72];
+extern float tweet_freqs3[72][72][72];
+extern float tweet_freqs2[72][72];
+extern float tweet_freqs1[72];
 
 unsigned char chars[72]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 int charIdx(unsigned char c)
@@ -37,7 +41,7 @@ double encodeLCAlphaSpace(char *s)
   int o,i;
   for(o=0;o<strlen(s);o++) {
     int c3=charIdx(s[o]);
-    float p=tweet_freqs[c1][c2][c3];
+    float p=tweet_freqs3[c1][c2][c3];
     float entropy=-log(p)/log(2);
     //    printf("%c : p=%f, entropy=%f\n",s[o],p,entropy);
     bits+=entropy;
@@ -110,7 +114,144 @@ float encodeNonAlpha(char *m)
   return countBits+posBits+charBits;
 }
 
-double encodeCase(char *m)
+int foldCaseInitialCaps(char *m)
+{
+  int pos[1024];
+  int inWord=0;
+
+  int i;
+  int o=0;
+  for(i=0;m[i];i++) {
+    int thisInWord=0;
+    int skip=0;
+    if (isalnum(m[i])) thisInWord=1;
+    if (thisInWord&&(!inWord)) {
+      /* start of word */
+      if (m[i]>='A'&&m[i]<='Z') skip=1;
+    }
+    inWord=thisInWord;
+    if (!skip) m[o++]=m[i];
+  }
+  m[o]=0;
+  return 0;
+}
+
+double encodeCaseInitialCaps(char *m)
+{
+  int pos[1024];
+  int inWord=0;
+  int wordCount=0;
+
+  int i;
+  int count=0;
+  for(i=0;m[i];i++) {
+    int thisInWord=0;
+    if (isalnum(m[i])) thisInWord=1;
+    if (thisInWord&&(!inWord)) {
+      /* start of word */
+      if (m[i]>='A'&&m[i]<='Z') pos[count++]=wordCount;
+      wordCount++;      
+    }
+    inWord=thisInWord;
+  }
+  //  printf("\n");
+
+  if (!count) {
+    // printf("Using 1 bit to indicate no upper-case characters.\n");
+    return 1;
+  }
+
+  /* Encode number of words starting with upper case using:
+     n 1's to specify how many bits required to encode the count.
+     Then 0.
+     Then n bits to encode the count.
+     So 2*ceil(log2(count))+1 bits
+  */
+  int bits=1;
+  while((1<<bits)<count) bits++;
+  int countBits=1+2*(bits-1);
+  if (1) printf("Using %d bits to encode that there are %d words with initial caps.\n",
+	 countBits,wordCount);
+
+  unsigned char out[1024];
+  int posBits=0;
+  ic_encode_heiriter(pos,count,NULL,NULL,wordCount,wordCount,out,&posBits);  
+
+  //  printf("upper case cost = %d bits.\n",1+countBits+posBits);
+
+  if ((countBits+posBits)>wordCount) {
+    /* more efficient to just use a bitmap */
+    return 1+wordCount;
+  }
+
+  /* 1 bit = "there are upper case chars"
+     1 bit = 0 for not bitmap
+     then bits to encode count and positions.
+  */
+  return 1+1+countBits+posBits;
+}
+
+
+double encodeCaseEdgeTriggered(char *m)
+{
+  int pos[1024];
+  int count=0;
+  int ucase=0;
+  
+  int i;
+  int o=0;
+  //  printf("caps eligble chars: ");
+  for(i=0;m[i];i++) {
+    int thisUpper=0;
+    if (isalpha(m[i])) {
+      if (m[i]>='A'&&m[i]<='Z') thisUpper=1;
+      if (thisUpper!=ucase) {
+	/* case changed, so remember */
+	pos[count++]=o;
+      }
+      ucase=thisUpper;
+      o++; 
+    }
+  }
+  //  printf("\n");
+
+  if (!count) {
+    // printf("Using 1 bit to indicate no upper-case characters.\n");
+    return 1;
+  }
+
+  /* Encode number of upper case chars using:
+     n 1's to specify how many bits required to encode the count.
+     Then 0.
+     Then n bits to encode the count.
+     So 2*ceil(log2(count))+1 bits
+  */
+  int bits=1;
+  while((1<<bits)<o) bits++;
+  int countBits=1+2*(bits-1);
+  if (0) printf("Using %d bits to encode that there are %d upper-case chars.\n",
+	 countBits,count);
+
+  unsigned char out[1024];
+  int posBits=0;
+  ic_encode_heiriter(pos,count,NULL,NULL,o,o,out,&posBits);
+  
+  //  printf("upper case cost = %d bits.\n",1+countBits+posBits);
+
+  if ((countBits+posBits)>o) {
+    /* more efficient to just use a bitmap */
+    return 1+o;
+  }
+
+  /* 1 bit = "there are upper case chars"
+     1 bit = 0 for not bitmap
+     then bits to encode count and positions.
+  */
+  return 1+1+countBits+posBits;
+}
+
+
+double encodeCaseLevelTriggered(char *m)
 {
   int pos[1024];
   int count=0;
@@ -250,10 +391,25 @@ int main(int argc,char *argv[])
     double binaryLength=encodeNonAlpha(m);
     stripNonAlpha(m,alpha);
     mungeCase(alpha);
-    double caseLength=encodeCase(alpha);
+    double caseLengthI=encodeCaseInitialCaps(alpha);
+    foldCaseInitialCaps(alpha);
+    double caseLengthE=encodeCaseEdgeTriggered(alpha);
+    double caseLengthL=encodeCaseLevelTriggered(alpha);
+    stripNonAlpha(m,alpha);
+    mungeCase(alpha);
     foldCase(alpha,lcalpha);
     double alphaLength=encodeLCAlphaSpace(lcalpha);
     
+    double caseLength=1;
+    if (caseLengthE<caseLengthL)
+      caseLength+=caseLengthE;
+    else 
+      caseLength+=caseLengthL;
+
+    caseLength=caseLengthI+caseLengthE;
+
+    printf("edge=%.0f, level=%.0f, initial=%.0f\n",caseLengthE,caseLengthL,caseLengthI);
+
     double length=lengthLength+binaryLength+caseLength+alphaLength;
 
     if ((length>=(8*strlen(m)))
