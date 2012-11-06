@@ -18,15 +18,15 @@
 #include <unistd.h>
 #include <ctype.h>
 
-extern float tweet_freqs3[72][72][72];
-extern float tweet_freqs2[72][72];
-extern float tweet_freqs1[72];
+extern float tweet_freqs3[69][69][69];
+extern float tweet_freqs2[69][69];
+extern float tweet_freqs1[69];
 
-unsigned char chars[72]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
+unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 int charIdx(unsigned char c)
 {
   int i;
-  for(i=0;i<72;i++)
+  for(i=0;i<69;i++)
     if (c==chars[i]) return i;
        
   /* Not valid character -- must be encoded separately */
@@ -41,7 +41,10 @@ double encodeLCAlphaSpace(char *s)
   int o,i;
   for(o=0;o<strlen(s);o++) {
     int c3=charIdx(s[o]);
-    float p=tweet_freqs3[c1][c2][c3];
+    float p_high=tweet_freqs3[c1][c2][c3];
+    float p_low=0;
+    if (c3) p_low=tweet_freqs3[c1][c2][c3-1];
+    float p=p_high-p_low+0.000001;
     float entropy=-log(p)/log(2);
     //    printf("%c : p=%f, entropy=%f\n",s[o],p,entropy);
     bits+=entropy;
