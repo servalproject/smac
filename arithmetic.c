@@ -4,8 +4,8 @@
 #include <math.h>
 #include "arithmetic.h"
 
-#undef UNDERFLOWFIXENCODE
-#undef UNDERFLOWFIXDECODE
+#define UNDERFLOWFIXENCODE
+#define UNDERFLOWFIXDECODE
 
 int bits2bytes(int b)
 {
@@ -52,7 +52,10 @@ int range_emit_stable_bits(range_coder *c)
       if (c->underflow) {
 	int u;
 	if (msb) u=0; else u=1;
-	while (c->underflow-->0) if (range_emitbit(c,u)) return -1;
+	while (c->underflow-->0) {	  
+	  if (range_emitbit(c,u)) return -1;
+	  printf("emitting underflow bit = %d @ bit %d\n",u,c->bits_used);
+	}
 	c->underflow=0;
       }
       c->low=c->low<<1;
@@ -66,9 +69,16 @@ int range_emit_stable_bits(range_coder *c)
 	   &&((c->high&0xc0000000)==0x80000000))
     {
       c->underflow++;
-      c->low=(c->low&0x80000000)|((c->low<<1)&0x7fffffff);
-      c->high=(c->high&0x80000000)|((c->high<<1)&0x7fffffff);
+      printf("underflow bit added @ bit %d\n",c->bits_used);
+      c->low&=0x3fffffff;
+      c->low=c->low<<1;
+      c->high|=0x40000000;
+      c->high=c->high<<1;
       c->high|=1;
+      if (c->low>=c->high) { 
+	fprintf(stderr,"oops\n");
+	exit(-1);
+      }
     }
 #endif
   else 
@@ -167,7 +177,7 @@ int range_status(range_coder *c,int decoderP)
   spaces[i]=0; prefix[i]=0;
 
   printf("range  low: %s%s (offset=%d bits)\n",spaces,asbits(c->low),c->bits_used);
-  printf("     value: %s%s (%u/%llu = %llu)\n",
+  printf("     value: %s%s (0x%08x/0x%08llx = 0x%08llx)\n",
 	 range_coder_lastbits(c,90),decoderP?"":asbits(value),
 	 (value-c->low),space,
 	 (((unsigned long long)value-(unsigned long long)c->low)<<32LL)/space);
@@ -334,12 +344,17 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
 	/* MSBs match, so bit will get shifted out */
       }
 #ifdef UNDERFLOWFIXDECODE
-    else if (((c->low&0xc0000000)==0x40000000)
-	     &&((c->high&0xc0000000)==0x80000000))
+    else if ((c->low&0x40000000)
+	     &&(!(c->high&0x40000000)))
       {
+	printf("removing underflow bit during decode @ bit %d\n",c->bits_used);
+	printf("  pre:  low=0x%08x, v=0x%08x, high=0x%08x\n",
+	       c->low,c->value,c->high);
 	c->value^=0x40000000;
 	c->low&=0x3fffffff;
 	c->high|=0x40000000;
+	printf(" post:  low=0x%08x, v=0x%08x, high=0x%08x\n",
+	       c->low<<1,c->value<<1,c->high<<1);
       }
 #endif
     else {
@@ -351,7 +366,7 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
     c->low=c->low<<1;
     c->high=c->high<<1;
     c->high|=1;
-    c->value=c->value<<1; 
+    c->value=c->value<<1;
     c->value|=range_decode_getnextbit(c);
     if (c->value>c->high||c->value<c->low) {
       fprintf(stderr,"c->value out of bounds @ line %d\n",__LINE__);
@@ -520,7 +535,7 @@ int main() {
 	   notice. */
 	range_coder *vc=range_coder_dup(c);
 	range_conclude(vc);
-	// printf("bit sequence: %s\n",range_coder_lastbits(vc,8192));
+	printf("bit sequence: %s\n",range_coder_lastbits(vc,8192));
 	/* Now convert encoder state into a decoder state */
 	vc->bit_stream_length=vc->bits_used;
 	vc->bits_used=0;
@@ -590,17 +605,23 @@ int main() {
 	      fprintf(stderr,"Verify is on final character.\n"
 		      "Encoder state before encoding final symbol was as follows:\n");
 	      fflush(stderr);
-	    } else {
+	    } 
+
+	    {
 	      double p_v=(vc2->value-vc2->low)*1.0/(vc2->high-vc2->low+1);
 	      
 	      unsigned long long space=(unsigned long long)vc2->high-(unsigned long long)vc2->low+1;
 	      unsigned int v=(((unsigned long long)(vc2->value-vc2->low))<<32LL)/space;
 
-	      printf("Encoder/decoder status at symbol #%d\n",j);
-	      printf("decode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc2->low,vc2->value,vc2->high);
+	      printf("Encoder/decoder status (range) at symbol #%d\n",j);
+	      printf("  decode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc2->low,vc2->value,vc2->high);
 	      printf("         p_v=%f, v=0x%08x\n",p_v,v);
 		     
-	      printf("encode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc3->low,vc3->value,vc3->high);	      
+	      printf("  encode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc3->low,vc3->value,vc3->high);
+	      printf("Decoder bitstream:\n");
+	      range_status(vc2,1);
+	      printf("Encoder bitstream:\n");
+	      range_status(vc3,1);
 	    }
 	    exit(-1);
 	  }

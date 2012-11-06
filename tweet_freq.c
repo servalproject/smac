@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <ctype.h>
 
+#include "arithmetic.h"
+
 extern float tweet_freqs3[69][69][69];
 extern float tweet_freqs2[69][69];
 extern float tweet_freqs1[69];
@@ -33,40 +35,37 @@ int charIdx(unsigned char c)
   return -1;
 }
 
-double encodeLCAlphaSpace(char *s)
+int encodeLCAlphaSpace(range_coder *c,char *s)
 {
-  double bits=0;
+  int b=c->bits_used;
   int c1=charIdx(' ');
   int c2=charIdx(' ');
-  int o,i;
+  int o;
   for(o=0;o<strlen(s);o++) {
     int c3=charIdx(s[o]);
-    float p_high=tweet_freqs3[c1][c2][c3];
-    float p_low=0;
-    if (c3) p_low=tweet_freqs3[c1][c2][c3-1];
-    float p=p_high-p_low+0.000001;
-    float entropy=-log(p)/log(2);
-    //    printf("%c : p=%f, entropy=%f\n",s[o],p,entropy);
-    bits+=entropy;
+    range_encode_symbol(c,tweet_freqs3[c1][c2],69,c3);
     c1=c2; c2=c3;
   }
-  if (0) printf("%d chars could be encoded in %f bits (%f per char)\n",
-		(int)strlen(s),bits,bits/strlen(s));
-  return bits;
+  if (1) printf("%d chars could be encoded in %f bits (%f per char)\n",
+		(int)strlen(s),c->bits_used-b,(c->bits_used-b)/strlen(s));
+  return 0;
 }
 
-double encodeLength(char *m)
+int encodeLength(range_coder *c,char *m)
 {
+  int b=c->bits_used;
   int len=strlen(m);
-  int bits=1;
-  while((1<<bits)<len) bits++;
-  float countBits=1+2*(bits-1);
-  // printf("Using %f bits to encode the length of the message.\n",countBits);
+  while((1<<bits)<len) {
+    range_emitbit(c,1);
+  }
+  for(i=bits-1;i>=0;i++) range_emitbit(c,(len>>i)&1);
+    
+  printf("Using %f bits to encode the length of the message.\n",c->bits_used-b);
 
-  return countBits;
+  return 0;
 }
 
-float encodeNonAlpha(char *m)
+int encodeNonAlpha(range_coder *c,char *m)
 {
   /* Get positions and values of non-alpha chars.
      Encode count, then write the chars, then use interpolative encoding to
@@ -87,13 +86,18 @@ float encodeNonAlpha(char *m)
       pos[count++]=i;
     }
 
+  // XXX - The following assumes that 50% of messages have special characters.
+  // This is a patently silly assumption.
   if (!count) {
     // printf("Using 1 bit to indicate no non-alpha/space characters.\n");
-    return 1;
+    range_emitbit(c,1);
+    return 0;
+  } else {
+    // There are special characters present 
+    range_emitbit(c,0);
   }
 
   printf("Using 8-bits to encode each of %d non-alpha chars.\n",count);
-  float charBits=8*count;
 
   /* Encode number of non-alpha chars using:
      n 1's to specify how many bits required to encode the count.
@@ -107,11 +111,18 @@ float encodeNonAlpha(char *m)
   float countBits=1+2*(bits-1);
   // printf("Using %f bits to encode the number of non-alpha/space chars.\n",countBits);
 
-  unsigned char out[1024];
-  int posBits=0;
-
-  ic_encode_heiriter(pos,count,NULL,NULL,len,len,out,&posBits);
+  /* Encode the positions of special characters */
+  // ic_encode_heiriter(pos,count,NULL,NULL,len,len,out,&posBits);
+  fprintf(stderr,"Encoding positions of non-alpha characters not implemented.\n");
+  exit(-1);
   
+  /* Encode the characters */
+  for(i=0;i<count;i++) {
+    double p_low=v[i]*1.0/256;
+    double p_high=v[i+1]*1.0/256-EPSILON;
+    range_encode(c,p_low,p_high);
+  }
+
   // printf("Using interpolative coding for positions, total = %d bits.\n",posBits);
 
   return countBits+posBits+charBits;
@@ -139,7 +150,7 @@ int foldCaseInitialCaps(char *m)
   return 0;
 }
 
-double encodeCaseInitialCaps(char *m)
+int encodeCaseInitialCaps(range_coder *c,char *m)
 {
   int pos[1024];
   int inWord=0;
@@ -161,8 +172,9 @@ double encodeCaseInitialCaps(char *m)
 
   if (!count) {
     // printf("Using 1 bit to indicate no upper-case characters.\n");
+    range_emitbit(c,0);
     return 1;
-  }
+  } else range_emitbit(c,1);
 
   /* Encode number of words starting with upper case using:
      n 1's to specify how many bits required to encode the count.
@@ -368,6 +380,38 @@ int mungeCase(char *m)
   return 0;
 }
 
+int freq_compress(range_coder *c,unsigned char *m)
+{
+  char alpha[1024]; // message with all non alpha/spaces removed
+  char lcalpha[1024]; // message with all alpha chars folded to lower-case
+
+  double lengthLength=encodeLength(c,m);
+  double binaryLength=encodeNonAlpha(c,m);
+  stripNonAlpha(m,alpha);
+  mungeCase(alpha);
+  double caseLengthI=encodeCaseInitialCaps(c,alpha);
+  foldCaseInitialCaps(alpha);
+  double caseLengthL=encodeCaseLevelTriggered(c,alpha);
+  stripNonAlpha(m,alpha);
+  mungeCase(alpha);
+  foldCase(alpha,lcalpha);
+  double alphaLength=encodeLCAlphaSpace(c,lcalpha);
+  
+  if (c->bits_used>=8*strlen(m))
+    {
+      /* we can't encode it more efficiently than 7-bit ASCII */
+      range_reset(c);
+      for(i=0;m[i];i++) {
+	double p_low=m[i]*1.0/256;
+	double p_high=m[i+1]*1.0/256-EPSILON;
+	range_encode(c,p_low,p_high);
+      }
+    }
+
+  return 0;
+}
+
+
 int main(int argc,char *argv[])
 {
   if (!argv[1]) {
@@ -376,8 +420,6 @@ int main(int argc,char *argv[])
   }
 
   char m[1024]; // raw message, no pre-processing
-  char alpha[1024]; // message with all non alpha/spaces removed
-  char lcalpha[1024]; // message with all alpha chars folded to lower-case
   
   m[0]=0; fgets(m,1024,stdin);
   
@@ -385,55 +427,24 @@ int main(int argc,char *argv[])
   double runningPercent=0;
   double worstPercent=0,bestPercent=100;
 
-  while(m[0]) {
+  while(m[0]) {    
     /* chop newline */
     m[strlen(m)-1]=0;
     if (1) printf(">>> %s\n",m);
 
-    double lengthLength=encodeLength(m);
-    double binaryLength=encodeNonAlpha(m);
-    stripNonAlpha(m,alpha);
-    mungeCase(alpha);
-    double caseLengthI=encodeCaseInitialCaps(alpha);
-    foldCaseInitialCaps(alpha);
-    double caseLengthE=encodeCaseEdgeTriggered(alpha);
-    double caseLengthL=encodeCaseLevelTriggered(alpha);
-    stripNonAlpha(m,alpha);
-    mungeCase(alpha);
-    foldCase(alpha,lcalpha);
-    double alphaLength=encodeLCAlphaSpace(lcalpha);
-    
-    double caseLength=1;
-    if (caseLengthE<caseLengthL)
-      caseLength+=caseLengthE;
-    else 
-      caseLength+=caseLengthL;
+    range_coder *c=range_new_coder(strlen(m)*2);
+    freq_compress(c,m);
+    range_conclude(c);
 
-    caseLength=caseLengthI+caseLengthE;
-
-    printf("edge=%.0f, level=%.0f, initial=%.0f\n",caseLengthE,caseLengthL,caseLengthI);
-
-    double length=lengthLength+binaryLength+caseLength+alphaLength;
-
-    if ((length>=(8*strlen(m)))
-	&&(binaryLength<=1)) {
-      /* we can't encode it more efficiently than 7-bit ASCII */
-      lengthLength=0;
-      binaryLength=0;
-      caseLength=0;
-      alphaLength=8*strlen(m);
-      length=alphaLength;
-    }
-
-    double percent=length*12.5/strlen(m);
+    double percent=c->bits_used*1.0/(strlen(m)*8);
     if (percent<bestPercent) bestPercent=percent;
     if (percent>worstPercent) worstPercent=percent;
     runningPercent+=percent;
+
     lines++;
 
     printf("Total encoded length = L%.1f+B%.1f+C%.1f+A%.1f = %f bits = %.2f%% (best:avg:worst %.2f%%:%.2f%%:%.2f%%)\n",
-	   lengthLength,binaryLength,caseLength,alphaLength,
-	   length,percent,bestPercent,runningPercent/lines,worstPercent);
+	   c->bits_used,percent,bestPercent,runningPercent/lines,worstPercent);
     m[0]=0; fgets(m,1024,stdin);
   }
   return 0;
