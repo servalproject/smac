@@ -4,7 +4,8 @@
 #include <math.h>
 #include "arithmetic.h"
 
-#undef UNDERFLOWFIX
+#undef UNDERFLOWFIXENCODE
+#undef UNDERFLOWFIXDECODE
 
 int bits2bytes(int b)
 {
@@ -58,7 +59,7 @@ int range_emit_stable_bits(range_coder *c)
       c->high=c->high<<1;
       c->high|=1;
     }
-#ifdef UNDERFLOWFIX
+#ifdef UNDERFLOWFIXENCODE
   /* Now see if we have underflow, and need to count the number of underflowed
      bits. */
   else if (((c->low&0xc0000000)==0x40000000)
@@ -201,19 +202,19 @@ int range_conclude(range_coder *c)
   int i,msb=(v>>31)&1;
 
   /* output msb and any deferred underflow bits. */
-  printf("conclude emit: %d",msb);
+  //  printf("conclude emit: %d",msb);
   if (range_emitbit(c,msb)) return -1;
-  if (c->underflow>0) printf("  plus %d underflow bits.\n",c->underflow);
+  //  if (c->underflow>0) printf("  plus %d underflow bits.\n",c->underflow);
   while(c->underflow-->0) if (range_emitbit(c,msb^1)) return -1;
 
   /* now push bits until we know we have enough to unambiguously place the value
      within the final probability range. */
   for(i=1;i<bits;i++) {
     int b=(v>>(31-i))&1;
-    printf("%d",b);
+    //    printf("%d",b);
     if (range_emitbit(c,b)) return -1;
   }
-  printf(" (of %s)\n",asbits(mean));
+  //  printf(" (of %s)\n",asbits(mean));
   return 0;
 }
 
@@ -293,7 +294,7 @@ int range_decode_symbol(range_coder *c,double frequencies[],int alphabet_size)
       {
 	/* MSBs match, so bit will get shifted out */
       }
-#if UNDERFLOWFIX
+#ifdef UNDERFLOWFIXDECODE
     else if (((c->low&0xc0000000)==0x40000000)
 	     &&((c->high&0xc0000000)==0x80000000))
       {
@@ -379,6 +380,7 @@ int range_coder_free(range_coder *c)
   return 0;
 }
 
+#ifdef STANDALONE
 int main() {
   struct range_coder *c=range_new_coder(8192);
 
@@ -418,15 +420,6 @@ int main() {
       
       printf("Test #%d : %d symbols, with %d symbol alphabet\n",
 	     test,length,alphabet_size);\
-      {
-	int k;
-	printf("symbol probability steps: ");
-	for(k=0;k<alphabet_size-1;k++) printf(" %f",frequencies[k]);
-	printf("\n");
-	printf("symbol list: ");
-	for(k=0;k<length;k++) printf(" %d#%d",sequence[k],k);
-	printf("\n");
-      }
 
       /* Quick test. If it works, no need to go into more thorough examination. */
       range_coder_reset(c);
@@ -456,7 +449,17 @@ int main() {
 	       test,length,c->bits_used,c->entropy);
 	continue;
       }
+      {
+	int k;
+	printf("symbol probability steps: ");
+	for(k=0;k<alphabet_size-1;k++) printf(" %f",frequencies[k]);
+	printf("\n");
+	printf("symbol list: ");
+	for(k=0;k<length;k++) printf(" %d#%d",sequence[k],k);
+	printf("\n");
+      }
       fprintf(stderr,"Test #%d failed: verify error of symbol %d\n",test,i);
+
 
       /* Encode the random symbols */
       range_coder_reset(c);
@@ -540,3 +543,4 @@ int main() {
   return 0;
 }
 
+#endif

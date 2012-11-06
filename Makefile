@@ -10,6 +10,10 @@ smaz_test: smaz_test.c smaz.c
 clean:
 	rm -rf smaz_test
 
+arithmetic:	arithmetic.c arithmetic.h
+	# Build for running tests
+	gcc -g -Wall -DSTANDALONE -o arithmetic arithmetic.c
+
 gen_stats:	gen_stats.c
 	gcc -g -Wall -o gen_stats gen_stats.c
 
