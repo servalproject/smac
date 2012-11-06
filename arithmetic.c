@@ -7,8 +7,6 @@
 #undef UNDERFLOWFIXENCODE
 #undef UNDERFLOWFIXDECODE
 
-#define prob(X) (frequencies[X]*1.0/0x100000000)
-
 int bits2bytes(int b)
 {
   int extra=0;
@@ -116,8 +114,8 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
     fprintf(stderr,"Ran out of room in coder space (convergence around 0.5?)\n");
     exit(-1);
   }
-  double new_low=c->low+((p_low*space)>>32);
-  double new_high=c->low+((p_high*space)>>32);
+  unsigned int new_low=c->low+((p_low*space)>>32LL);
+  unsigned int new_high=c->low+((p_high*space)>>32LL);
 
   c->low=new_low;
   c->high=new_high;
@@ -130,8 +128,8 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 
 int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 {
-  double p_low=symbol*1.0/alphabet_size;
-  double p_high=(symbol+1)*1.0/alphabet_size;
+  unsigned int p_low=((unsigned long long)symbol<<32LL)/alphabet_size;
+  unsigned int p_high=((unsigned long long)(symbol+1)<<32LL)/alphabet_size;
   return range_encode(c,p_low,p_high);
 }
 
@@ -158,6 +156,8 @@ char *range_coder_lastbits(range_coder *c,int count)
 
 int range_status(range_coder *c,int decoderP)
 {
+  unsigned int value = decoderP?c->value:(((unsigned long long)c->high+(unsigned long long)c->low)>>1LL);
+  unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low;
   if (!c) return -1;
   char *prefix=range_coder_lastbits(c,8192);
   char spaces[8193];
@@ -167,10 +167,10 @@ int range_status(range_coder *c,int decoderP)
   spaces[i]=0; prefix[i]=0;
 
   printf("range  low: %s%s (offset=%d bits)\n",spaces,asbits(c->low),c->bits_used);
-  printf("     value: %s%s (%u/%u = %f)\n",
-	 range_coder_lastbits(c,8192),decoderP?"":asbits(c->value),
-	 (c->value-c->low),(c->high-c->low),
-	 (c->value-c->low)*1.0/(c->high-c->low));
+  printf("     value: %s%s (%u/%llu = %llu)\n",
+	 range_coder_lastbits(c,8192),decoderP?"":asbits(value),
+	 (value-c->low),space,
+	 (((unsigned long long)value-(unsigned long long)c->low)<<32LL)/space);
   printf("range high: %s%s\n",spaces,asbits(c->high));
   return 0;
 }
@@ -254,7 +254,8 @@ int range_encode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   if (symbol>0) p_low=frequencies[symbol-1];
   unsigned int p_high=0xffffffff;
   if (symbol<(alphabet_size-1)) p_high=frequencies[symbol]-1;
-  // printf("symbol=%d, p_low=%f, p_high=%f\n",symbol,p_low,p_high);
+  range_status(c,0);
+  printf("symbol=%d, p_low=%u, p_high=%u\n",symbol,p_low,p_high);
   return range_encode(c,p_low,p_high);
 }
 
@@ -285,8 +286,7 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
 {
   int s;
   unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
-  double vv=(c->value-c->low)/space;
-  unsigned int v=vv*=0x100000000;
+  unsigned int v=(((unsigned long long)(c->value-c->low))<<32LL)/space;
   
   //  printf(" decode: v=%f; ",v);
   // range_status(c);
@@ -294,31 +294,35 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   for(s=0;s<(alphabet_size-1);s++)
     if (v<=frequencies[s]) break;
   
-  double p_low=0;
-  if (s>0) p_low=prob(s-1);
-  double p_high=1;
-  if (s<alphabet_size-1) p_high=prob(s)-EPSILON;
+  unsigned int p_low=0;
+  if (s>0) p_low=frequencies[s-1];
+  unsigned int p_high=0xffffffff;
+  if (s<alphabet_size-1) p_high=frequencies[s]-1;
 
   // printf("s=%d, v=%f, p_low=%f, p_high=%f\n",s,v,p_low,p_high);
   // range_status(c);
 
   // printf("in decode_symbol() about to call decode_common()\n");
   // range_status(c,1);
-  return range_decode_common(c,p_low,p_high,s);
+    return range_decode_common(c,p_low,p_high,s);
 }
 
 int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,int s)
 {
   unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
-  long long new_low=c->low+p_low*space;
-  long long new_high=c->low+p_high*space;
-  if (p_high>=1) new_high=c->high;
+  long long new_low=c->low+(((unsigned long long)p_low*space)>>32LL);
+  long long new_high=c->low+(((unsigned long long)p_high*space)>>32LL);
+  if (p_high>=0xffffffff) new_high=c->high;
   if (new_high>0xffffffff) {
     printf("new_high=0x%llx\n",new_high);
     new_high=0xffffffff;
   }
 
   printf("p_low=0x%08x, p_high=0x%08x, space=%llu\n",p_low,p_high,space);
+  if (p_high<=1) {
+    sleep(5);
+  }
+  
 
   /* work out how many bits are still significant */
   c->low=new_low;
@@ -372,16 +376,6 @@ int range_decode_prefetch(range_coder *c)
   int i;
   for(i=0;i<32;i++)
     c->value=(c->value<<1)|range_decode_getnextbit(c);
-  return 0;
-}
-
-int cmp_double(const void *a,const void *b)
-{
-  double *aa=(double *)a;
-  double *bb=(double *)b;
-
-  if (*aa<*bb) return -1;
-  if (*aa>*bb) return 1;
   return 0;
 }
 
@@ -554,11 +548,11 @@ int main() {
 	    range_status(vc2,1);
 
 	    int s;
-	    double space=vc2->high-vc2->low;
-	    double v=(vc2->value-vc2->low)/space;
+	    unsigned long long space=(unsigned long long)vc2->high-(unsigned long long)vc2->low+1;
+	    unsigned int v=((unsigned long long)(vc2->value-vc2->low)<<32LL)/space;
 	    
-	    //  printf(" decode: v=%f; ",v);
-	    // range_status(c);
+	    printf(" decode: v=%u; ",v);
+	    range_status(c,1);
 	    
 	    for(s=0;s<(alphabet_size-1);s++)
 	      if (v<frequencies[s]) break;
@@ -568,7 +562,7 @@ int main() {
 	    double p_high=1;
 	    if (s<alphabet_size-1) p_high=frequencies[s]*1.0/0x100000000;
 	    
-	    printf("  s=%d, v=%f, p_low=%f, p_high=%f\n",s,v,p_low,p_high);
+	    printf("  s=%d, v=%u, p_low=%f, p_high=%f\n",s,v,p_low,p_high);
 	  }
 	  range_coder_free(vc2);
 	  
