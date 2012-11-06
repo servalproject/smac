@@ -110,7 +110,7 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
   }
 
   unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
-  if (space<0x10000) {
+  if (space<0x100000) {
     fprintf(stderr,"Ran out of room in coder space (convergence around 0.5?)\n");
     exit(-1);
   }
@@ -120,7 +120,7 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
   c->low=new_low;
   c->high=new_high;
 
-  c->entropy+=-log(p_high-p_low)/log(2);
+  c->entropy+=-log(p_high-p_low+1)/log(2);
 
   if (range_emit_stable_bits(c)) return -1;
   return 0;
@@ -129,7 +129,7 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 {
   unsigned int p_low=((unsigned long long)symbol<<32LL)/alphabet_size;
-  unsigned int p_high=((unsigned long long)(symbol+1)<<32LL)/alphabet_size;
+  unsigned int p_high=((unsigned long long)(symbol+1)<<32LL)/alphabet_size-1;
   return range_encode(c,p_low,p_high);
 }
 
@@ -157,9 +157,9 @@ char *range_coder_lastbits(range_coder *c,int count)
 int range_status(range_coder *c,int decoderP)
 {
   unsigned int value = decoderP?c->value:(((unsigned long long)c->high+(unsigned long long)c->low)>>1LL);
-  unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low;
+  unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
   if (!c) return -1;
-  char *prefix=range_coder_lastbits(c,8192);
+  char *prefix=range_coder_lastbits(c,90);
   char spaces[8193];
   int i;
   for(i=0;prefix[i];i++) spaces[i]=' '; 
@@ -168,7 +168,7 @@ int range_status(range_coder *c,int decoderP)
 
   printf("range  low: %s%s (offset=%d bits)\n",spaces,asbits(c->low),c->bits_used);
   printf("     value: %s%s (%u/%llu = %llu)\n",
-	 range_coder_lastbits(c,8192),decoderP?"":asbits(value),
+	 range_coder_lastbits(c,90),decoderP?"":asbits(value),
 	 (value-c->low),space,
 	 (((unsigned long long)value-(unsigned long long)c->low)<<32LL)/space);
   printf("range high: %s%s\n",spaces,asbits(c->high));
@@ -254,8 +254,8 @@ int range_encode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   if (symbol>0) p_low=frequencies[symbol-1];
   unsigned int p_high=0xffffffff;
   if (symbol<(alphabet_size-1)) p_high=frequencies[symbol]-1;
-  range_status(c,0);
-  printf("symbol=%d, p_low=%u, p_high=%u\n",symbol,p_low,p_high);
+  //  range_status(c,0);
+  //  printf("symbol=%d, p_low=%u, p_high=%u\n",symbol,p_low,p_high);
   return range_encode(c,p_low,p_high);
 }
 
@@ -318,18 +318,14 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
     new_high=0xffffffff;
   }
 
-  printf("p_low=0x%08x, p_high=0x%08x, space=%llu\n",p_low,p_high,space);
-  if (p_high<=1) {
-    sleep(5);
-  }
-  
+  // printf("p_low=0x%08x, p_high=0x%08x, space=%llu\n",p_low,p_high,space);  
 
   /* work out how many bits are still significant */
   c->low=new_low;
   c->high=new_high;
 
-  printf("after decode before renormalise:\n");
-  range_status(c,1);
+  // printf("after decode before renormalise:\n");
+  // range_status(c,1);
 
   range_check(c,__LINE__);
   while(1) {
@@ -499,7 +495,7 @@ int main() {
       {
 	int k;
 	printf("symbol probability steps: ");
-	for(k=0;k<alphabet_size-1;k++) printf(" %f",frequencies[k]*1.0/0x100000000);
+	for(k=0;k<alphabet_size-1;k++) printf(" %f[0x%08x]",frequencies[k]*1.0/0x100000000,frequencies[k]);
 	printf("\n");
 	printf("symbol list: ");
 	for(k=0;k<length;k++) printf(" %d#%d",sequence[k],k);
@@ -524,7 +520,7 @@ int main() {
 	   notice. */
 	range_coder *vc=range_coder_dup(c);
 	range_conclude(vc);
-	printf("bit sequence: %s\n",range_coder_lastbits(vc,8192));
+	// printf("bit sequence: %s\n",range_coder_lastbits(vc,8192));
 	/* Now convert encoder state into a decoder state */
 	vc->bit_stream_length=vc->bits_used;
 	vc->bits_used=0;
@@ -537,13 +533,13 @@ int main() {
 	    exit(-1);
 	  }	  
 
-	  if (j==i) {
+	  if (0&&j==i) {
 	    printf("coder status before emitting symbol #%d:\n",i); 
 	    range_status(dup,0);
 	    printf("coder status after emitting symbol #%d:\n",i); 
 	    range_status(c,0);
 	  }
-	  if (1) {
+	  if (0) {
 	    printf("decoder status before extracting symbol #%d:\n",j);
 	    range_status(vc2,1);
 
@@ -551,7 +547,7 @@ int main() {
 	    unsigned long long space=(unsigned long long)vc2->high-(unsigned long long)vc2->low+1;
 	    unsigned int v=((unsigned long long)(vc2->value-vc2->low)<<32LL)/space;
 	    
-	    printf(" decode: v=%u; ",v);
+	    printf(" decode: v=%u\n",v);
 	    range_status(c,1);
 	    
 	    for(s=0;s<(alphabet_size-1);s++)
@@ -562,9 +558,28 @@ int main() {
 	    double p_high=1;
 	    if (s<alphabet_size-1) p_high=frequencies[s]*1.0/0x100000000;
 	    
-	    printf("  s=%d, v=%u, p_low=%f, p_high=%f\n",s,v,p_low,p_high);
+	    //	    printf("  s=%d, p_v=%f, p_low=%f, p_high=%f\n",s,v*1.0/0x100000000,p_low,p_high);
+	    //      printf("  low=0x%08x, v=0x%08x, high=0x%08x\n",vc2->low,vc2->value,vc2->high);
 	  }
-	  range_coder_free(vc2);
+
+	  /* Show encoder status at that point in time */
+	  range_coder *vc3=range_new_coder(8192);
+	  int k;
+	  for(k=0;k<j;k++) {	   
+	    if (range_encode_symbol(vc3,frequencies,alphabet_size,sequence[k]))
+	      {
+		fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
+			k,length);
+		exit(-1);
+	      }		
+	  }
+	  /* only one side is expected to match at any time */
+	  if (vc3->low!=vc2->low||vc3->high!=vc2->high) {
+	    printf("Encoder/decoder status diverged after symbol #%d\n",j);
+	    printf("decode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc2->low,vc2->value,vc2->high);
+	    printf("encode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc3->low,vc3->value,vc3->high);
+	    exit(-1);
+	  }
 	  
 	  int s=range_decode_symbol(vc,frequencies,alphabet_size);
 	  if (s!=sequence[j]) {
@@ -575,10 +590,23 @@ int main() {
 	      fprintf(stderr,"Verify is on final character.\n"
 		      "Encoder state before encoding final symbol was as follows:\n");
 	      fflush(stderr);
-	    }
+	    } else {
+	      double p_v=(vc2->value-vc2->low)*1.0/(vc2->high-vc2->low+1);
+	      
+	      unsigned long long space=(unsigned long long)vc2->high-(unsigned long long)vc2->low+1;
+	      unsigned int v=(((unsigned long long)(vc2->value-vc2->low))<<32LL)/space;
 
+	      printf("Encoder/decoder status at symbol #%d\n",j);
+	      printf("decode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc2->low,vc2->value,vc2->high);
+	      printf("         p_v=%f, v=0x%08x\n",p_v,v);
+		     
+	      printf("encode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc3->low,vc3->value,vc3->high);	      
+	    }
 	    exit(-1);
 	  }
+
+	  range_coder_free(vc2);
+	  range_coder_free(vc3);
 	}
 
 	range_coder_free(vc);

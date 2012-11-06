@@ -1,4 +1,3 @@
-#define EPSILON 0.000001
 
 typedef struct range_coder {
   unsigned int low;
