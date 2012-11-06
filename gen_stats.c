@@ -16,19 +16,36 @@
 #include <strings.h>
 #include <stdlib.h>
 
-long long counts3[72][72][72];
-long long counts2[72][72];
-long long counts1[72];
+/* 3rd - 1st order frequency statistics for all characters */
+long long counts3[69][69][69];
+long long counts2[69][69];
+long long counts1[69];
 
-unsigned char chars[72]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
+/* Frequency of letter case in each position of a word. */
+long long caseposn3[2][2][80][2]; // position in word
+long long caseposn2[2][80][2]; // position in word
+long long caseposn1[80][2]; // position in word
+long long caseend[2]; // end of word
+
+unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
+unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
+
 int charIdx(unsigned char c)
 {
   int i;
-  for(i=0;i<72;i++)
+  for(i=0;i<69;i++)
     if (c==chars[i]) return i;
        
   /* Not valid character -- must be encoded separately */
   return -1;
+}
+
+int charInWord(unsigned c)
+{
+  int i;
+  int cc=tolower(c);
+  for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
+  return 0;
 }
 
 int main(int argc,char **argv)
@@ -36,16 +53,25 @@ int main(int argc,char **argv)
   char line[8192];
 
   int i,j,k;
-  for(i=0;i<72;i++) for(j=0;j<72;j++) for(k=0;k<72;k++) counts3[i][j][k]=0;
-  for(j=0;j<72;j++) for(k=0;k<72;k++) counts2[j][k]=0;
-  for(k=0;k<72;k++) counts1[k]=0;
+  /* Zero statistics */
+  for(i=0;i<69;i++) for(j=0;j<69;j++) for(k=0;k<69;k++) counts3[i][j][k]=0;
+  for(j=0;j<69;j++) for(k=0;k<69;k++) counts2[j][k]=0;
+  for(k=0;k<69;k++) counts1[k]=0;
+  for(i=0;i<2;i++) { caseend[i]=0;
+    for(j=0;j<80;j++) { caseposn1[j][i]=0; 
+      for(k=0;k<2;k++) caseposn2[k][j][i]=0;
+    }
+  }
 
   line[0]=0; fgets(line,8192,stdin);
   int lineCount=0;
+  int wordPosn=0;
+
   while(line[0]) {
     lineCount++;
     int c1=charIdx(' ');
     int c2=charIdx(' ');
+    int lc=0;
     for(i=0;i<strlen(line)-1;i++)
       {
 	if (line[i]=='\\') {
@@ -64,6 +90,24 @@ int main(int argc,char **argv)
 	    break;
 	  }
 	}
+
+	int wc=charInWord(line[i]);
+	if (!wc) {	  
+	  wordPosn=-1; lc=0;
+	} else {
+	  if (isalpha(line[i])) {
+	    wordPosn++;
+	    int upper=0;
+	    if (isupper(line[i])) upper=1; 
+	    if (wordPosn<80) caseposn1[wordPosn][upper]++;
+	    if (wordPosn<80) caseposn2[lc][wordPosn][upper]++;
+	    /* note if end of word (which includes end of message,
+	       implicitly detected here by finding null at end of string */
+	    if (!charInWord(line[i+1])) caseend[upper]++;
+	    if (isupper(line[i])) lc=1; else lc=0;
+	  }
+	}
+
 	/* fold all letters to lower case */
 	if (line[i]>='A'&&line[i]<='Z') line[i]|=0x20;
 
@@ -80,19 +124,21 @@ int main(int argc,char **argv)
     line[0]=0; fgets(line,8192,stdin);
   }
 
-  printf("float tweet_freqs3[72][72][72]={\n");
-  for(i=0;i<72;i++) {
+  printf("float tweet_freqs3[69][69][69]={\n");
+  for(i=0;i<69;i++) {
     printf("  {\n");
-    for(j=0;j<72;j++) {
+    for(j=0;j<69;j++) {
       int rowCount=0;
-      for(k=0;k<72;k++) { 
+      double total=0;
+      for(k=0;k<69;k++) { 
 	if (!counts3[i][j][k]) counts3[i][j][k]=1;
 	rowCount+=counts3[i][j][k];
       }
       printf("      /* %c %c */ {",chars[i],chars[j]);
-      for(k=0;k<72;k++) {
-	printf("%.6f",counts3[i][j][k]*1.0/rowCount);
-	if (k<71) printf(",");
+      for(k=0;k<69;k++) {
+	total+=counts3[i][j][k]*1.0/rowCount;
+	printf("%.6f",total);
+	if (k<(69-1)) printf(",");
       }
       printf("},\n");
     }
@@ -100,35 +146,90 @@ int main(int argc,char **argv)
   }
   printf("};\n");
   
-  printf("float tweet_freqs2[72][72]={\n");
-  for(j=0;j<72;j++) {
+  printf("\nfloat tweet_freqs2[69][69]={\n");
+  for(j=0;j<69;j++) {
     int rowCount=0;
-    for(k=0;k<72;k++) { 
+    double total=0;
+    for(k=0;k<69;k++) { 
       if (!counts2[j][k]) counts2[j][k]=1;
       rowCount+=counts2[j][k];
     }
     printf("      /* %c */ {",chars[j]);
-    for(k=0;k<72;k++) {
-      printf("%.6f",counts2[j][k]*1.0/rowCount);
-      if (k<71) printf(",");
+    for(k=0;k<69;k++) {
+      total+=counts2[j][k]*1.0/rowCount;
+      printf("%.6f",total);
+      if (k<(69-1)) printf(",");
     }
     printf("},\n");
   }
   printf("};\n");
   
-  printf("float tweet_freqs1[72]={\n");
+  printf("\nfloat tweet_freqs1[69]={\n");
   {
     int rowCount=0;
-    for(k=0;k<72;k++) { 
+    double total=0;
+    for(k=0;k<69;k++) { 
       if (!counts1[k]) counts1[k]=1;
       rowCount+=counts1[k];
     }
-    for(k=0;k<72;k++) {
-      printf("%.6f",counts1[k]*1.0/rowCount);
-      if (k<71) printf(",");
+    for(k=0;k<69;k++) {
+      total+=counts1[k]*1.0/rowCount;
+      printf("%.6f",total);
+      if (k<(69-1)) printf(",");
     }
     printf("};\n");  
   }
+
+  printf("\nfloat caseend1[1][1]={{");
+  {
+    int rowCount=0;
+    for(k=0;k<2;k++) {
+      if (!caseend[k]) caseend[k]=1;
+      rowCount+=caseend[k];
+    }
+    for(k=0;k<(2-1);k++) {
+      printf("%.6f",caseend[k]*1.0/rowCount);
+      if (k<(2-1)) printf(",");
+    }
+    printf("}};\n");  
+  }
+
+  printf("\nfloat caseposn1[80][1]={\n");
+  for(j=0;j<80;j++) {
+    int rowCount=0;
+    for(k=0;k<2;k++) {
+      if (!caseposn1[j][k]) caseposn1[j][k]=1;
+      rowCount+=caseposn1[j][k];    
+    }
+    printf("      /* %dth char of word */ {",j);
+    k=0;
+    printf("%.6f}",caseposn1[j][k]*1.0/rowCount);
+    if (j<(80-1)) printf(",");
+    
+    printf("\n");
+  }
+  printf("};\n");
   
+  printf("\nfloat caseposn2[2][80][1]={\n");
+  for(i=0;i<2;i++) {
+    printf("  {\n");
+    for(j=0;j<80;j++) {
+      int rowCount=0;
+      for(k=0;k<2;k++) {
+	if (!caseposn2[i][j][k]) caseposn2[i][j][k]=1;
+	rowCount+=caseposn2[i][j][k];    
+      }
+      printf("      /* %dth char of word */ {",j);
+      k=0;
+      printf("%.6f",caseposn2[i][j][k]*1.0/rowCount);
+      printf("}");
+      if (j<(80-1)) printf(",");
+      
+      printf("\n");
+    }
+    printf("  },\n");
+  }
+  printf("};\n");
+
   return 0;
 }
