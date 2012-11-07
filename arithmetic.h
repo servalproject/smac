@@ -4,6 +4,9 @@ typedef struct range_coder {
   unsigned int high;
   unsigned int value;
   int underflow;
+  
+  /* if non-zero, prevents use of underflow/overflow rescaling */
+  int norescale;
 
   double entropy;
 

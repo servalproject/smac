@@ -4,9 +4,6 @@
 #include <math.h>
 #include "arithmetic.h"
 
-#define UNDERFLOWFIXENCODE
-#define UNDERFLOWFIXDECODE
-
 int bits2bytes(int b)
 {
   int extra=0;
@@ -62,10 +59,9 @@ int range_emit_stable_bits(range_coder *c)
       c->high=c->high<<1;
       c->high|=1;
     }
-#ifdef UNDERFLOWFIXENCODE
   /* Now see if we have underflow, and need to count the number of underflowed
      bits. */
-  else if (((c->low&0xc0000000)==0x40000000)
+  else if ((!c->norescale)&&((c->low&0xc0000000)==0x40000000)
 	   &&((c->high&0xc0000000)==0x80000000))
     {
       c->underflow++;
@@ -80,7 +76,6 @@ int range_emit_stable_bits(range_coder *c)
 	exit(-1);
       }
     }
-#endif
   else 
     return 0;
   }
@@ -343,8 +338,7 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
       {
 	/* MSBs match, so bit will get shifted out */
       }
-#ifdef UNDERFLOWFIXDECODE
-    else if ((c->low&0x40000000)
+    else if ((!c->norescale)&&(c->low&0x40000000)
 	     &&(!(c->high&0x40000000)))
       {
 	printf("removing underflow bit during decode @ bit %d\n",c->bits_used);
@@ -356,7 +350,6 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
 	printf(" post:  low=0x%08x, v=0x%08x, high=0x%08x\n",
 	       c->low<<1,c->value<<1,c->high<<1);
       }
-#endif
     else {
       /* nothing can be done */
       range_check(c,__LINE__);
@@ -479,6 +472,7 @@ int main() {
 
       /* Quick test. If it works, no need to go into more thorough examination. */
       range_coder_reset(c);
+      c->norescale=1;
       for(i=0;i<length;i++) {
 	if (range_encode_symbol(c,frequencies,alphabet_size,sequence[i]))
 	  {
@@ -521,6 +515,7 @@ int main() {
 
       /* Encode the random symbols */
       range_coder_reset(c);
+      c->norescale=1;
       for(i=0;i<length;i++) {
 	range_coder *dup=range_coder_dup(c);
 
@@ -579,6 +574,7 @@ int main() {
 
 	  /* Show encoder status at that point in time */
 	  range_coder *vc3=range_new_coder(8192);
+	  vc3->norescale=c->norescale;
 	  int k;
 	  for(k=0;k<j;k++) {	   
 	    if (range_encode_symbol(vc3,frequencies,alphabet_size,sequence[k]))
