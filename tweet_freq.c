@@ -283,7 +283,13 @@ int main(int argc,char *argv[])
 
   char m[1024]; // raw message, no pre-processing
   
-  m[0]=0; fgets(m,1024,stdin);
+  FILE *f=fopen(argv[1],"r");
+  if (!f) {
+    fprintf(stderr,"Failed to open `%s' for input.\n",argv[1]);
+    exit(-1);
+  }
+
+  m[0]=0; fgets(m,1024,f);
   
   int lines=0;
   double runningPercent=0;
@@ -294,7 +300,7 @@ int main(int argc,char *argv[])
     m[strlen(m)-1]=0;
     if (1) printf(">>> %s\n",m);
 
-    range_coder *c=range_new_coder(strlen(m)*2);
+    range_coder *c=range_new_coder(1024);
     freq_compress(c,(unsigned char *)m);
     range_conclude(c);
 
@@ -307,7 +313,8 @@ int main(int argc,char *argv[])
 
     printf("Total encoded length = %d bits = %.2f%% (best:avg:worst %.2f%%:%.2f%%:%.2f%%)\n",
 	   c->bits_used,percent,bestPercent,runningPercent/lines,worstPercent);
-    m[0]=0; fgets(m,1024,stdin);
+    m[0]=0; fgets(m,1024,f);
   }
+  fclose(f);
   return 0;
 }
