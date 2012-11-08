@@ -2,3 +2,22 @@ const-correct the source code
 release the ruby script to build new specialized dictionaries
 play well against currupted input in verbatim 253/254 codes memcpy()
 play with some form of entropy coding like Huffman or range coding
+
+tweet_freq:
+- flip case of "I" when a word
+- gather stats on all upper-case words and try encoding case that way
+  (should be good for long strings of upper case characters as well)
+- gather stats on what fraction of words compress using 3rd-order symbol
+  model, and start each word with a symbol that selects whether to use
+  that model, or to use flat statistics. really this is the beginning of
+  what should be a more general solution of using dynamic programming to
+  optimise selection of different models at different points, and determining
+  the optimal cost for model-switching.
+- rle encoding option for long strings of same character?
+- optimise encoding of message length to favour short messages (length currently
+  takes about 10% more bits to encode than does the case information). Alternative
+  option is a stop symbol, but probably less efficient for short messages.
+  Approximately half of all messages are <28 characters, suggesting that 5 bits
+  is about the right amount for most cases.  Of course, best approach is to generate
+  stats of message lengths, and use the range coder on it. duh.
+  

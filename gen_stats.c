@@ -27,6 +27,7 @@ long long caseposn2[2][80][2]; // position in word
 long long caseposn1[80][2]; // position in word
 long long caseend[2]; // end of word
 long long casestartofmessage[2]; // start of message
+long long messagelengths[1024];
 
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
@@ -63,6 +64,7 @@ int main(int argc,char **argv)
       for(k=0;k<2;k++) caseposn2[k][j][i]=0;
     }
   }
+  for(i=0;i<1024;i++) messagelengths[i]=0;
 
   line[0]=0; fgets(line,8192,stdin);
   int lineCount=0;
@@ -74,6 +76,11 @@ int main(int argc,char **argv)
     int c1=charIdx(' ');
     int c2=charIdx(' ');
     int lc=0;
+
+    /* record occurrance of message of this length.
+       (minus one for the LF at end of line that we chop) */
+    messagelengths[strlen(line)-1]++;
+
     for(i=0;i<strlen(line)-1;i++)
       {
 	if (line[i]=='\\') {
@@ -251,6 +258,25 @@ int main(int argc,char **argv)
     printf("  },\n");
   }
   printf("};\n");
+
+  printf("\nunsigned int messagelengths[1024]={\n");
+  {
+    int rowCount=0;
+    double total=0;
+    for(k=0;k<1024;k++) { 
+      if (!messagelengths[k]) messagelengths[k]=1;
+      rowCount+=messagelengths[k];
+    }
+    for(k=0;k<1024;k++) {
+      total+=messagelengths[k]*1.0/rowCount;
+      printf("   /* length = %d */ 0x%x",k,(unsigned int)(total*0xffffffff));
+      if (k<(1024-1)) printf(",");
+      printf("\n");
+    }
+    printf("};\n");  
+  }
+
+
 
   return 0;
 }

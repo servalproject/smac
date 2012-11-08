@@ -45,6 +45,7 @@ extern unsigned int caseend1[1][1];
 extern unsigned int caseposn2[2][80][1];
 extern unsigned int caseposn1[80][1];
 unsigned int casestartofmessage[1][1];
+unsigned int messagelengths[1024];
 
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 int charIdx(unsigned char c)
@@ -76,7 +77,10 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 int encodeLength(range_coder *c,unsigned char *m)
 {
   int len=strlen((char *)m);
-  range_encode_length(c,len);
+
+  //  range_encode_length(c,len);
+  printf("encoding len=%d\n",len);
+  range_encode_symbol(c,messagelengths,1024,len);
 
   return 0;
 }
