@@ -178,6 +178,7 @@ double encodeCaseModel1(range_coder *c,unsigned char *line)
 	  range_encode_symbol(c,frequencies,2,upper);
 	} else {
 	  /* subsequent letter, so can use case of previous letter in model */
+	  if (wordPosn>79) wordPosn=79;
 	  if (0) printf("case of first letter of word/message @ %d.%d: p=%f\n",
 			i,wordPosn,
 			(caseposn2[lastCase][wordPosn][0]*1.0)/0x100000000);
