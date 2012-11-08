@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <math.h>
 
 /* 3rd - 1st order frequency statistics for all characters */
 long long counts3[69][69][69];
@@ -28,6 +29,8 @@ long long caseposn1[80][2]; // position in word
 long long caseend[2]; // end of word
 long long casestartofmessage[2]; // start of message
 long long messagelengths[1024];
+
+long long wordBreaks=0;
 
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
@@ -50,6 +53,148 @@ int charInWord(unsigned c)
   return 0;
 }
 
+#define MAXWORDS 65536
+char *words[MAXWORDS];
+int wordCounts[MAXWORDS];
+int wordCount=0;
+int totalWords=0;
+
+int countWord(char *word,int len)
+{
+  if (len<1) return 0;
+  //  fprintf(stderr,"saw %s\n",word);
+
+  totalWords++;
+
+  int i;
+  for(i=0;i<wordCount;i++) if (!strcmp(word,words[i])) { wordCounts[i]++; return 0; }
+  if (i<MAXWORDS) {
+    words[i]=strdup(word);
+    wordCounts[i]=1;
+    wordCount++;
+    return 0;
+  } 
+  /* Too many words -- replace one that has only one count */
+  int end=random()%MAXWORDS;
+  i=end+1;
+  while(i!=end) {
+    i=i%MAXWORDS;
+    if (wordCounts[i]==1) {
+      fprintf(stderr,"replacing %s with %s (consider increasing MAXWORDS)\n",
+	      words[i],word);
+      free(words[i]);
+      words[i]=strdup(word);
+      wordCounts[i]=1;
+      return 0;
+    }   
+    i++;
+  }
+  
+  fprintf(stderr,"Ran out of word space. Definitely increase MAXWORDS.\n");
+  exit(-1);
+
+  return 0;
+}
+
+double entropyOfSymbol(long long v[69],int symbol)
+{
+  int i;
+  long long total=0;
+  for(i=0;i<69;i++) total+=v[i]?v[i]:1;
+  double entropy=-log((v[symbol]?v[symbol]:1)*1.0/total)/log(2);
+  // fprintf(stderr,"Entropy of %c = %f\n",chars[symbol],entropy);
+  return entropy;
+}
+
+int filterWords()
+{
+  /* Remove words from list that occur too rarely compared with their
+     length, such that it is unlikely that they will be useful for compression.
+  */
+  int i;
+  
+  fprintf(stderr,"Filtering word list.\n");
+
+
+  /* Remove very rare words */
+  for(i=0;i<wordCount;i++) 
+    if (wordCounts[i]<5) {
+      if (i!=wordCount-1) {
+	free(words[i]);
+	words[i]=words[wordCount-1];
+	wordCounts[i]=wordCounts[wordCount-1];
+	i--;
+      }
+      wordCount--;
+    }
+
+  int culled=1;
+  double totalSavings=0;
+  while(culled>0) 
+    {
+      totalSavings=0;
+      culled=0;
+      /* How many word occurrences are left */
+      int usefulOccurrences=0;
+      for(i=0;i<wordCount;i++) usefulOccurrences+=wordCounts[i];
+      double occurenceEntropy=-log(usefulOccurrences*1.0/wordBreaks)/log(2);
+      double nonoccurrenceEntropy=-log((wordBreaks-usefulOccurrences)*1.0/wordBreaks)/log(2);
+      nonoccurrenceEntropy*=(wordBreaks-usefulOccurrences);     
+      fprintf(stderr,"%d words left.\n",wordCount);
+      fprintf(stderr,"  Total non-occurence penalty = %f bits.\n",
+	      nonoccurrenceEntropy);
+      fprintf(stderr,"  Occurence penalty = %f bits (%lld word breaks, %d common word occurrences).\n",
+	      occurenceEntropy,
+	      wordBreaks,usefulOccurrences);
+      occurenceEntropy+=nonoccurrenceEntropy/usefulOccurrences;
+      fprintf(stderr,"  Grossed up occurrence penalty (base + amortised non-occurrence penalty) = %f bits\n",occurenceEntropy);
+      for(i=0;i<wordCount;i++) {
+
+	double entropyOccurrence=-log(wordCounts[i]*1.0/totalWords)/log(2);
+	
+	/* Very crude: should use 3rd order stats we have gathered to calculate 
+	   a more accurate estimate of entropy of the word. */
+	double entropyWord=0;
+	
+	char *word=words[i];
+	entropyWord+=entropyOfSymbol(counts1,charIdx(word[0]));
+	if (word[1]) {
+	  entropyWord+=entropyOfSymbol(counts2[charIdx(word[0])],charIdx(word[1]));
+	  int j;
+	  for(j=2;word[j];j++) {
+	    entropyWord
+	      +=entropyOfSymbol(counts3[charIdx(word[j-2])][charIdx(word[j-1])],
+				charIdx(word[j]));
+	  }	
+	}
+	
+	if ((entropyOccurrence+occurenceEntropy)<entropyWord) {
+	  double savings=wordCounts[i]*(entropyWord-(entropyOccurrence+occurenceEntropy));
+	  totalSavings+=savings;
+	  fprintf(stderr,"entropy of %s occurrences (x%d) = %f bits."
+		  " Entropy of word is %f bits. Savings = %f\n",
+		  words[i],wordCounts[i],entropyOccurrence,entropyWord,savings);
+	} else {
+	  /* Word doesn't occur often enough, or is too low entropy to encode 
+	     directly. Either way, it doesn't make sense to introduce a symbol
+	     for it.
+	  */
+	  if (i!=wordCount-1) {
+	    free(words[i]);
+	    words[i]=words[wordCount-1];
+	    wordCounts[i]=wordCounts[wordCount-1];
+	    i--;
+	  }
+	  wordCount--;
+	  culled++;
+	}
+      }
+    }
+  fprintf(stderr,"Expect to save %f bits by encoding %d common words\n",
+	  totalSavings,wordCount);
+  return 0;
+}
+
 int main(int argc,char **argv)
 {
   char line[8192];
@@ -68,7 +213,8 @@ int main(int argc,char **argv)
 
   line[0]=0; fgets(line,8192,stdin);
   int lineCount=0;
-  int wordPosn=0;
+  int wordPosn=-1;
+  char word[1024];
 
   while(line[0]) {
     int som=1;
@@ -101,11 +247,17 @@ int main(int argc,char **argv)
 	}
 
 	int wc=charInWord(line[i]);
-	if (!wc) {	  
-	  wordPosn=-1; lc=0;
+	if (!wc) {
+	  if (wordPosn>0) {
+	    countWord(word,strlen(word));
+	  }
+	  wordBreaks++;
+	  wordPosn=-1; lc=0;	 
 	} else {
 	  if (isalpha(line[i])) {
 	    wordPosn++;
+	    word[wordPosn]=tolower(line[i]);
+	    word[wordPosn+1]=0;
 	    int upper=0;
 	    if (isupper(line[i])) upper=1; 
 	    if (wordPosn<80) caseposn1[wordPosn][upper]++;
@@ -276,7 +428,7 @@ int main(int argc,char **argv)
     printf("};\n");  
   }
 
-
+  filterWords();
 
   return 0;
 }
