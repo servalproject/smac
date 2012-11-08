@@ -244,6 +244,9 @@ int freq_compress(range_coder *c,unsigned char *m)
   
   printf("%f bits to encode case\n",c->entropy-lastEntropy);
 
+  range_conclude(c);
+  printf("%d bits actually used after concluding.\n",c->bits_used);
+
   if (c->bits_used>=7*strlen((char *)m))
     {
       /* we can't encode it more efficiently than 7-bit ASCII */
@@ -261,6 +264,9 @@ int freq_compress(range_coder *c,unsigned char *m)
 	if (isalpha(v))
 	  range_encode_equiprobable(c,2,upper);
       }
+      range_conclude(c);
+      printf("Reverting to raw non-statistical encoding: %d chars in 2+%f bits\n",
+	     (int)strlen((char *)m),c->entropy-2.0);
     }
   
   if ((c->bits_used>=8*strlen((char*)m))
@@ -270,7 +276,11 @@ int freq_compress(range_coder *c,unsigned char *m)
          We can only do this is MSB of first char of message is 0, as we use
 	 the first bit of the message to indicate if it is compressed or not. */
       int i;
-      for(i=0;m[i];i++) range_encode_equiprobable(c,256,m[i]);      
+      range_coder_reset(c);
+      for(i=0;m[i];i++) c->bit_stream[i]=m[i];
+      c->bits_used=8*i;
+      c->entropy=8*i;
+      printf("Reverting to raw 8-bit encoding: used %d bits\n",c->bits_used);
     }
 
   return 0;
@@ -305,7 +315,6 @@ int main(int argc,char *argv[])
 
     range_coder *c=range_new_coder(1024);
     freq_compress(c,(unsigned char *)m);
-    range_conclude(c);
 
     double percent=c->bits_used*100.0/(strlen(m)*8);
     if (percent<bestPercent) bestPercent=percent;
