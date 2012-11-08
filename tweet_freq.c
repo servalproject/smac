@@ -38,9 +38,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "arithmetic.h"
 
-extern float tweet_freqs3[69][69][69];
-extern float tweet_freqs2[69][69];
-extern float tweet_freqs1[69];
+extern unsigned int tweet_freqs3[69][69][69];
+extern unsigned int tweet_freqs2[69][69];
+extern unsigned int tweet_freqs1[69];
 
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 int charIdx(unsigned char c)
