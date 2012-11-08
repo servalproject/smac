@@ -171,9 +171,10 @@ int filterWords()
 	if ((entropyOccurrence+occurenceEntropy)<entropyWord) {
 	  double savings=wordCounts[i]*(entropyWord-(entropyOccurrence+occurenceEntropy));
 	  totalSavings+=savings;
-	  fprintf(stderr,"entropy of %s occurrences (x%d) = %f bits."
-		  " Entropy of word is %f bits. Savings = %f\n",
-		  words[i],wordCounts[i],entropyOccurrence,entropyWord,savings);
+	  if (0)
+	    fprintf(stderr,"entropy of %s occurrences (x%d) = %f bits."
+		    " Entropy of word is %f bits. Savings = %f\n",
+		    words[i],wordCounts[i],entropyOccurrence,entropyWord,savings);
 	} else {
 	  /* Word doesn't occur often enough, or is too low entropy to encode 
 	     directly. Either way, it doesn't make sense to introduce a symbol
@@ -192,6 +193,9 @@ int filterWords()
     }
   fprintf(stderr,"Expect to save %f bits by encoding %d common words\n",
 	  totalSavings,wordCount);
+  fprintf(stderr,"Word list:\n");
+  for(i=0;i<wordCount;i++)
+    fprintf(stderr,"  %d %s\n",wordCounts[i],words[i]);
   return 0;
 }
 
