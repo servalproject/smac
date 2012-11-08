@@ -124,7 +124,7 @@ int main(int argc,char **argv)
     line[0]=0; fgets(line,8192,stdin);
   }
 
-  printf("float tweet_freqs3[69][69][69]={\n");
+  printf("unsigned int tweet_freqs3[69][69][69]={\n");
   for(i=0;i<69;i++) {
     printf("  {\n");
     for(j=0;j<69;j++) {
@@ -136,8 +136,8 @@ int main(int argc,char **argv)
       }
       printf("      /* %c %c */ {",chars[i],chars[j]);
       for(k=0;k<69;k++) {
-	total+=counts3[i][j][k]*1.0/rowCount;
-	printf("%.6f",total);
+	total+=counts3[i][j][k]*1.0*0xffffffff/rowCount;
+	printf("0x%x",(unsigned int)total);
 	if (k<(69-1)) printf(",");
       }
       printf("},\n");
@@ -146,7 +146,7 @@ int main(int argc,char **argv)
   }
   printf("};\n");
   
-  printf("\nfloat tweet_freqs2[69][69]={\n");
+  printf("\nunsigned int tweet_freqs2[69][69]={\n");
   for(j=0;j<69;j++) {
     int rowCount=0;
     double total=0;
@@ -156,15 +156,15 @@ int main(int argc,char **argv)
     }
     printf("      /* %c */ {",chars[j]);
     for(k=0;k<69;k++) {
-      total+=counts2[j][k]*1.0/rowCount;
-      printf("%.6f",total);
+      total+=counts2[j][k]*1.0*0xffffffff/rowCount;
+      printf("0x%x",(unsigned int)total);
       if (k<(69-1)) printf(",");
     }
     printf("},\n");
   }
   printf("};\n");
   
-  printf("\nfloat tweet_freqs1[69]={\n");
+  printf("\nunsigned int tweet_freqs1[69]={\n");
   {
     int rowCount=0;
     double total=0;
@@ -174,13 +174,13 @@ int main(int argc,char **argv)
     }
     for(k=0;k<69;k++) {
       total+=counts1[k]*1.0/rowCount;
-      printf("%.6f",total);
+      printf("0x%x",(unsigned int)(total*0xffffffff));
       if (k<(69-1)) printf(",");
     }
     printf("};\n");  
   }
 
-  printf("\nfloat caseend1[1][1]={{");
+  printf("\nunsigned int caseend1[1][1]={{");
   {
     int rowCount=0;
     for(k=0;k<2;k++) {
@@ -203,14 +203,14 @@ int main(int argc,char **argv)
     }
     printf("      /* %dth char of word */ {",j);
     k=0;
-    printf("%.6f}",caseposn1[j][k]*1.0/rowCount);
+    printf("0x%x}",(unsigned int)(caseposn1[j][k]*1.0*0xffffffff/rowCount));
     if (j<(80-1)) printf(",");
     
     printf("\n");
   }
   printf("};\n");
   
-  printf("\nfloat caseposn2[2][80][1]={\n");
+  printf("\nunsigned int caseposn2[2][80][1]={\n");
   for(i=0;i<2;i++) {
     printf("  {\n");
     for(j=0;j<80;j++) {
@@ -221,7 +221,7 @@ int main(int argc,char **argv)
       }
       printf("      /* %dth char of word */ {",j);
       k=0;
-      printf("%.6f",caseposn2[i][j][k]*1.0/rowCount);
+      printf("0x%x",(unsigned int)(caseposn2[i][j][k]*1.0*0xffffffff/rowCount));
       printf("}");
       if (j<(80-1)) printf(",");
       
