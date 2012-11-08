@@ -4977,12 +4977,26 @@ unsigned int tweet_freqs1[69]={
 
 unsigned int casestartofmessage[1][1]={{1022380466.372955,}};
 
+unsigned int casestartofword2[2][1]={{0xcbcd4f23},
+{0x6f62c290}
+};
+
+unsigned int casestartofword3[2][2][1]={  {
+    {0xccaa2a78},
+    {0x95865cf5}
+  },
+  {
+    {0xc86efee1},
+    {0x52012995}
+  },
+};
+
 unsigned int caseend1[1][1]={{3610640125.839780,}};
 
 unsigned int caseposn1[80][1]={
-      /* 0th char of word */ {0xae50181c},
+      /* 0th char of word */ {0xae4faddc},
       /* 1th char of word */ {0xdfbf89d4},
-      /* 2th char of word */ {0xe2075560},
+      /* 2th char of word */ {0xe208127b},
       /* 3th char of word */ {0xe0a5ced2},
       /* 4th char of word */ {0xda21e64b},
       /* 5th char of word */ {0xd6f76a78},
@@ -5064,8 +5078,8 @@ unsigned int caseposn1[80][1]={
 
 unsigned int caseposn2[2][80][1]={
   {
-      /* 0th char of word */ {0xae50181c},
-      /* 1th char of word */ {0xfbe4b6eb},
+      /* 0th char of word */ {0xae4faddc},
+      /* 1th char of word */ {0xfbe5ad7d},
       /* 2th char of word */ {0xfb2c8a12},
       /* 3th char of word */ {0xf78e5b24},
       /* 4th char of word */ {0xf0d5ae3a},
@@ -5147,8 +5161,8 @@ unsigned int caseposn2[2][80][1]={
   },
   {
       /* 0th char of word */ {0x7fffffff},
-      /* 1th char of word */ {0xa201ff0a},
-      /* 2th char of word */ {0x1c743f73},
+      /* 1th char of word */ {0xa200a32e},
+      /* 2th char of word */ {0x1c751253},
       /* 3th char of word */ {0x2ae3ce0d},
       /* 4th char of word */ {0x4632d5c1},
       /* 5th char of word */ {0x5d2aace3},
