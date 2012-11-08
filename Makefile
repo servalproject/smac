@@ -17,6 +17,9 @@ arithmetic:	arithmetic.c arithmetic.h
 gen_stats:	gen_stats.c
 	gcc -g -Wall -o gen_stats gen_stats.c
 
+some_tweets.txt:	some_tweets.json extract_tweet_text
+	./extract_tweet_text
+
 tweet_stats.c:	gen_stats some_tweets.txt
 	# Exclude \uXXXX encoded unicode from the stats generation,
 	# because in practice we would process it as UTF8
