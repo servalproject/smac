@@ -173,13 +173,14 @@ double encodeCaseModel1(range_coder *c,unsigned char *line)
 	  /* first letter of word, so can only use 1st-order model */
 	  unsigned int frequencies[1]={caseposn1[0][0]};
 	  if (i==0) frequencies[0]=casestartofmessage[0][0];
-	  printf("case of first letter of word/message @ %d: p=%f\n",
-		 i,(frequencies[0]*1.0)/0x100000000);
+	  if (0) printf("case of first letter of word/message @ %d: p=%f\n",
+			i,(frequencies[0]*1.0)/0x100000000);
 	  range_encode_symbol(c,frequencies,2,upper);
 	} else {
 	  /* subsequent letter, so can use case of previous letter in model */
-	  printf("case of first letter of word/message @ %d.%d: p=%f\n",
-		 i,wordPosn,(caseposn2[lastCase][wordPosn][0]*1.0)/0x100000000);
+	  if (0) printf("case of first letter of word/message @ %d.%d: p=%f\n",
+			i,wordPosn,
+			(caseposn2[lastCase][wordPosn][0]*1.0)/0x100000000);
 	  range_encode_symbol(c,caseposn2[lastCase][wordPosn],2,upper);
 	}
 	if (isupper(line[i])) lastCase=1; else lastCase=0;
