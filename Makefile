@@ -22,8 +22,8 @@ tweet_stats.c:	gen_stats some_tweets.txt
 	# because in practice we would process it as UTF8
 	grep -v "\\u" some_tweets.txt |./gen_stats > tweet_stats.c
 
-tweet_freq:	tweet_freq.o tweet_stats.o arithmetic.o
-	gcc -g -Wall -o tweet_freq tweet_freq.o tweet_stats.o arithmetic.o
+tweet_freq:	tweet_freq.o tweet_stats.o arithmetic.o gsinterpolative.o
+	gcc -g -Wall -o tweet_freq tweet_freq.o tweet_stats.o arithmetic.o gsinterpolative.o
 
 eng_freq:	eng_freq.o gsinterpolative.o
 	gcc -g -Wall -o eng_freq eng_freq.o gsinterpolative.o

@@ -4977,7 +4977,7 @@ unsigned int tweet_freqs1[69]={
 
 unsigned int caseend1[1][1]={{0.840666,}};
 
-float caseposn1[80][1]={
+unsigned int caseposn1[80][1]={
       /* 0th char of word */ {0xae4ec8dc},
       /* 1th char of word */ {0xdfbf31ba},
       /* 2th char of word */ {0xe2082014},

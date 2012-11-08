@@ -30,6 +30,20 @@ int bits2bytes(int b)
   return (b>>3)+extra;
 }
 
+int range_encode_length(range_coder *c,int len)
+{
+  int bits=0,i;
+  while((1<<bits)<len) {
+    range_emitbit(c,1);
+    bits++;
+  }
+  range_emitbit(c,0);
+  /* MSB must be 1, so we don't need to output it, 
+     just the lower order bits. */
+  for(i=bits-1;i>=0;i++) range_emitbit(c,(len>>i)&1);
+  return 0;
+}
+
 int range_decode_getnextbit(range_coder *c)
 {
   /* return 0s once we have used all bits */

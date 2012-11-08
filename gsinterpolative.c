@@ -1,3 +1,20 @@
+/*
+Copyright (C) 2005,2012 Paul Gardner-Stephen
+ 
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+ 
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+ 
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
 
 /*
   Interpolative Coder/Decoder.
@@ -41,13 +58,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <strings.h>
+#include "arithmetic.h"
 
-inline void encode_bits(int code_bits,unsigned int value,
-								unsigned char *out,unsigned int *out_bits,int out_len);
-inline void decode_bits(int code_bits,unsigned int *value,
-								unsigned char *out,unsigned int *out_bits);
-inline void decode_few_bits(int code_bits,unsigned int *value,
-									 unsigned char *out,unsigned int *out_bits);
+inline void encode_bits(int code_bits,unsigned int value,range_coder *c);
+inline void decode_bits(int code_bits,unsigned int *value,range_coder *c);
+inline void decode_few_bits(int code_bits,unsigned int *value,range_coder *c);
 
 int ic_encode_recursive(int *list,
 								int list_length,
@@ -55,17 +70,14 @@ int ic_encode_recursive(int *list,
 								int *word_positions,
 								int corpus_document_count,
 								int max_document_words,
-								unsigned char *out,
-								unsigned int *out_bits);
+								range_coder *c);
 int ic_encode_heiriter(int *list,
 							  int list_length,
 							  int *frequencies,
 							  int *word_positions,
 							  int corpus_document_count,
 							  int max_document_words,
-							  unsigned char *out,
-							  unsigned int *out_bits,
-							  int out_len);
+							  range_coder *c);
 
 
 int mask[33]={0,1,3,7,15,31,63,127,255,
@@ -137,8 +149,7 @@ unsigned int log2_ceil(unsigned int v)
 
 #endif /* COMMON */
 
-inline void ENCODE(binary_,)(int low,int *pp,int high,int step,
-									  unsigned char *out,unsigned int *out_bits)
+inline void ENCODE(binary_,)(int low,int *pp,int high,int step,range_coder *c)
 {
 #ifdef ENCODING
   int p=*pp;
@@ -326,72 +337,33 @@ inline void ENCODE(binary_,)(int low,int *pp,int high,int step,
 #endif
 
   /* Read / Write code */
-  code_bits_remaining=code_bits;
-  out_phase=ob&7;
-  byte=ob>>3;
-  out_start=8-out_phase;
-
-#ifndef ENCODING
-  v=out[byte];
-#endif		  
-
-  while(code_bits_remaining)
-	 {
-		if (out_start>code_bits_remaining) 
-		  bits=code_bits_remaining;
-		else
-		  bits=out_start;
-
-		code_bits_residual=code_bits_remaining-bits;
-		out_start-=bits;
-
+  for(i=code_bits-1;i>=0;i++)
 #ifdef ENCODING
-		if (!out_phase) 
-		  out[byte]=( (code >> code_bits_residual )
-						  & mask[bits] ) << out_start;
-		else
-		  out[byte]|=( (code >> code_bits_residual )
-							& mask[bits] ) << out_start;
+    range_emitbit(c,(code >> i ) & 1 );
 #else
-		code|=( ( v >> out_start ) & mask[bits] )
-						<< code_bits_residual;
+  code|=range_decode_getnextbit(c) << i;
 #endif		  
-		code_bits_processed+=bits;
-		code_bits_remaining=code_bits_residual;
-		ob+=bits;
-		out_phase+=bits; 
-		if (code_bits_residual)
-		  {
-			 /* If there are code bits remaining, we must have emptied this byte. */
-			 out_phase-=8; out_start+=8;
-			 byte++; 
-#ifndef ENCODING
-			 v=out[byte];
-#endif
-		  }
-	 }
-  (*out_bits)=ob;
 
 #ifndef ENCODING
   /* Work out which range the code came from.
-	  If there is only one range, then this for loop short circuits and 
-	  gives the correct answer.  Otherwise one or more iterations are
-	  required.  The final range never needs to be checked, because if
-	  the code is not in one of the previous ranges, it must be in the
-	  last one.  This saves a little bit of decoding time */
+     If there is only one range, then this for loop short circuits and 
+     gives the correct answer.  Otherwise one or more iterations are
+     required.  The final range never needs to be checked, because if
+     the code is not in one of the previous ranges, it must be in the
+     last one.  This saves a little bit of decoding time */
   if (range_count==1) i=0; else
-	 for(i=0;i<(range_count-1);i++)
-		if (code<ranges[i+1].first_code)
-		  break;
+    for(i=0;i<(range_count-1);i++)
+      if (code<ranges[i+1].first_code)
+	break;
   value=code-ranges[i].first_code;
   if (ranges[i].short_code) 
-	 {
-		/* The code is a minimum length code, so we must trim one bit. */
-		value=value>>1; (*out_bits)--;
+    {
+      /* The code is a minimum length code, so we must trim one bit. */
+      value=value>>1; (*out_bits)--;
 #ifdef DEBUG
-		code=code>>1; code_bits--;
+      code=code>>1; code_bits--;
 #endif
-	 }
+    }
   /* The final value can now be calculated */
   *pp=low+ranges[i].low+value;
 #endif
@@ -400,15 +372,15 @@ inline void ENCODE(binary_,)(int low,int *pp,int high,int step,
 #ifndef ENCODING
   p=*pp;
 #endif
-	 if ((p>high||p<low)||(DEBUG&4))
-	 {
-		int b;
-		printf("[%d,%d,%d] [",low,p,high);
-		for(b=code_bits-1;b>=0;b--)
-		  printf("%d",(code>>b)&1);
-		printf("]  %d bits processed, step=%d\n",*out_bits,step);
-		if (DEBUG&8) sleep(1);
-	 }
+  if ((p>high||p<low)||(DEBUG&4))
+    {
+      int b;
+      printf("[%d,%d,%d] [",low,p,high);
+      for(b=code_bits-1;b>=0;b--)
+	printf("%d",(code>>b)&1);
+      printf("]  %d bits processed, step=%d\n",*out_bits,step);
+      if (DEBUG&8) sleep(1);
+    }
 #endif
   
   return;
@@ -416,9 +388,7 @@ inline void ENCODE(binary_,)(int low,int *pp,int high,int step,
 
 #ifdef COMMON
 
-inline void binary_many_encode(int low,int p,int high,int leafP,
-										unsigned char *out,unsigned int *out_bits,
-										int out_len)
+inline void binary_many_encode(int low,int p,int high,int leafP,range_coder *c)
 {
   /* Work out the range of values we can encode/decode */
   int range_minus_1=high-low;
@@ -431,26 +401,26 @@ inline void binary_many_encode(int low,int p,int high,int leafP,
 
 #ifdef DEBUG
   if (low>high||(p>high)||(p<low))
-	 {
-		printf("menc Illegal triple encountered: [%d,%d,%d]\n",
-				 low,p,high);
-		sleep(60);
-	 }
+    {
+      printf("menc Illegal triple encountered: [%d,%d,%d]\n",
+	     low,p,high);
+      sleep(60);
+    }
 #endif
-
+  
   /* Encode zero bits if the range is zero  */
   if (high==low) 
-	 {
+    {
 #ifdef DEBUG
-		if ((p>high||p<low)||(DEBUG&4))
-		  {
-			 printf("menc [%d,%d,%d]   -no code required-\n",low,p,high);
-			 if (DEBUG&8) sleep(1);
-		  }
+      if ((p>high||p<low)||(DEBUG&4))
+	{
+	  printf("menc [%d,%d,%d]   -no code required-\n",low,p,high);
+	  if (DEBUG&8) sleep(1);
+	}
 #endif
-		return;
-	 }
-
+      return;
+    }
+  
   /* Figure out how many bits we need */
   if (range_minus_1>>24) code_bits=msb[range_minus_1>>24]+24;
   else if (range_minus_1>>16) code_bits=msb[(range_minus_1>>16)&0xff]+16;
@@ -466,74 +436,73 @@ inline void binary_many_encode(int low,int p,int high,int leafP,
   long_codes=range-short_codes;
 
   if (!short_codes)
-	 {
-		/* Write simple fixed length code and return */
-		encode_bits(code_bits,value,out,out_bits,out_len);
+    {
+      /* Write simple fixed length code and return */
+      encode_bits(code_bits,value,c);
 #ifdef DEBUG
-		code=value;
+      code=value;
 #endif
-	 }
+    }
   else
-	 {
-		int sc_on_2=short_codes>>1;
-		int shift;
-		int add; 
-		
-		/* Transform 3 segment space into two, with short codes at the bottom  */
-		if (!leafP) shift=-(long_codes>>1); /* move short codes from centre */
-		else shift=sc_on_2;
+    {
+      int sc_on_2=short_codes>>1;
+      int shift;
+      int add; 
+      
+      /* Transform 3 segment space into two, with short codes at the bottom  */
+      if (!leafP) shift=-(long_codes>>1); /* move short codes from centre */
+      else shift=sc_on_2;
 #ifdef DEBUG
-		printf("menc value=0x%x, add=%d, shift=%d, sc/2=%d, sc=%d, range=%d, code_range=%d\n",
-				 value,add,shift,sc_on_2,short_codes,range,code_range);
+      printf("menc value=0x%x, add=%d, shift=%d, sc/2=%d, sc=%d, range=%d, code_range=%d\n",
+	     value,add,shift,sc_on_2,short_codes,range,code_range);
 #endif
-		value+=shift; 
-		if (value<0) value+=range;
-		if (value>=range) value-=range;
+      value+=shift; 
+      if (value<0) value+=range;
+      if (value>=range) value-=range;
 #ifdef DEBUG
-		printf("menc after reassigning value=0x%x\n",value);
+      printf("menc after reassigning value=0x%x\n",value);
 #endif
-		add=value;
-		if (add>short_codes) add=short_codes; if (add<0) add=0;
-		
-		code=value+add; /* expand value to fit short codes */
+      add=value;
+      if (add>short_codes) add=short_codes; if (add<0) add=0;
+      
+      code=value+add; /* expand value to fit short codes */
 #ifdef DEBUG
-		printf("menc after inserting short codes, code=0x%x\n",code);
+      printf("menc after inserting short codes, code=0x%x\n",code);
 #endif
-		/* Work out final number of code bits */
-		if (code<(short_codes<<1))
-		  {
+      /* Work out final number of code bits */
+      if (code<(short_codes<<1))
+	{
 #ifdef DEBUG
-			 printf("menc trimming short code\n");
+	  printf("menc trimming short code\n");
 #endif
-			 code_bits--;
-		  }
-
-		/* Rotate LSB around to become MSB */
-		code=(code>>1)+((code&1)<<(code_bits-1));
+	  code_bits--;
+	}
+      
+      /* Rotate LSB around to become MSB */
+      code=(code>>1)+((code&1)<<(code_bits-1));
 #ifdef DEBUG
-		printf("menc after rotation code=0x%x\n",code);
+      printf("menc after rotation code=0x%x\n",code);
 #endif
-		/* Encode bits */
-		encode_bits(code_bits,code,out,out_bits,out_len);
-	 }
-
+      /* Encode bits */
+      encode_bits(code_bits,code,c);
+    }
+  
 #ifdef DEBUG
-	 if ((p>high||p<low)||(DEBUG&4))
-	 {
-		int b;
-		printf("menc [%d,%d,%d] [",low,p,high);
-		for(b=code_bits-1;b>=0;b--)
-		  printf("%d",(code>>b)&1);
-		printf("]  %d bits processed\n",*out_bits);
-		if (DEBUG&8) sleep(1);
-	 }
+  if ((p>high||p<low)||(DEBUG&4))
+    {
+      int b;
+      printf("menc [%d,%d,%d] [",low,p,high);
+      for(b=code_bits-1;b>=0;b--)
+	printf("%d",(code>>b)&1);
+      printf("]  %d bits processed\n",*out_bits);
+      if (DEBUG&8) sleep(1);
+    }
 #endif
-
+  
   return;
 }
 
-inline void binary_few_decode(int low,int *pp,int high,int leafP,
-										unsigned char *out,unsigned int *out_bits)
+inline void binary_few_decode(int low,int *pp,int high,int leafP,range_coder *c)
 {
 #ifdef ENCODING
   int p=*pp;
@@ -577,71 +546,70 @@ inline void binary_few_decode(int low,int *pp,int high,int leafP,
   long_codes=range-short_codes;
 
   if (!short_codes)
-	 {
-		/* Read simple fixed length code and return */
-		decode_few_bits(code_bits,pp,out,out_bits);
-		(*pp)+=low;
-	 }
+    {
+      /* Read simple fixed length code and return */
+      decode_few_bits(code_bits,pp,c);
+      (*pp)+=low;
+    }
   else
-	 {
-		int sc_on_2=short_codes>>1;
-		int shift;
-		int add;
-
-		/* Decode bits */
-		decode_few_bits(code_bits,&code,out,out_bits);
-
-		/* Rotate LSB around to become MSB */
-		code=(code<<1)+((code>>(code_bits-1))&1);
-		code&=mask[code_bits];
-
-		/* Shorten the code if we can */
-		if (code<(short_codes<<1))
-		  { 
-			 (*out_bits)--; 
+    {
+      int sc_on_2=short_codes>>1;
+      int shift;
+      int add;
+      
+      /* Decode bits */
+      decode_few_bits(code_bits,&code,c);
+      
+      /* Rotate LSB around to become MSB */
+      code=(code<<1)+((code>>(code_bits-1))&1);
+      code&=mask[code_bits];
+      
+      /* Shorten the code if we can */
+      if (code<(short_codes<<1))
+	{ 
+	  (*out_bits)--; 
 #ifdef DEBUG
-			 code_bits--; 
+	  code_bits--; 
 #endif
-			 code&=0xfffffffe;
-		  }
-
-		add=code>>1;
-		if (add>short_codes) add=short_codes; 
-
-		value=code-add;
-
-		if (!leafP) shift=-(long_codes>>1); /* move short codes from centre */
-		else shift=sc_on_2;		
-		value-=shift;
-
-		if (value<0) value+=range;
-		if (value>=range) value-=range;
-
-		(*pp)=value+low;
-	 }
-
-
+	  code&=0xfffffffe;
+	}
+      
+      add=code>>1;
+      if (add>short_codes) add=short_codes; 
+      
+      value=code-add;
+      
+      if (!leafP) shift=-(long_codes>>1); /* move short codes from centre */
+      else shift=sc_on_2;		
+      value-=shift;
+      
+      if (value<0) value+=range;
+      if (value>=range) value-=range;
+      
+      (*pp)=value+low;
+    }
+  
+  
 #ifdef DEBUG
   {
-	 int p=*pp;
-	 if ((p>high||p<low)||(DEBUG&4))
-	 {
-		int b;
-		printf("fdec [%d,%d,%d] [",low,p,high);
-		for(b=code_bits-1;b>=0;b--)
-		  printf("%d",(p>>b)&1);
-		printf("]  %d bits processed\n",*out_bits);
-		if (DEBUG&8) sleep(1);
-	 }
+    int p=*pp;
+    if ((p>high||p<low)||(DEBUG&4))
+      {
+	int b;
+	printf("fdec [%d,%d,%d] [",low,p,high);
+	for(b=code_bits-1;b>=0;b--)
+	  printf("%d",(p>>b)&1);
+	printf("]  %d bits processed\n",*out_bits);
+	if (DEBUG&8) sleep(1);
+      }
   }
 #endif
-
+  
   
   return;
 }
 
-inline void binary_many_decode(int low,int *pp,int high,int leafP,
-										 unsigned char *out,unsigned int *out_bits)
+inline void binary_many_decode(int low,int *pp,int high,int leafP,range_coder *c)
 {
 #ifdef ENCODING
   int p=*pp;
@@ -661,28 +629,28 @@ inline void binary_many_decode(int low,int *pp,int high,int leafP,
 #ifdef DEBUG
 #ifdef ENCODING
   if (low>high||(p>high)||(p<low))
-	 {
-		printf("Illegal triple encountered: [%d,%d,%d]\n",
-				 low,p,high);
-		sleep(60);
-	 }
+    {
+      printf("Illegal triple encountered: [%d,%d,%d]\n",
+	     low,p,high);
+      sleep(60);
+    }
 #endif
 #endif
-
+  
   /* Encode zero bits if the range is zero  */
   if (high==low) 
-	 {
-		p=low; *pp=low;
+    {
+      p=low; *pp=low;
 #ifdef DEBUG
-		if ((p>high||p<low)||(DEBUG&4))
-		  {
-			 printf("mdec [%d,%d,%d]   -no code required-\n",low,p,high);
-			 if (DEBUG&8) sleep(1);
-		  }
+      if ((p>high||p<low)||(DEBUG&4))
+	{
+	  printf("mdec [%d,%d,%d]   -no code required-\n",low,p,high);
+	  if (DEBUG&8) sleep(1);
+	}
 #endif
-		return;
-	 }
-
+      return;
+    }
+  
   /* Otherwise, figure out how many bits we need */
   code_bits=msb[range_minus_1&0xff];
   if (range_minus_1>>8) code_bits=msb[(range_minus_1>>8)&0xff]+8;
@@ -696,75 +664,75 @@ inline void binary_many_decode(int low,int *pp,int high,int leafP,
   long_codes=range-short_codes;
 
   if (!short_codes)
-	 {
-		/* Read simple fixed length code and return */
-		decode_bits(code_bits,pp,out,out_bits);
-		(*pp)+=low;
-	 }
+    {
+      /* Read simple fixed length code and return */
+      decode_bits(code_bits,pp,c);
+      (*pp)+=low;
+    }
   else
-	 {
-		int sc_on_2=short_codes>>1;
-		int shift;
-		int add;
-
-		/* Decode bits */
-		decode_few_bits(code_bits,&code,out,out_bits);
+    {
+      int sc_on_2=short_codes>>1;
+      int shift;
+      int add;
+      
+      /* Decode bits */
+      decode_few_bits(code_bits,&code,c);
 #ifdef DEBUG
-		printf("mdec Raw code is 0x%x\n",code);
+      printf("mdec Raw code is 0x%x\n",code);
 #endif
-		/* Rotate LSB around to become MSB */
-		code=(code<<1)+((code>>(code_bits-1))&1);
-		code&=mask[code_bits];
+      /* Rotate LSB around to become MSB */
+      code=(code<<1)+((code>>(code_bits-1))&1);
+      code&=mask[code_bits];
 #ifdef DEBUG
-		printf("mdec after rotation code=0x%x\n",code);
+      printf("mdec after rotation code=0x%x\n",code);
 #endif
-		/* Work out final number of code bits */
-		if (code<(short_codes<<1))
-		  { 
-			 (*out_bits)--; code_bits--; 
-			 code&=0xfffffffe;
+      /* Work out final number of code bits */
+      if (code<(short_codes<<1))
+	{ 
+	  (*out_bits)--; code_bits--; 
+	  code&=0xfffffffe;
 #ifdef DEBUG
-			 printf("mdec Trimming short code\n");
+	  printf("mdec Trimming short code\n");
 #endif
-		  }
-
-		add=code>>1;
-		if (add>short_codes) add=short_codes; if (add<0) add=0;		
+	}
+      
+      add=code>>1;
+      if (add>short_codes) add=short_codes; if (add<0) add=0;		
 #ifdef DEBUG
-		printf("mdec add=%d, sc/2=%d\n",add,sc_on_2);
+      printf("mdec add=%d, sc/2=%d\n",add,sc_on_2);
 #endif
-		value=code-add;
+      value=code-add;
 #ifdef DEBUG
-		printf("mdec after removing short codes, value=%d\n",value);
+      printf("mdec after removing short codes, value=%d\n",value);
 #endif
-		if (!leafP) shift=-(long_codes>>1); /* move short codes from centre */
-		else shift=sc_on_2;		
-		value-=shift;
-
-		if (value<0) value+=range;
-		if (value>=range) value-=range;
+      if (!leafP) shift=-(long_codes>>1); /* move short codes from centre */
+      else shift=sc_on_2;		
+      value-=shift;
+      
+      if (value<0) value+=range;
+      if (value>=range) value-=range;
 #ifdef DEBUG		
-		printf("mdec after reassigning, value=0x%x\n",value);
+      printf("mdec after reassigning, value=0x%x\n",value);
 #endif
-		(*pp)=value+low;
-	 }
-
-
+      (*pp)=value+low;
+    }
+  
+  
 #ifdef DEBUG
   {
-	 int p=*pp;
-	 if ((p>high||p<low)||(DEBUG&4))
-	 {
-		int b;
-		printf("mdec [%d,%d,%d] [",low,p,high);
-		for(b=code_bits-1;b>=0;b--)
-		  printf("%d",(p>>b)&1);
-		printf("]  %d bits processed\n",*out_bits);
-		if (DEBUG&8) sleep(1);
-	 }
+    int p=*pp;
+    if ((p>high||p<low)||(DEBUG&4))
+      {
+	int b;
+	printf("mdec [%d,%d,%d] [",low,p,high);
+	for(b=code_bits-1;b>=0;b--)
+	  printf("%d",(p>>b)&1);
+	printf("]  %d bits processed\n",*out_bits);
+	if (DEBUG&8) sleep(1);
+      }
   }
 #endif
-
+  
   
   return;
 }
@@ -777,17 +745,16 @@ inline void binary_many_decode(int low,int *pp,int high,int leafP,
 	------------------------------------------------- */
  
 int ENCODE(ic_,_recursive_r)(int *list,
-								  int list_length,
-								  int *frequencies,
-								  int *word_positions,
-								  int corpus_document_count,
-								  int max_document_words,
-								  char *out,
-								  unsigned int *out_bits,
-								  int lo,
-								  int p,
-								  int hi,
-								  int step)
+			     int list_length,
+			     int *frequencies,
+			     int *word_positions,
+			     int corpus_document_count,
+			     int max_document_words,
+			     range_coder *c,
+			     int lo,
+			     int p,
+			     int hi,
+			     int step)
 {
   int doc_number;
   int doc_low;
@@ -796,118 +763,116 @@ int ENCODE(ic_,_recursive_r)(int *list,
   if (lo>=list_length) return 0;
 
   /* Skip coding of entries outside the valid range, since the pseudo entries do not require
-	  coding as their values are known */
+     coding as their values are known */
   if (p<list_length)
-	 {
-		doc_number=list[p];
-		
-		/* Work out initial constraint on this value */
-		if (lo>-1) doc_low=list[lo]+1; else doc_low=0;
-		if (hi<list_length) doc_high=list[hi]-1; 
-		else doc_high=corpus_document_count+(hi-list_length);
-		
-		/* Now narrow range to take into account the number of postings which occur between us and lo and hi */
-		doc_low+=(p-lo-1); 
-		doc_high-=(hi-p-1);
-		
-		/* Encode the document number */
-		if (p<list_length)
-		  {
-			 ENCODE(binary_,)(doc_low,&list[p],doc_high,step,out,out_bits);
-		  }
-		
-		/* Encode the frequencies and postings if required */
-		if (frequencies)
-		  {
-			 int cf_low;
-			 int cf_high;
-			 
-			 /* Work out initial constraint on this value */
-			 if (lo>-1) cf_low=frequencies[lo]; else cf_low=0;
-			 if (hi<list_length) cf_high=frequencies[hi]; 
-			 else cf_high=max_document_words;
-			 
-			 /* Now narrow range to take into account the number of postings which occur between us and lo and hi */
-			 cf_low+=(p-lo); 
-			 cf_high-=(hi-p);
-			 
-			 /* Encode the document number */
-			 ENCODE(binary_,)(cf_low,&frequencies[p],cf_high,
-									step,out,out_bits);
-			 
-		  }
-	 }
-
+    {
+      doc_number=list[p];
+      
+      /* Work out initial constraint on this value */
+      if (lo>-1) doc_low=list[lo]+1; else doc_low=0;
+      if (hi<list_length) doc_high=list[hi]-1; 
+      else doc_high=corpus_document_count+(hi-list_length);
+      
+      /* Now narrow range to take into account the number of postings which occur between us and lo and hi */
+      doc_low+=(p-lo-1); 
+      doc_high-=(hi-p-1);
+      
+      /* Encode the document number */
+      if (p<list_length)
+	{
+	  ENCODE(binary_,)(doc_low,&list[p],doc_high,step,c);
+	}
+      
+      /* Encode the frequencies and postings if required */
+      if (frequencies)
+	{
+	  int cf_low;
+	  int cf_high;
+	  
+	  /* Work out initial constraint on this value */
+	  if (lo>-1) cf_low=frequencies[lo]; else cf_low=0;
+	  if (hi<list_length) cf_high=frequencies[hi]; 
+	  else cf_high=max_document_words;
+	  
+	  /* Now narrow range to take into account the number of postings which occur between us and lo and hi */
+	  cf_low+=(p-lo); 
+	  cf_high-=(hi-p);
+	  
+	  /* Encode the document number */
+	  ENCODE(binary_,)(cf_low,&frequencies[p],cf_high,step,c);
+	  
+	}
+    }
+  
   if (step>1)
-	 {
-		/* Now recurse left and right children */
-		ENCODE(ic_,_recursive_r)(list,list_length,
-										 frequencies,
-										 word_positions,
-										 corpus_document_count,
-										 max_document_words,
-										 out,out_bits,
-										 lo,p-(step>>1),p,
-										 step>>1);  
-
-		ENCODE(ic_,_recursive_r)(list,list_length,
-										 frequencies,
-										 word_positions,
-										 corpus_document_count,
-										 max_document_words,
-										 out,out_bits,
-										 p,p+(step>>1),hi,
-										 step>>1);  
-	 }
-
+    {
+      /* Now recurse left and right children */
+      ENCODE(ic_,_recursive_r)(list,list_length,
+			       frequencies,
+			       word_positions,
+			       corpus_document_count,
+			       max_document_words,
+			       c,
+			       lo,p-(step>>1),p,
+			       step>>1);  
+      
+      ENCODE(ic_,_recursive_r)(list,list_length,
+			       frequencies,
+			       word_positions,
+			       corpus_document_count,
+			       max_document_words,
+			       c,
+			       p,p+(step>>1),hi,
+			       step>>1);  
+    }
+  
   return 0;
 }
 
 
 int ENCODE(ic_,_recursive)(int *list,
-									 int list_length,
-									 int *frequencies,
-									 int *word_positions,
-									 int corpus_document_count,
-									 int max_document_words,
-									 unsigned char *out,
-									 unsigned int *out_bits)
+			   int list_length,
+			   int *frequencies,
+			   int *word_positions,
+			   int corpus_document_count,
+			   int max_document_words,
+			   range_coder *c)
 {
   /* Start at largest power of two, and round list size up to next power of two to keep recursion simple, and
-	  keep bit stream compatible with fast interpolative coder */
+     keep bit stream compatible with fast interpolative coder */
   int powerof2=biggest_power_of_2(list_length<<1);
-
+  
   ENCODE(ic_,_recursive_r)(list,list_length,
-									frequencies,
-									word_positions,
-									corpus_document_count,
-									max_document_words,
-									out,out_bits,
-									-1,(powerof2>>1)-1,powerof2,powerof2>>1); 
+			   frequencies,
+			   word_positions,
+			   corpus_document_count,
+			   max_document_words,
+			   c,
+			   -1,(powerof2>>1)-1,powerof2,powerof2>>1); 
   
   if (frequencies&&word_positions)
-	 { 
-		unsigned int p;
-		
-		for(p=0;p<list_length;p++)
-		  {
-			 unsigned f;
-			 unsigned int bpow2;
-				
-			 if (p) f=frequencies[p]-frequencies[p-1];
-			 else f=frequencies[p];
-			 bpow2=biggest_power_of_2(f);
-			 if (bpow2<(f-1)) bpow2=bpow2<<1;
-
-			 ENCODE(ic_,_recursive_r)(word_positions,f,
-											  NULL,NULL,
-											  f,
-											  max_document_words,
-											  out,out_bits,
-											  -1,bpow2>>1,bpow2,bpow2>>1);
-			 
-		  }
-	 }
+    { 
+      unsigned int p;
+      
+      for(p=0;p<list_length;p++)
+	{
+	  unsigned f;
+	  unsigned int bpow2;
+	  
+	  if (p) f=frequencies[p]-frequencies[p-1];
+	  else f=frequencies[p];
+	  bpow2=biggest_power_of_2(f);
+	  if (bpow2<(f-1)) bpow2=bpow2<<1;
+	  
+	  ENCODE(ic_,_recursive_r)(word_positions,f,
+				   NULL,NULL,
+				   f,
+				   max_document_words,
+				   c,
+				   -1,bpow2>>1,bpow2,bpow2>>1);
+	  
+	}
+    }
   
   return 0;
 }
@@ -1012,17 +977,12 @@ int initialise_hi_tables(int lo,int p,int hi,int step)
 #endif
 
 int ENCODE(ic_,_heiriter)(int *list,
-								  int list_length,
-								  int *frequencies,
-								  int *word_positions,
-								  int corpus_document_count,
-								  int max_document_words,
-								  unsigned char *out,
-								  unsigned int *out_bits
-#ifdef ENCODING
-								  ,int out_len
-#endif
-								  )
+			  int list_length,
+			  int *frequencies,
+			  int *word_positions,
+			  int corpus_document_count,
+			  int max_document_words,
+			  range_coder *c)
 {
   int j,k,n;
   int lower_bound,upper_bound;
@@ -1070,12 +1030,10 @@ int ENCODE(ic_,_heiriter)(int *list,
 		/* Encode or decode value */
 #ifdef ENCODING
 		binary_many_encode(lower_bound,list[p_j],upper_bound,
-								 hi_j-p_j,
-								 out,out_bits,out_len);
+				   hi_j-p_j,c);
 #else
 		binary_many_decode(lower_bound,&list[p_j],upper_bound,
-								 hi_j-p_j,
-								 out,out_bits);
+				   hi_j-p_j,c);
 #endif
 	 }
 
@@ -1107,12 +1065,10 @@ int ENCODE(ic_,_heiriter)(int *list,
 			 /* Encode or decode value */
 #ifdef ENCODING
 			 binary_many_encode(lower_bound,list[p_k],upper_bound,
-									  hi_k-p_k,
-									  out,out_bits,out_len);
+					    hi_k-p_k,c);
 #else
 			 binary_many_decode(lower_bound,&list[p_k],upper_bound,
-									  hi_k-p_k,
-									  out,out_bits);
+					    hi_k-p_k,c);
 #endif
 		  }
 	 }

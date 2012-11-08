@@ -41,6 +41,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 extern unsigned int tweet_freqs3[69][69][69];
 extern unsigned int tweet_freqs2[69][69];
 extern unsigned int tweet_freqs1[69];
+extern unsigned int caseend1[1][1];
+extern unsigned int caseposn2[2][80][1];
+extern unsigned int caseposn1[80][1];
 
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 int charIdx(unsigned char c)
@@ -53,37 +56,34 @@ int charIdx(unsigned char c)
   return -1;
 }
 
-int encodeLCAlphaSpace(range_coder *c,char *s)
+int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 {
   int b=c->bits_used;
   int c1=charIdx(' ');
   int c2=charIdx(' ');
   int o;
-  for(o=0;o<strlen(s);o++) {
+  for(o=0;s[o];o++) {
     int c3=charIdx(s[o]);
     range_encode_symbol(c,tweet_freqs3[c1][c2],69,c3);
     c1=c2; c2=c3;
   }
-  if (1) printf("%d chars could be encoded in %f bits (%f per char)\n",
-		(int)strlen(s),c->bits_used-b,(c->bits_used-b)/strlen(s));
+  if (1) printf("%d chars could be encoded in %d bits (%f per char)\n",
+		(int)strlen((char *)s),c->bits_used-b,(c->bits_used-b)*1.0/strlen((char *)s));
   return 0;
 }
 
-int encodeLength(range_coder *c,char *m)
+int encodeLength(range_coder *c,unsigned char *m)
 {
   int b=c->bits_used;
-  int len=strlen(m);
-  while((1<<bits)<len) {
-    range_emitbit(c,1);
-  }
-  for(i=bits-1;i>=0;i++) range_emitbit(c,(len>>i)&1);
+  int len=strlen((char *)m);
+  range_encode_length(c,len);
     
-  printf("Using %f bits to encode the length of the message.\n",c->bits_used-b);
+  printf("Using %d bits to encode the length of the message.\n",c->bits_used-b);
 
   return 0;
 }
 
-int encodeNonAlpha(range_coder *c,char *m)
+int encodeNonAlpha(range_coder *c,unsigned char *m)
 {
   /* Get positions and values of non-alpha chars.
      Encode count, then write the chars, then use interpolative encoding to
@@ -108,11 +108,11 @@ int encodeNonAlpha(range_coder *c,char *m)
   // This is a patently silly assumption.
   if (!count) {
     // printf("Using 1 bit to indicate no non-alpha/space characters.\n");
-    range_emitbit(c,1);
+    range_encode_equiprobable(c,2,1);
     return 0;
   } else {
     // There are special characters present 
-    range_emitbit(c,0);
+    range_encode_equiprobable(c,2,0);
   }
 
   printf("Using 8-bits to encode each of %d non-alpha chars.\n",count);
@@ -123,225 +123,74 @@ int encodeNonAlpha(range_coder *c,char *m)
      Then n bits to encode the count.
      So 2*ceil(log2(count))+1 bits
   */
-  int len=strlen(m);
-  int bits=1;
-  while((1<<bits)<len) bits++;
-  float countBits=1+2*(bits-1);
+
+  int len=strlen((char *)m);
+  range_encode_length(c,len);  
+
   // printf("Using %f bits to encode the number of non-alpha/space chars.\n",countBits);
 
   /* Encode the positions of special characters */
-  // ic_encode_heiriter(pos,count,NULL,NULL,len,len,out,&posBits);
-  fprintf(stderr,"Encoding positions of non-alpha characters not implemented.\n");
-  exit(-1);
+  ic_encode_heiriter(pos,count,NULL,NULL,len,len,c);
   
   /* Encode the characters */
   for(i=0;i<count;i++) {
-    double p_low=v[i]*1.0/256;
-    double p_high=v[i+1]*1.0/256-EPSILON;
-    range_encode(c,p_low,p_high);
+    range_encode_equiprobable(c,256,v[1]); 
   }
 
   // printf("Using interpolative coding for positions, total = %d bits.\n",posBits);
 
-  return countBits+posBits+charBits;
-}
-
-int foldCaseInitialCaps(char *m)
-{
-  int pos[1024];
-  int inWord=0;
-
-  int i;
-  int o=0;
-  for(i=0;m[i];i++) {
-    int thisInWord=0;
-    int skip=0;
-    if (isalnum(m[i])) thisInWord=1;
-    if (thisInWord&&(!inWord)) {
-      /* start of word */
-      if (m[i]>='A'&&m[i]<='Z') skip=1;
-    }
-    inWord=thisInWord;
-    if (!skip) m[o++]=m[i];
-  }
-  m[o]=0;
   return 0;
 }
 
-int encodeCaseInitialCaps(range_coder *c,char *m)
+unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
+int charInWord(unsigned c)
 {
-  int pos[1024];
-  int inWord=0;
-  int wordCount=0;
-
   int i;
-  int count=0;
-  for(i=0;m[i];i++) {
-    int thisInWord=0;
-    if (isalnum(m[i])) thisInWord=1;
-    if (thisInWord&&(!inWord)) {
-      /* start of word */
-      if (m[i]>='A'&&m[i]<='Z') pos[count++]=wordCount;
-      wordCount++;      
-    }
-    inWord=thisInWord;
-  }
-  //  printf("\n");
-
-  if (!count) {
-    // printf("Using 1 bit to indicate no upper-case characters.\n");
-    range_emitbit(c,0);
-    return 1;
-  } else range_emitbit(c,1);
-
-  /* Encode number of words starting with upper case using:
-     n 1's to specify how many bits required to encode the count.
-     Then 0.
-     Then n bits to encode the count.
-     So 2*ceil(log2(count))+1 bits
-  */
-  int bits=1;
-  while((1<<bits)<count) bits++;
-  int countBits=1+2*(bits-1);
-  if (1) printf("Using %d bits to encode that there are %d words with initial caps.\n",
-	 countBits,wordCount);
-
-  unsigned char out[1024];
-  int posBits=0;
-  ic_encode_heiriter(pos,count,NULL,NULL,wordCount,wordCount,out,&posBits);  
-
-  //  printf("upper case cost = %d bits.\n",1+countBits+posBits);
-
-  if ((countBits+posBits)>wordCount) {
-    /* more efficient to just use a bitmap */
-    return 1+wordCount;
-  }
-
-  /* 1 bit = "there are upper case chars"
-     1 bit = 0 for not bitmap
-     then bits to encode count and positions.
-  */
-  return 1+1+countBits+posBits;
+  int cc=tolower(c);
+  for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
+  return 0;
 }
 
-
-double encodeCaseEdgeTriggered(char *m)
+double encodeCaseModel1(range_coder *c,unsigned char *line)
 {
-  int pos[1024];
-  int count=0;
-  int ucase=0;
-  
+  int wordPosn=0;
+  int lastCase=0;
+
   int i;
-  int o=0;
   //  printf("caps eligble chars: ");
-  for(i=0;m[i];i++) {
-    int thisUpper=0;
-    if (isalpha(m[i])) {
-      if (m[i]>='A'&&m[i]<='Z') thisUpper=1;
-      if (thisUpper!=ucase) {
-	/* case changed, so remember */
-	pos[count++]=o;
+  for(i=0;line[i];i++) {
+    int wordChar=charInWord(line[i]);
+    if (!wordChar) {	  
+      wordPosn=-1; lastCase=0;
+    } else {
+      if (isalpha(line[i])) {
+	wordPosn++;
+	int upper=0;
+	int caseEnd=0;
+	if (isupper(line[i])) upper=1; 
+	/* note if end of word (which includes end of message,
+	   implicitly detected here by finding null at end of string */
+	if (!charInWord(line[i+1])) caseEnd=1;
+	if (wordPosn==0) {
+	  /* first letter of word, so can only use 1st-order model */
+	  range_encode_symbol(c,caseposn1[0],2,upper);
+	} else {
+	  /* subsequent letter, so can use case of previous letter in model */
+	  range_encode_symbol(c,caseposn2[lastCase][wordPosn],2,upper);
+	}
+	if (isupper(line[i])) lastCase=1; else lastCase=0;
       }
-      ucase=thisUpper;
-      o++; 
     }
+    
+    /* fold all letters to lower case */
+    if (line[i]>='A'&&line[i]<='Z') line[i]|=0x20;
   }
   //  printf("\n");
 
-  if (!count) {
-    // printf("Using 1 bit to indicate no upper-case characters.\n");
-    return 1;
-  }
-
-  /* Encode number of upper case chars using:
-     n 1's to specify how many bits required to encode the count.
-     Then 0.
-     Then n bits to encode the count.
-     So 2*ceil(log2(count))+1 bits
-  */
-  int bits=1;
-  while((1<<bits)<o) bits++;
-  int countBits=1+2*(bits-1);
-  if (0) printf("Using %d bits to encode that there are %d upper-case chars.\n",
-	 countBits,count);
-
-  unsigned char out[1024];
-  int posBits=0;
-  ic_encode_heiriter(pos,count,NULL,NULL,o,o,out,&posBits);
-  
-  //  printf("upper case cost = %d bits.\n",1+countBits+posBits);
-
-  if ((countBits+posBits)>o) {
-    /* more efficient to just use a bitmap */
-    return 1+o;
-  }
-
-  /* 1 bit = "there are upper case chars"
-     1 bit = 0 for not bitmap
-     then bits to encode count and positions.
-  */
-  return 1+1+countBits+posBits;
+  return 0;
 }
 
-
-double encodeCaseLevelTriggered(char *m)
-{
-  int pos[1024];
-  int count=0;
-  
-  int i;
-  int o=0;
-  //  printf("caps eligble chars: ");
-  for(i=0;m[i];i++) {
-    if (m[i]>='A'&&m[i]<='Z') {
-      /* upper case, so remember */
-      pos[count++]=o;
-    }
-    /* Spaces do not have case, so don't bother remembering their
-       positions, since they just add entropy. */
-    if (isalpha(m[i])) { 
-      //      printf("%c",m[i]);
-      o++; 
-    }
-  }
-  //  printf("\n");
-
-  if (!count) {
-    // printf("Using 1 bit to indicate no upper-case characters.\n");
-    return 1;
-  }
-
-  /* Encode number of upper case chars using:
-     n 1's to specify how many bits required to encode the count.
-     Then 0.
-     Then n bits to encode the count.
-     So 2*ceil(log2(count))+1 bits
-  */
-  int bits=1;
-  while((1<<bits)<o) bits++;
-  int countBits=1+2*(bits-1);
-  if (0) printf("Using %d bits to encode that there are %d upper-case chars.\n",
-	 countBits,count);
-
-  unsigned char out[1024];
-  int posBits=0;
-  ic_encode_heiriter(pos,count,NULL,NULL,o,o,out,&posBits);
-  
-  //  printf("upper case cost = %d bits.\n",1+countBits+posBits);
-
-  if ((countBits+posBits)>o) {
-    /* more efficient to just use a bitmap */
-    return 1+o;
-  }
-
-  /* 1 bit = "there are upper case chars"
-     1 bit = 0 for not bitmap
-     then bits to encode count and positions.
-  */
-  return 1+1+countBits+posBits;
-}
-
-int stripNonAlpha(char *in,char *out)
+int stripNonAlpha(unsigned char *in,unsigned char *out)
 {
   int l=0;
   int i;
@@ -351,7 +200,7 @@ int stripNonAlpha(char *in,char *out)
   return 0;
 }
 
-int foldCase(char *in,char *out)
+int stripCase(unsigned char *in,unsigned char *out)
 {
   int l=0;
   int i;
@@ -360,70 +209,57 @@ int foldCase(char *in,char *out)
   return 0;
 }
 
-int mungeCase(char *m)
-{
-  int i,j;
-
-  /* flip case of first letter of message.
-     Ideally we would detect if the message looks like all-caps first,
-     but this is hard to do in practice.
-  */
-
-  if (isalpha(m[0])) {
-    m[0]^=0x20;
-  }
-
-  /* Change isolated I's to i, provided preceeding char is lower-case
-     (so that we don't mess up all-caps).
-  */
-  for(i=1;m[i+1];i++)
-    if (m[i]=='I'&&(!isalpha(m[i-1]))&&(!isalpha(m[i+1])))
-      {
-	int j;
-	int foo=0;
-	for(j=i-2;j>=0;j--) 
-	  if (isalpha(m[j])) 
-	    {
-	      foo=1;
-	      if ((m[j]^m[i])&0x20) {
-		/* case differs to previous character, so flip */
-		m[i]^=0x20;
-		printf("flipping I@%d in: %s\n",i,m);
-	      }
-	      break;
-	    }
-	if (!foo) m[i]^=0x20;
-      }
-     
-  return 0;
-}
-
 int freq_compress(range_coder *c,unsigned char *m)
 {
-  char alpha[1024]; // message with all non alpha/spaces removed
-  char lcalpha[1024]; // message with all alpha chars folded to lower-case
+  unsigned char alpha[1024]; // message with all non alpha/spaces removed
+  unsigned char lcalpha[1024]; // message with all alpha chars folded to lower-case
 
-  double lengthLength=encodeLength(c,m);
-  double binaryLength=encodeNonAlpha(c,m);
-  stripNonAlpha(m,alpha);
-  mungeCase(alpha);
-  double caseLengthI=encodeCaseInitialCaps(c,alpha);
-  foldCaseInitialCaps(alpha);
-  double caseLengthL=encodeCaseLevelTriggered(c,alpha);
-  stripNonAlpha(m,alpha);
-  mungeCase(alpha);
-  foldCase(alpha,lcalpha);
-  double alphaLength=encodeLCAlphaSpace(c,lcalpha);
+  /* Encode length of message */
+  encodeLength(c,m);
   
-  if (c->bits_used>=8*strlen(m))
+  /* Use model instead of just packed ASCII */
+  range_encode_equiprobable(c,2,1); // not raw ASCII
+  range_encode_equiprobable(c,2,1); // not packed ASCII
+  
+  /* encode any non-ASCII characters */
+  encodeNonAlpha(c,m);
+  stripNonAlpha(m,alpha);
+
+  /* compress lower-caseified version of message */
+  stripCase(alpha,lcalpha);
+  encodeLCAlphaSpace(c,lcalpha);
+  
+  /* case must be encoded after symbols, so we know how many
+     letters and where word breaks are */
+  encodeCaseModel1(c,alpha);
+  
+  if (c->bits_used>=7*strlen((char *)m))
     {
       /* we can't encode it more efficiently than 7-bit ASCII */
-      range_reset(c);
+      range_coder_reset(c);
+      range_encode_equiprobable(c,2,1); // not raw ASCII
+      range_encode_equiprobable(c,2,0); // is packed ASCII
+      int i;
       for(i=0;m[i];i++) {
-	double p_low=m[i]*1.0/256;
-	double p_high=m[i+1]*1.0/256-EPSILON;
-	range_encode(c,p_low,p_high);
+	int v=m[i];
+	int upper=0;
+	if (isalpha(v)&&isupper(v)) upper=1;
+	v=tolower(v);
+	v=charIdx(v);
+	range_encode_equiprobable(c,69,v);
+	if (isalpha(v))
+	  range_encode_equiprobable(c,2,upper);
       }
+    }
+  
+  if ((c->bits_used>=8*strlen((char*)m))
+      &&(!(m[0]&0x80)))
+    {
+      /* we can't encode it more efficiently than 8-bit raw.
+         We can only do this is MSB of first char of message is 0, as we use
+	 the first bit of the message to indicate if it is compressed or not. */
+      int i;
+      for(i=0;m[i];i++) range_encode_equiprobable(c,256,m[i]);      
     }
 
   return 0;
@@ -451,7 +287,7 @@ int main(int argc,char *argv[])
     if (1) printf(">>> %s\n",m);
 
     range_coder *c=range_new_coder(strlen(m)*2);
-    freq_compress(c,m);
+    freq_compress(c,(unsigned char *)m);
     range_conclude(c);
 
     double percent=c->bits_used*1.0/(strlen(m)*8);

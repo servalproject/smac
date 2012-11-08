@@ -32,6 +32,7 @@ typedef struct range_coder {
   unsigned int bits_used;
 } range_coder;
 
+int range_coder_reset(struct range_coder *c);
 int range_emitbit(range_coder *c,int b);
 int range_emitbits(range_coder *c,int n);
 int range_emit_stable_bits(range_coder *c);
@@ -44,3 +45,22 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
 int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_size);
 int range_decode_getnextbit(range_coder *c);
 struct range_coder *range_new_coder(int bytes);
+int range_encode_length(range_coder *c,int len);
+int range_conclude(range_coder *c);
+int range_coder_free(range_coder *c);
+
+
+int ic_encode_recursive(int *list,
+								int list_length,
+								int *frequencies,
+								int *word_positions,
+								int corpus_document_count,
+								int max_document_words,
+								range_coder *c);
+int ic_encode_heiriter(int *list,
+							  int list_length,
+							  int *frequencies,
+							  int *word_positions,
+							  int corpus_document_count,
+							  int max_document_words,
+							  range_coder *c);

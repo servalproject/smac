@@ -194,7 +194,7 @@ int main(int argc,char **argv)
     printf("}};\n");  
   }
 
-  printf("\nfloat caseposn1[80][1]={\n");
+  printf("\nunsigned int caseposn1[80][1]={\n");
   for(j=0;j<80;j++) {
     int rowCount=0;
     for(k=0;k<2;k++) {
