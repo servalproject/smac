@@ -40,7 +40,7 @@ int range_encode_length(range_coder *c,int len)
   range_emitbit(c,0);
   /* MSB must be 1, so we don't need to output it, 
      just the lower order bits. */
-  for(i=bits-1;i>=0;i++) range_emitbit(c,(len>>i)&1);
+  for(i=bits-1;i>=0;i--) range_emitbit(c,(len>>i)&1);
   return 0;
 }
 
@@ -59,6 +59,7 @@ int range_emitbit(range_coder *c,int b)
 {
   if (c->bits_used>=(c->bit_stream_length)) {
     printf("out of bits\n");
+    exit(-1);
     return -1;
   }
   int bit=(c->bits_used&7)^7;
