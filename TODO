@@ -13,11 +13,4 @@ tweet_freq:
   what should be a more general solution of using dynamic programming to
   optimise selection of different models at different points, and determining
   the optimal cost for model-switching.
-- rle encoding option for long strings of same character?
-- optimise encoding of message length to favour short messages (length currently
-  takes about 10% more bits to encode than does the case information). Alternative
-  option is a stop symbol, but probably less efficient for short messages.
-  Approximately half of all messages are <28 characters, suggesting that 5 bits
-  is about the right amount for most cases.  Of course, best approach is to generate
-  stats of message lengths, and use the range coder on it. duh.
-  
+- rle encoding option for long strings of same character?  
