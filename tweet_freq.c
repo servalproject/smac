@@ -44,6 +44,7 @@ extern unsigned int tweet_freqs1[69];
 extern unsigned int caseend1[1][1];
 extern unsigned int caseposn2[2][80][1];
 extern unsigned int caseposn1[80][1];
+unsigned int casestartofmessage[1][1];
 
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 int charIdx(unsigned char c)
@@ -150,7 +151,7 @@ int charInWord(unsigned c)
 
 double encodeCaseModel1(range_coder *c,unsigned char *line)
 {
-  int wordPosn=0;
+  int wordPosn=-1;
   int lastCase=0;
 
   int i;
@@ -170,9 +171,15 @@ double encodeCaseModel1(range_coder *c,unsigned char *line)
 	if (!charInWord(line[i+1])) caseEnd=1;
 	if (wordPosn==0) {
 	  /* first letter of word, so can only use 1st-order model */
-	  range_encode_symbol(c,caseposn1[0],2,upper);
+	  unsigned int frequencies[1]={caseposn1[0][0]};
+	  if (i==0) frequencies[0]=casestartofmessage[0][0];
+	  printf("case of first letter of word/message @ %d: p=%f\n",
+		 i,(frequencies[0]*1.0)/0x100000000);
+	  range_encode_symbol(c,frequencies,2,upper);
 	} else {
 	  /* subsequent letter, so can use case of previous letter in model */
+	  printf("case of first letter of word/message @ %d.%d: p=%f\n",
+		 i,wordPosn,(caseposn2[lastCase][wordPosn][0]*1.0)/0x100000000);
 	  range_encode_symbol(c,caseposn2[lastCase][wordPosn],2,upper);
 	}
 	if (isupper(line[i])) lastCase=1; else lastCase=0;
