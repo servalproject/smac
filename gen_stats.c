@@ -26,6 +26,7 @@ long long caseposn3[2][2][80][2]; // position in word
 long long caseposn2[2][80][2]; // position in word
 long long caseposn1[80][2]; // position in word
 long long caseend[2]; // end of word
+long long casestartofmessage[2]; // start of message
 
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
@@ -57,7 +58,7 @@ int main(int argc,char **argv)
   for(i=0;i<69;i++) for(j=0;j<69;j++) for(k=0;k<69;k++) counts3[i][j][k]=0;
   for(j=0;j<69;j++) for(k=0;k<69;k++) counts2[j][k]=0;
   for(k=0;k<69;k++) counts1[k]=0;
-  for(i=0;i<2;i++) { caseend[i]=0;
+  for(i=0;i<2;i++) { caseend[i]=0; casestartofmessage[i]=0;
     for(j=0;j<80;j++) { caseposn1[j][i]=0; 
       for(k=0;k<2;k++) caseposn2[k][j][i]=0;
     }
@@ -68,6 +69,7 @@ int main(int argc,char **argv)
   int wordPosn=0;
 
   while(line[0]) {
+    int som=1;
     lineCount++;
     int c1=charIdx(' ');
     int c2=charIdx(' ');
@@ -105,6 +107,10 @@ int main(int argc,char **argv)
 	       implicitly detected here by finding null at end of string */
 	    if (!charInWord(line[i+1])) caseend[upper]++;
 	    if (isupper(line[i])) lc=1; else lc=0;
+	    if (som) {
+	      casestartofmessage[upper]++;
+	      som=0;
+	    }
 	  }
 	}
 
@@ -180,6 +186,21 @@ int main(int argc,char **argv)
     printf("};\n");  
   }
 
+  printf("\nunsigned int casestartofmessage[1][1]={{");
+  {
+    int rowCount=0;
+    for(k=0;k<2;k++) {
+      if (!caseend[k]) casestartofmessage[k]=1;
+      rowCount+=casestartofmessage[k];
+    }
+    for(k=0;k<(2-1);k++) {
+      printf("%.6f",casestartofmessage[k]*1.0*0xffffffff/rowCount);
+      if (k<(2-1)) printf(",");
+    }
+    printf("}};\n");  
+  }
+
+
   printf("\nunsigned int caseend1[1][1]={{");
   {
     int rowCount=0;
@@ -188,7 +209,7 @@ int main(int argc,char **argv)
       rowCount+=caseend[k];
     }
     for(k=0;k<(2-1);k++) {
-      printf("%.6f",caseend[k]*1.0/rowCount);
+      printf("%.6f",caseend[k]*1.0*0xffffffff/rowCount);
       if (k<(2-1)) printf(",");
     }
     printf("}};\n");  
