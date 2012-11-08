@@ -23,6 +23,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 #include "arithmetic.h"
 
+int range_emitbit(range_coder *c,int b);
+
+#undef DEBUG
+
 int bits2bytes(int b)
 {
   int extra=0;
@@ -85,7 +89,9 @@ int range_emit_stable_bits(range_coder *c)
 	if (msb) u=0; else u=1;
 	while (c->underflow-->0) {	  
 	  if (range_emitbit(c,u)) return -1;
+#ifdef DEBUG
 	  printf("emitting underflow bit = %d @ bit %d\n",u,c->bits_used);
+#endif
 	}
 	c->underflow=0;
       }
@@ -99,7 +105,9 @@ int range_emit_stable_bits(range_coder *c)
 	   &&((c->high&0xc0000000)==0x80000000))
     {
       c->underflow++;
+#ifdef DEBUG
       printf("underflow bit added @ bit %d\n",c->bits_used);
+#endif
       c->low&=0x3fffffff;
       c->low=c->low<<1;
       c->high|=0x40000000;
