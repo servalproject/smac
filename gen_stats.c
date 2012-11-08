@@ -28,6 +28,8 @@ long long caseposn2[2][80][2]; // position in word
 long long caseposn1[80][2]; // position in word
 long long caseend[2]; // end of word
 long long casestartofmessage[2]; // start of message
+long long casestartofword2[2][2]; // case of start of word based on case of start of previous word
+long long casestartofword3[2][2][2]; // case of start of word based on case of start of previous word
 long long messagelengths[1024];
 
 long long wordBreaks=0;
@@ -209,6 +211,10 @@ int main(int argc,char **argv)
   for(j=0;j<69;j++) for(k=0;k<69;k++) counts2[j][k]=0;
   for(k=0;k<69;k++) counts1[k]=0;
   for(i=0;i<2;i++) { caseend[i]=0; casestartofmessage[i]=0;
+    for(k=0;k<2;k++) {
+      casestartofword2[i][k]=0;
+      for(j=0;j<2;j++) casestartofword3[i][j][k]=0;
+    }
     for(j=0;j<80;j++) { caseposn1[j][i]=0; 
       for(k=0;k<2;k++) caseposn2[k][j][i]=0;
     }
@@ -219,6 +225,9 @@ int main(int argc,char **argv)
   int lineCount=0;
   int wordPosn=-1;
   char word[1024];
+
+  int wordCase[8]; for(i=0;i<8;i++) wordCase[i]=0;
+  int wordCount=0;
 
   while(line[0]) {
     int som=1;
@@ -263,7 +272,7 @@ int main(int argc,char **argv)
 	    word[wordPosn]=tolower(line[i]);
 	    word[wordPosn+1]=0;
 	    int upper=0;
-	    if (isupper(line[i])) upper=1; 
+	    if (isupper(line[i])) upper=1;
 	    if (wordPosn<80) caseposn1[wordPosn][upper]++;
 	    if (wordPosn<80) caseposn2[lc][wordPosn][upper]++;
 	    /* note if end of word (which includes end of message,
@@ -273,6 +282,14 @@ int main(int argc,char **argv)
 	    if (som) {
 	      casestartofmessage[upper]++;
 	      som=0;
+	    }
+	    if (wordPosn==0) {
+	      if (wordCount>0) casestartofword2[wordCase[0]][upper]++;
+	      if (wordCount>1) casestartofword3[wordCase[1]][wordCase[0]][upper]++;
+	      int i;
+	      for(i=1;i<8;i++) wordCase[i]=wordCase[i-1];
+	      wordCase[0]=upper;
+	      wordCount++;
 	    }
 	  }
 	}
@@ -363,6 +380,39 @@ int main(int argc,char **argv)
     printf("}};\n");  
   }
 
+  printf("\nunsigned int casestartofword2[2][1]={");
+  for(j=0;j<2;j++) {
+    int rowCount=0;
+    for(k=0;k<2;k++) {
+      if (!casestartofword2[j][k]) casestartofword2[j][k]=1;
+      rowCount+=casestartofword2[j][k];    
+    }
+    k=0;
+    printf("{0x%x}",(unsigned int)(casestartofword2[j][k]*1.0*0xffffffff/rowCount));
+    if (j<(2-1)) printf(",");
+    
+    printf("\n");
+  }
+  printf("};\n");
+
+  printf("\nunsigned int casestartofword3[2][2][1]={");
+  for(i=0;i<2;i++) {
+    printf("  {\n");
+    for(j=0;j<2;j++) {
+      int rowCount=0;
+      for(k=0;k<2;k++) {
+	if (!casestartofword3[i][j][k]) casestartofword3[i][j][k]=1;
+	rowCount+=casestartofword3[i][j][k];    
+      }
+      k=0;
+      printf("    {0x%x}",(unsigned int)(casestartofword3[i][j][k]*1.0*0xffffffff/rowCount));
+      if (j<(2-1)) printf(",");
+      
+      printf("\n");
+    }
+    printf("  },\n");
+  }
+  printf("};\n");
 
   printf("\nunsigned int caseend1[1][1]={{");
   {
