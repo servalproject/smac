@@ -65,19 +65,19 @@ inline void decode_bits(int code_bits,unsigned int *value,range_coder *c);
 inline void decode_few_bits(int code_bits,unsigned int *value,range_coder *c);
 
 int ic_encode_recursive(int *list,
-								int list_length,
-								int *frequencies,
-								int *word_positions,
-								int corpus_document_count,
-								int max_document_words,
-								range_coder *c);
+			int list_length,
+			int *frequencies,
+			int *word_positions,
+			int corpus_document_count,
+			int max_document_words,
+			range_coder *c);
 int ic_encode_heiriter(int *list,
-							  int list_length,
-							  int *frequencies,
-							  int *word_positions,
-							  int corpus_document_count,
-							  int max_document_words,
-							  range_coder *c);
+		       int list_length,
+		       int *frequencies,
+		       int *word_positions,
+		       int corpus_document_count,
+		       int max_document_words,
+		       range_coder *c);
 
 
 int mask[33]={0,1,3,7,15,31,63,127,255,
@@ -166,17 +166,11 @@ inline void ENCODE(binary_,)(int low,int *pp,int high,int step,range_coder *c)
 #ifdef ENCODING
   int value=p-low;
 #else
-  int value,v;
+  int value;
 #endif
   int range_count;
   int code=-1;
   int i;
-  int code_bits_processed=0;
-  int code_bits_remaining;
-  int code_bits_residual;
-  int out_phase,out_start,byte;
-  int ob=*out_bits;
-  int bits;
 
   struct range {
 	 int low,high,first_code,short_code;
@@ -213,9 +207,10 @@ inline void ENCODE(binary_,)(int low,int *pp,int high,int step,range_coder *c)
 
 #ifdef ENCODING
   /* Gather gap statistics for investigation */
-  if (range)
+  if (range) {
     if (step>1) gap_dist_l[(value<<GD_BITS)/range]++;
     else gap_dist_i[(value<<GD_BITS)/range]++;
+  }
 #endif
   
   /* Otherwise, figure out how many bits we need */
@@ -236,112 +231,110 @@ inline void ENCODE(binary_,)(int low,int *pp,int high,int step,range_coder *c)
          be out of order so that this can be achieved.  This way the extra
          search time is spend during encoding rather than decoding. */
   if (step>1)
-	 {
-		if (short_codes)
-		  {
-			 int drs=(range-short_codes)>>1;
-
-			 /* Place short codes in middle of range */
-			 ranges[1].low=0; 
-			 ranges[1].high=drs-1;
-			 ranges[1].first_code=short_codes<<1;
-			 ranges[1].short_code=0;
-
-			 ranges[0].low=ranges[1].high+1;
-			 ranges[0].high=ranges[0].low+short_codes-1;
-			 ranges[0].first_code=0;
-			 ranges[0].short_code=1;
-
-			 ranges[2].low=ranges[0].high+1;
-			 ranges[2].high=range_minus_1;
-			 ranges[2].first_code=code_range-drs;
-			 ranges[2].short_code=0;
-			 
-			 range_count=3;
-		  }
-		else
-		  { 
-			 /* No short codes, so use flat space */
-			 ranges[0].low=0;
-			 ranges[0].high=range_minus_1;
-			 ranges[0].first_code=0;
-			 ranges[0].short_code=0;
-
-			 range_count=1;
-		  }
-	 }
+    {
+      if (short_codes)
+	{
+	  int drs=(range-short_codes)>>1;
+	  
+	  /* Place short codes in middle of range */
+	  ranges[1].low=0; 
+	  ranges[1].high=drs-1;
+	  ranges[1].first_code=short_codes<<1;
+	  ranges[1].short_code=0;
+	  
+	  ranges[0].low=ranges[1].high+1;
+	  ranges[0].high=ranges[0].low+short_codes-1;
+	  ranges[0].first_code=0;
+	  ranges[0].short_code=1;
+	  
+	  ranges[2].low=ranges[0].high+1;
+	  ranges[2].high=range_minus_1;
+	  ranges[2].first_code=code_range-drs;
+	  ranges[2].short_code=0;
+	  
+	  range_count=3;
+	}
+      else
+	{ 
+	  /* No short codes, so use flat space */
+	  ranges[0].low=0;
+	  ranges[0].high=range_minus_1;
+	  ranges[0].first_code=0;
+	  ranges[0].short_code=0;
+	  
+	  range_count=1;
+	}
+    }
   else
-	 {
-		/* Place short codes at outside of range */
-		if (short_codes&1) short_codes--;
-
-		if (short_codes)
-		  {
-			 /* Place short codes at outside of range */
-			 ranges[0].low=0;
-			 ranges[0].high=(short_codes>>1)-1;
-			 ranges[0].first_code=0;
-			 ranges[0].short_code=1;
-
-			 ranges[2].low=(short_codes>>1);
-			 ranges[2].high=range-(short_codes>>1)-1;
-			 ranges[2].first_code=short_codes<<1;
-			 ranges[2].short_code=0;
-
-			 ranges[1].low=range-(short_codes>>1);
-			 ranges[1].high=range_minus_1;
-			 ranges[1].first_code=short_codes;
-			 ranges[1].short_code=1;
-
-			 range_count=3;
-		  }
-		else
-		  { 
-			 /* No short codes, so use flat space */
-			 ranges[0].low=0;
-			 ranges[0].high=range_minus_1;
-			 ranges[0].first_code=0;
-			 ranges[0].short_code=0;
-
-			 range_count=1;
-		  }
-		
-	 }
-
+    {
+      /* Place short codes at outside of range */
+      if (short_codes&1) short_codes--;
+      
+      if (short_codes)
+	{
+	  /* Place short codes at outside of range */
+	  ranges[0].low=0;
+	  ranges[0].high=(short_codes>>1)-1;
+	  ranges[0].first_code=0;
+	  ranges[0].short_code=1;
+	  
+	  ranges[2].low=(short_codes>>1);
+	  ranges[2].high=range-(short_codes>>1)-1;
+	  ranges[2].first_code=short_codes<<1;
+	  ranges[2].short_code=0;
+	  
+	  ranges[1].low=range-(short_codes>>1);
+	  ranges[1].high=range_minus_1;
+	  ranges[1].first_code=short_codes;
+	  ranges[1].short_code=1;
+	  
+	  range_count=3;
+	}
+      else
+	{ 
+	  /* No short codes, so use flat space */
+	  ranges[0].low=0;
+	  ranges[0].high=range_minus_1;
+	  ranges[0].first_code=0;
+	  ranges[0].short_code=0;
+	  
+	  range_count=1;
+	}
+      
+    }
+  
 #ifdef DEBUG
   if (DEBUG&2)
-	 for(i=0;i<range_count;i++)
-		printf("Range %d: values=[%d,%d], first code=0x%x, short code? %s\n",
-				 i,ranges[i].low,ranges[i].high,ranges[i].first_code,
-				 ranges[i].short_code ? "Yes" : "No");
+    for(i=0;i<range_count;i++)
+      printf("Range %d: values=[%d,%d], first code=0x%x, short code? %s\n",
+	     i,ranges[i].low,ranges[i].high,ranges[i].first_code,
+	     ranges[i].short_code ? "Yes" : "No");
 #endif
   
 #ifdef ENCODING
   /* Pick the code for the value */
   for(i=0;i<range_count;i++)
-	 {
-		if ((value>=ranges[i].low)&&(value<=ranges[i].high))
-		  {
-			 code=ranges[i].first_code
-				+((value-ranges[i].low)<<ranges[i].short_code);
-			 if (ranges[i].short_code)
-				{
-				  code=code>>1;
-				  code_bits-=1;
-				}
-			 break;
-		  }
-	 }
+    {
+      if ((value>=ranges[i].low)&&(value<=ranges[i].high))
+	{
+	  code=ranges[i].first_code
+	    +((value-ranges[i].low)<<ranges[i].short_code);
+	  if (ranges[i].short_code)
+	    {
+	      code=code>>1;
+	      code_bits-=1;
+	    }
+	  break;
+	}
+    }
 #else
   code=0;
 #endif
 
-  /* Read / Write code */
+  /* Read  code */
+#ifndef ENCODING
   for(i=code_bits-1;i>=0;i++)
-#ifdef ENCODING
-    range_emitbit(c,(code >> i ) & 1 );
-#else
-  code|=range_decode_getnextbit(c) << i;
+    code|=range_decode_getnextbit(c) << i;
 #endif		  
 
 #ifndef ENCODING
@@ -359,13 +352,18 @@ inline void ENCODE(binary_,)(int low,int *pp,int high,int step,range_coder *c)
   if (ranges[i].short_code) 
     {
       /* The code is a minimum length code, so we must trim one bit. */
-      value=value>>1; (*out_bits)--;
+      value=value>>1; code_bits--;
 #ifdef DEBUG
       code=code>>1; code_bits--;
 #endif
     }
   /* The final value can now be calculated */
   *pp=low+ranges[i].low+value;
+#endif
+
+#ifdef ENCODING
+  for(i=code_bits-1;i>=0;i++)
+    range_emitbit(c,(code >> i ) & 1 );
 #endif
   
 #ifdef DEBUG
@@ -521,18 +519,18 @@ inline void binary_few_decode(int low,int *pp,int high,int leafP,range_coder *c)
 
   /* Encode zero bits if the range is zero  */
   if (high==low) 
-	 {
-		p=low; *pp=low;
+    {
+      p=low; *pp=low;
 #ifdef DEBUG
-		if ((p>high||p<low)||(DEBUG&4))
-		  {
-			 printf("fdec [%d,%d,%d]   -no code required-\n",low,p,high);
-			 if (DEBUG&8) sleep(1);
-		  }
+      if ((p>high||p<low)||(DEBUG&4))
+	{
+	  printf("fdec [%d,%d,%d]   -no code required-\n",low,p,high);
+	  if (DEBUG&8) sleep(1);
+	}
 #endif
-		return;
-	 }
-
+      return;
+    }
+  
   /* Otherwise, figure out how many bits we need */
   code_bits=msb[range_minus_1&0xff];
   if (range_minus_1&0xffffff00) code_bits=msb[(range_minus_1>>8)&0xff]+8;
@@ -548,7 +546,7 @@ inline void binary_few_decode(int low,int *pp,int high,int leafP,range_coder *c)
   if (!short_codes)
     {
       /* Read simple fixed length code and return */
-      decode_few_bits(code_bits,pp,c);
+      decode_few_bits(code_bits,(unsigned int*)pp,c);
       (*pp)+=low;
     }
   else
@@ -558,20 +556,17 @@ inline void binary_few_decode(int low,int *pp,int high,int leafP,range_coder *c)
       int add;
       
       /* Decode bits */
-      decode_few_bits(code_bits,&code,c);
-      
+      decode_few_bits(code_bits-1,&code,c);
+      code=code<<1;
+
       /* Rotate LSB around to become MSB */
       code=(code<<1)+((code>>(code_bits-1))&1);
       code&=mask[code_bits];
       
       /* Shorten the code if we can */
-      if (code<(short_codes<<1))
+      if (code>=(short_codes<<1))
 	{ 
-	  (*out_bits)--; 
-#ifdef DEBUG
-	  code_bits--; 
-#endif
-	  code&=0xfffffffe;
+	  code|=range_decode_equiprobable(c,2);
 	}
       
       add=code>>1;
@@ -666,7 +661,7 @@ inline void binary_many_decode(int low,int *pp,int high,int leafP,range_coder *c
   if (!short_codes)
     {
       /* Read simple fixed length code and return */
-      decode_bits(code_bits,pp,c);
+      decode_bits(code_bits,(unsigned int *)pp,c);
       (*pp)+=low;
     }
   else
@@ -676,7 +671,8 @@ inline void binary_many_decode(int low,int *pp,int high,int leafP,range_coder *c
       int add;
       
       /* Decode bits */
-      decode_few_bits(code_bits,&code,c);
+      decode_few_bits(code_bits-1,&code,c);
+      code=code<<1;
 #ifdef DEBUG
       printf("mdec Raw code is 0x%x\n",code);
 #endif
@@ -687,14 +683,8 @@ inline void binary_many_decode(int low,int *pp,int high,int leafP,range_coder *c
       printf("mdec after rotation code=0x%x\n",code);
 #endif
       /* Work out final number of code bits */
-      if (code<(short_codes<<1))
-	{ 
-	  (*out_bits)--; code_bits--; 
-	  code&=0xfffffffe;
-#ifdef DEBUG
-	  printf("mdec Trimming short code\n");
-#endif
-	}
+      if (code>=(short_codes<<1))
+	code|=range_decode_equiprobable(c,2);
       
       add=code>>1;
       if (add>short_codes) add=short_codes; if (add<0) add=0;		
@@ -992,362 +982,201 @@ int ENCODE(ic_,_heiriter)(int *list,
 		  
   /* Make sure our unique order lookup tables are initialised */
   if (!tab_initialised) 
-	 {
-		initialise_hi_tables(0,127,255,64);
-	 }
-
+    {
+      initialise_hi_tables(0,127,255,64);
+    }
+  
   /* Commence the three layers of traversal, which allows for 2^24 entries.
-	Adding an extra layer is trivial, but requires 64 bit arithmatic. */
-
+     Adding an extra layer is trivial, but requires 64 bit arithmatic. */
+  
   /* Fill in the top level (0x00{00-ff}0000) */
   for(j=0;j<256;j++) 
-	 {
-		/* Work out bounds of the list slice. */
-		if (j<255) 
-		  { 
-			 lo_j=TAB_LO0(j)<<16; 
-			 p_j=TAB_P0(j)<<16; 
-			 hi_j=TAB_HI0(j)<<16; 
-		  }
-		else 
-		  { 
-			 p_j=255<<16; lo_j=254<<16; 
-			 hi_j=corpus_document_count-(list_length-p_j); 
-		  }
-
-		/* Save time if this slice is entirely irrelevant */
-		if (list_length<=p_j) continue;
-
-		if (TAB_LO1(j)>1) lower_bound=list[lo_j]+(p_j-lo_j);
-		else lower_bound=p_j;
-
-		/* if (p_j||lo_j) lower_bound=list[lo_j]+(p_j-lo_j);
-			else lower_bound=p_j; */
-		
-		if (hi_j<list_length) upper_bound=list[hi_j]-(hi_j-p_j);
-		else upper_bound=corpus_document_count-(list_length-p_j-1);
-
-		/* Encode or decode value */
+    {
+      /* Work out bounds of the list slice. */
+      if (j<255) 
+	{ 
+	  lo_j=TAB_LO0(j)<<16; 
+	  p_j=TAB_P0(j)<<16; 
+	  hi_j=TAB_HI0(j)<<16; 
+	}
+      else 
+	{ 
+	  p_j=255<<16; lo_j=254<<16; 
+	  hi_j=corpus_document_count-(list_length-p_j); 
+	}
+      
+      /* Save time if this slice is entirely irrelevant */
+      if (list_length<=p_j) continue;
+      
+      if (TAB_LO1(j)>1) lower_bound=list[lo_j]+(p_j-lo_j);
+      else lower_bound=p_j;
+      
+      /* if (p_j||lo_j) lower_bound=list[lo_j]+(p_j-lo_j);
+	 else lower_bound=p_j; */
+      
+      if (hi_j<list_length) upper_bound=list[hi_j]-(hi_j-p_j);
+      else upper_bound=corpus_document_count-(list_length-p_j-1);
+      
+      /* Encode or decode value */
 #ifdef ENCODING
-		binary_many_encode(lower_bound,list[p_j],upper_bound,
-				   hi_j-p_j,c);
+      binary_many_encode(lower_bound,list[p_j],upper_bound,
+			 hi_j-p_j,c);
 #else
-		binary_many_decode(lower_bound,&list[p_j],upper_bound,
-				   hi_j-p_j,c);
+      binary_many_decode(lower_bound,&list[p_j],upper_bound,
+			 hi_j-p_j,c);
 #endif
-	 }
-
+    }
+  
   /* Fill in the middle level (0x00{00-ff}{01-ff}00), making use of the top level values */
   for(j=0;j<256;j++) 
-	 {
-		/* Work out bounds of the list slice. */
-		if (j<255) p_j=(TAB_P0(j))<<16; else p_j=255<<16; 
-		
-		/* Save time if this slice is entirely irrelevant */
-		if (list_length<=p_j) continue;
-
-		for(k=0;k<255;k++)
-		  {
-			 p_k=p_j+(TAB_P1(k)<<8); 
-
-			 /* Save time if this slice is entirely irrelevant */
-			 if (list_length<=p_k) continue;
-
-			 lo_k=p_j+(TAB_LO1(k)<<8); 
-			 hi_k=p_j+(TAB_HI1(k)<<8);
-			 
-			 if (TAB_LO1(k)>1) lower_bound=list[lo_k]+(p_k-lo_k);
-			 else lower_bound=list[p_j]+(p_k-p_j);
-
-			 if (hi_k<list_length) upper_bound=list[hi_k]-(hi_k-p_k);
-			 else upper_bound=corpus_document_count-(list_length-p_k-1);
-			 
-			 /* Encode or decode value */
+    {
+      /* Work out bounds of the list slice. */
+      if (j<255) p_j=(TAB_P0(j))<<16; else p_j=255<<16; 
+      
+      /* Save time if this slice is entirely irrelevant */
+      if (list_length<=p_j) continue;
+      
+      for(k=0;k<255;k++)
+	{
+	  p_k=p_j+(TAB_P1(k)<<8); 
+	  
+	  /* Save time if this slice is entirely irrelevant */
+	  if (list_length<=p_k) continue;
+	  
+	  lo_k=p_j+(TAB_LO1(k)<<8); 
+	  hi_k=p_j+(TAB_HI1(k)<<8);
+	  
+	  if (TAB_LO1(k)>1) lower_bound=list[lo_k]+(p_k-lo_k);
+	  else lower_bound=list[p_j]+(p_k-p_j);
+	  
+	  if (hi_k<list_length) upper_bound=list[hi_k]-(hi_k-p_k);
+	  else upper_bound=corpus_document_count-(list_length-p_k-1);
+	  
+	  /* Encode or decode value */
 #ifdef ENCODING
-			 binary_many_encode(lower_bound,list[p_k],upper_bound,
-					    hi_k-p_k,c);
+	  binary_many_encode(lower_bound,list[p_k],upper_bound,
+			     hi_k-p_k,c);
 #else
-			 binary_many_decode(lower_bound,&list[p_k],upper_bound,
-					    hi_k-p_k,c);
+	  binary_many_decode(lower_bound,&list[p_k],upper_bound,
+			     hi_k-p_k,c);
 #endif
-		  }
-	 }
-
+	}
+    }
+  
   /* Fill out the bottom layer (0x00{00-ff}{00-ff}{01-ff}), making use of the higher levels  */
   for(k=0;k<65536;k++)
-	 {
-		int slice_range,slice_upper,slice_lower;
-
-		p_k=(k<<8);
-		
-		/* Save time if this slice is entirely irrelevant */
-		if (list_length<=p_k) break;
-
-		slice_lower=list[p_k];
-
-		if (list_length<=(p_k+256)) 
-		  slice_upper=corpus_document_count+1;
-		else slice_upper=list[p_k+256]-1;
-		slice_range=slice_upper-slice_lower;
-
-		if (slice_range<0x1000000)
-		  {
-			 /* Fields are narrow enough to always fit into a word, regardless of the fraction of
-				 the bottom byte that is already occupied */
-			 for(n=0;n<255;n++)
-				{
-				  p=p_k+TAB_P1(n);
-				  
-				  if (list_length<=p) continue;
-				  
-				  lo=p_k+TAB_LO1(n);
-				  hi=p_k+TAB_HI1(n);
-				  
-				  /* Work out bounds of interval */
-				  
-				  if (TAB_LO1(n)>1) lower_bound=list[lo]+(p-lo);
-				  else lower_bound=slice_lower+TAB_P1(n);
-				  
-				  if (hi<list_length)
-					 upper_bound=list[hi]-(hi-p);
-				  else 
-					 upper_bound=slice_upper-(hi-p);
-				  
-				  /* Encode or decode value */
+    {
+      int slice_range,slice_upper,slice_lower;
+      
+      p_k=(k<<8);
+      
+      /* Save time if this slice is entirely irrelevant */
+      if (list_length<=p_k) break;
+      
+      slice_lower=list[p_k];
+      
+      if (list_length<=(p_k+256)) 
+	slice_upper=corpus_document_count+1;
+      else slice_upper=list[p_k+256]-1;
+      slice_range=slice_upper-slice_lower;
+      
+      if (slice_range<0x1000000)
+	{
+	  /* Fields are narrow enough to always fit into a word, regardless of the fraction of
+	     the bottom byte that is already occupied */
+	  for(n=0;n<255;n++)
+	    {
+	      p=p_k+TAB_P1(n);
+	      
+	      if (list_length<=p) continue;
+	      
+	      lo=p_k+TAB_LO1(n);
+	      hi=p_k+TAB_HI1(n);
+	      
+	      /* Work out bounds of interval */
+	      
+	      if (TAB_LO1(n)>1) lower_bound=list[lo]+(p-lo);
+	      else lower_bound=slice_lower+TAB_P1(n);
+	      
+	      if (hi<list_length)
+		upper_bound=list[hi]-(hi-p);
+	      else 
+		upper_bound=slice_upper-(hi-p);
+	      
+	      /* Encode or decode value */
 #ifdef ENCODING
-				  binary_many_encode(lower_bound,list[p],upper_bound,
-											TAB_LEAF(n),
-											out,out_bits,out_len);
+	      binary_many_encode(lower_bound,list[p],upper_bound,
+				 TAB_LEAF(n),c);
 #else
-				  binary_few_decode(lower_bound,&list[p],upper_bound,
-										  TAB_LEAF(n),
-										  out,out_bits);
+	      binary_few_decode(lower_bound,&list[p],upper_bound,
+				TAB_LEAF(n),c);
 #endif
-				}
-		  }
-		else
-		  {
-			 /* Field width is too wide to guarantee the correctness of the fast coder used above */
-			 for(n=0;n<255;n++)
-				{
-				  p=p_k+TAB_P1(n);
-				  
-				  if (list_length<=p) continue;
-				  
-				  lo=p_k+TAB_LO1(n);
-				  hi=p_k+TAB_HI1(n);
-				  
-				  /* Work out bounds of interval */
-				  
-				  if (TAB_LO1(n)>1) lower_bound=list[lo]+(p-lo);
-				  else lower_bound=slice_lower+TAB_P1(n);
-				  
-				  if (hi<list_length)
-					 upper_bound=list[hi]-(hi-p);
-				  else 
-					 upper_bound=slice_upper-(hi-p);
-				  
-				  /* Encode or decode value */
+	    }
+	}
+      else
+	{
+	  /* Field width is too wide to guarantee the correctness of the fast coder used above */
+	  for(n=0;n<255;n++)
+	    {
+	      p=p_k+TAB_P1(n);
+	      
+	      if (list_length<=p) continue;
+	      
+	      lo=p_k+TAB_LO1(n);
+	      hi=p_k+TAB_HI1(n);
+	      
+	      /* Work out bounds of interval */
+	      
+	      if (TAB_LO1(n)>1) lower_bound=list[lo]+(p-lo);
+	      else lower_bound=slice_lower+TAB_P1(n);
+	      
+	      if (hi<list_length)
+		upper_bound=list[hi]-(hi-p);
+	      else 
+		upper_bound=slice_upper-(hi-p);
+	      
+	      /* Encode or decode value */
 #ifdef ENCODING
-				  binary_many_encode(lower_bound,list[p],upper_bound,
-											TAB_LEAF(n),
-											out,out_bits,out_len);
+	      binary_many_encode(lower_bound,list[p],upper_bound,
+				 TAB_LEAF(n),c);
 #else
-				  binary_many_decode(lower_bound,&list[p],upper_bound,
-											TAB_LEAF(n),
-											out,out_bits);
+	      binary_many_decode(lower_bound,&list[p],upper_bound,
+				 TAB_LEAF(n),c);
 #endif
-				}
-		  }
-
-	 }
+	    }
+	}
+      
+    }
   
   return 0;
 }
 
 /*      -------------------------------------------------
-		  Fixed Binary Code (Selector) Coder (according to Anh&Moffat 2004)
+	Fixed Binary Code (Selector) Coder (according to Anh&Moffat 2004)
 	------------------------------------------------- */
 
 #ifdef COMMON
 
-inline void decode_few_bits(int code_bits,unsigned int *value,
-									 unsigned char *out,unsigned int *out_bits)
+inline void decode_few_bits(int code_bits,unsigned int *value,range_coder *c)
 {
-  /* Read / Write code */
-  int out_phase=(*out_bits)&7;
-  int byte=(*out_bits)>>3;
-#ifdef __sun__
-  int bits_needed=code_bits+out_phase;
-#endif
-  
-  unsigned int word;
-
-  /* Prevent underflows */
-  if (byte<0) return; 
-
-#ifdef __sun__
-  word=out[byte];
-  if (bits_needed>8) word|=out[byte+1]<<8;
-  if (bits_needed>16) word|=out[byte+2]<<16;
-  if (bits_needed>24) word|=out[byte+3]<<24;
-#else
-  word=*(unsigned int *)&out[byte];
-#endif
-
-  /* Normalise and trim word */
-  *value=(word>>out_phase)&mask[code_bits];
-  (*out_bits)+=code_bits;
+  /* Read / Write code */  
+  int v=0;
+  int i;
+  for(i=0;i<code_bits;i++) 
+    v=(v<<1)+range_decode_equiprobable(c,2);
+  *value=v;
   
   return;
+}  
+
+inline void decode_bits(int code_bits,unsigned int *value,range_coder *c)
+{  
+  decode_few_bits(code_bits,value,c);
 }
 
-inline void decode_bits(int code_bits,unsigned int *value,
-								unsigned char *out,unsigned int *out_bits)
-{
-  
-  /* Read / Write code */
-  int ob=(*out_bits);
-  int code_bits_remaining=code_bits;
-  int code_bits_residual;
-  int code_bits_now;
-  int out_phase=ob&7;
-  int byte=ob>>3;
-
-  int bits_needed;
-  unsigned int word;
-
-  /* Prevent underflows */
-  if (byte<0) return; 
-
-  if (code_bits<25)
-	 {
-		/* Fast track where we know that it will fit into a word */
-		bits_needed=code_bits+out_phase;
-
-		word=out[byte];
-		if (bits_needed>8) word|=out[byte+1]<<8;
-		if (bits_needed>16) word|=out[byte+2]<<16;
-		if (bits_needed>24) word|=out[byte+3]<<24;
-
-		/* Normalise and trim word */
-		*value=(word>>out_phase)&mask[code_bits];
-		(*out_bits)+=code_bits;
-
-		return;
-	 }
-
-  *value=0;
-
-  while(code_bits_remaining)
-	 {
-		if (code_bits_remaining+out_phase>31)
-		  {
-			 code_bits_now=31-out_phase;
-			 bits_needed=31;
-		  }
-		else
-		  {
-			 bits_needed=code_bits_remaining+out_phase;
-			 code_bits_now=code_bits_remaining;
-		  }
-
-		code_bits_residual=code_bits_remaining-code_bits_now;
-
-		word=out[byte];
-		if (bits_needed>8) word|=out[byte+1]<<8;
-		if (bits_needed>16) word|=out[byte+2]<<16;
-		if (bits_needed>24) word|=out[byte+3]<<24;
-
-		/* Normalise and trim word */
-		word=(word>>out_phase)&mask[code_bits_now];
-
-		/* Update pointers etc */
-		code_bits_remaining=code_bits_residual;
-		ob+=code_bits_now;
-		out_phase+=(code_bits_now)&7; 
-		byte=ob>>3;
-
-		/* Place bits of word into value 
-		   (do this here instead of above to give the pipeline a chance to calculate the normalised value
-		of word before we use it) */
-		*value|= word << code_bits_residual;
-
-	 }
-
-  (*out_bits)=ob;
-  return;
-}
-
-inline void encode_bits(int code_bits,unsigned int value,
-								unsigned char *out,unsigned int *out_bits,
-								int out_len)
-{
-  
-  /* Read / Write code */
-  int ob=(*out_bits);
-  int code_bits_remaining=code_bits;
-  int code_bits_residual;
-  int out_phase=ob&7;
-  int byte=ob>>3;
-
-  int bits_needed;
-  int word;
-  int code_bits_now;
-
-  /* Prevent underflows */
-  if (byte<0||code_bits<0) return; 
-
-  while(code_bits_remaining)
-	 {
-		if (code_bits_remaining+out_phase>31)
-		  {
-			 code_bits_now=31-out_phase;
-			 bits_needed=31;
-		  }
-		else
-		  {
-			 bits_needed=code_bits_remaining+out_phase;
-			 code_bits_now=code_bits_remaining;
-		  }
-
-		code_bits_residual=code_bits_remaining-code_bits_now;
-
-		/* Calculate value to write */
-		word=value>>code_bits_residual;
-		/* Or it with the existing output stream, and then write each byte */
-		word=(word<<out_phase)|(out[byte]&mask[out_phase]);
-
-		switch(bits_needed)
-		  {
-		  case 25: case 26: case 27: case 28:
-		  case 29: case 30: case 31: case 32:
-			 out[byte+3]=(word>>24)&0xff;
-		  case 17: case 18: case 19: case 20:
-		  case 21: case 22: case 23: case 24:
-			 out[byte+2]=(word>>16)&0xff;
-		  case 9: case 10: case 11: case 12:
-		  case 13: case 14: case 15: case 16:
-			 out[byte+1]=(word>>8)&0xff;
-		  case 0: case 1: case 2: case 3:
-		  case 4: case 5: case 6: case 7: case 8:
-			 out[byte]=word&0xff;
-			 break;				
-		  default:
-			 fprintf(stderr,"ERROR: Cannot decode more than 32 bits at once\n");
-			 exit(3);
-		  }
-
-		/* Update pointers etc */
-		code_bits_remaining=code_bits_residual;
-		ob+=code_bits_now;
-		out_phase+=(code_bits_now)&7; 
-		byte=ob>>3;
-
-	 }
-
-  (*out_bits)=ob;
-  return;
+inline void encode_bits(int code_bits,unsigned int value,range_coder *c)
+{  
+  range_encode_equiprobable(c,(1<<code_bits),value);
 }
 
 
@@ -1476,9 +1305,7 @@ int ic_encode_selector_r(int s1,int s2,int s3,int m,int escape,
 								 int *word_positions,
 								 int corpus_document_count,
 								 int max_document_words,
-								 unsigned char *out,
-								 unsigned int *out_bits,
-								 int out_len)
+								 range_coder *c)
 {
   int max_bits=log2_ceil(corpus_document_count);
   int *cost_to_end;
@@ -1801,11 +1628,11 @@ int ic_encode_selector_r(int s1,int s2,int s3,int m,int escape,
 
 		/* Output code */
 		best_code--;
-		encode_bits(4,best_code,out,out_bits,out_len);
+		encode_bits(4,best_code,c);
 		if (best_s_num==3)
 		  {
 			 if (escape)
-				encode_bits(4,s3_extension[best_width][i],out,out_bits,out_len);
+				encode_bits(4,s3_extension[best_width][i],c);
 			 j=possible_lengths[2+s3_extension[best_width][i]];
 			 /* printf("s3 + %d extension gives length of %d\n",
 				 s3_extension[best_width][i],
@@ -1876,8 +1703,8 @@ int ic_encode_selector_r(int s1,int s2,int s3,int m,int escape,
 				  exit(-3);
 				}
 			 if (i) 
-				encode_bits(best_width,list[i]-list[i-1]-1,out,out_bits,out_len);
-			 else encode_bits(best_width,list[i]-1,out,out_bits,out_len);
+			   encode_bits(best_width,list[i]-list[i-1]-1,c);
+			 else encode_bits(best_width,list[i]-1,c);
 		  }
 
 		/* Select field width and table context for next code */
@@ -1899,19 +1726,15 @@ int ic_encode_selector_r(int s1,int s2,int s3,int m,int escape,
 	  
 
 int ic_encode_selector(int *list,
-							  int list_length,
-							  int *frequencies,
-							  int *word_positions,
-							  int corpus_document_count,
-							  int max_document_words,
-							  unsigned char *out,
-							  unsigned int *out_bits,int out_len)
+		       int list_length,
+		       int *frequencies,
+		       int *word_positions,
+		       int corpus_document_count,
+		       int max_document_words,
+		       range_coder *c)
 {
   int m,s1=1,s2=2,s3=3,escape;
   
-  int out_bits_in=*out_bits;
-  int out_bits_coded;
-
   int shortest_length=-1;
   int sl_s1=1,sl_s2=2,sl_s3=3,sl_m=1,sl_escape=0;
 
@@ -1919,414 +1742,178 @@ int ic_encode_selector(int *list,
 
   /* Try all eight multipliers */
   if (1)
-	 {
-		/* XXX Hard wired to these parameters for now */
-		sl_m=3;
-		sl_s1=1;
-		sl_s2=2;
-		sl_s3=4;
-		sl_escape=0;
-		shortest_length=-1;
-	 }
+    {
+      /* XXX Hard wired to these parameters for now */
+      sl_m=3;
+      sl_s1=1;
+      sl_s2=2;
+      sl_s3=4;
+      sl_escape=0;
+      shortest_length=-1;
+    }
   else
-	 for(m=1;m<=8;m++)
-		for(escape=0;escape<2;escape++)
-		  for(s3=3;s3<5;s3++)
-			 {
-				/** Test Parameters */
-				out_bits_coded=out_bits_in;
-				
-				ic_encode_selector_r(s1,s2,s3,m,escape,
-											list,list_length,
-											frequencies,
-											word_positions,
-											corpus_document_count,
-											max_document_words,
-											out,&out_bits_coded,out_len);
-				out_bits_coded-=out_bits_in;
-				
-				/* Remember these parameters if they give the shortest output so far */
-				if (out_bits_coded<shortest_length
-					 ||shortest_length==-1)
-				  {
-					 shortest_length=out_bits_coded;
-					 sl_s1=s1; sl_s2=s2; sl_s3=s3;
-					 sl_m=m; sl_escape=escape;
-				  }
-			 }
+    for(m=1;m<=8;m++)
+      for(escape=0;escape<2;escape++)
+	for(s3=3;s3<5;s3++)
+	  {
+	    /** Test Parameters */
+	    range_coder *t=range_new_coder(8192);
+	    
+	    ic_encode_selector_r(s1,s2,s3,m,escape,
+				 list,list_length,
+				 frequencies,
+				 word_positions,
+				 corpus_document_count,
+				 max_document_words,
+				 t);
+
+	    /* Remember these parameters if they give the shortest output so far */
+	    if (t->entropy<shortest_length
+		||shortest_length==-1)
+	      {
+		shortest_length=t->entropy;
+		sl_s1=s1; sl_s2=s2; sl_s3=s3;
+		sl_m=m; sl_escape=escape;
+	      }
+	    
+	    range_coder_free(t);
+	  }
   
   /* Output model description */
   model_number=sl_m-1;
   if (sl_s3==4) model_number|=1<<3;
   if (sl_escape) model_number|=1<<4;
-  encode_bits(5,model_number,out,out_bits,out_len);
-
+  encode_bits(5,model_number,c);
+  
   /* output encoded stream */
   ic_encode_selector_r(sl_s1,sl_s2,sl_s3,sl_m,sl_escape,
-							  list,list_length,
-							  frequencies,
-							  word_positions,
-							  corpus_document_count,
-							  max_document_words,
-							  out,out_bits,out_len);
+		       list,list_length,
+		       frequencies,
+		       word_positions,
+		       corpus_document_count,
+		       max_document_words,
+		       c);
   
   return 0;
 }
-
-int ic_encode_selector_greedy_r(int s1,int s2,int s3,int m,int escape,
-										  int *list,
-										  int list_length,
-										  int *frequencies,
-										  int *word_positions,
-										  int corpus_document_count,
-										  int max_document_words,
-										  unsigned char *out,
-										  unsigned int *out_bits,
-										  int out_len)
-{
-  int max_bits=log2_ceil(corpus_document_count);
-  int current_width=max_bits;
-  int current_table=6;
-  int i,k,l;
-  int *dgaps;
-  char *dgapbits;
-
-  int s1_m=s1*m;
-  int s2_m=s2*m;
-
-  int possible_lengths[18]
-	 ={s1_m,s2_m,
-		s3*m,(s3+1)*m,(s3+2)*m,(s3+3)*m,
-		(s3+4)*m,(s3+5)*m,(s3+6)*m,(s3+7)*m,
-		(s3+8)*m,(s3+9)*m,(s3+10)*m,(s3+11)*m,
-		(s3+12)*m,(s3+13)*m,(s3+14)*m,(s3+15)*m};
-
-  /* The number of selector bits saved depends on the length selected, and also whether 
-	  an escape nybble is involved.  For extended codes the number of bits saved is not
-	  necessarily the quantities set here, but precise determination is dependant on the
-	  magnitude of the dgaps involved, and so any particularly aggressive over estimation
-	  of bits saved may harm compression.  The underestimation of them here
-	  may cause problems too, but the choice had to be made one way or the other */
-  int selector_bits_saved[18]
-	 ={0,4,8-(escape?4:0),
-		8-(escape?4:0),8-(escape?4:0),8-(escape?4:0),
-		8-(escape?4:0),8-(escape?4:0),8-(escape?4:0),
-		8-(escape?4:0),8-(escape?4:0),8-(escape?4:0),
-		8-(escape?4:0),8-(escape?4:0),8-(escape?4:0),
-		8-(escape?4:0),8-(escape?4:0),8-(escape?4:0)};
-
-  int allowed_lengths;
-
-  if (escape) allowed_lengths=3+15; else allowed_lengths=3;
-
-  /* Allocate and populate array for dgaps, and get size in bits of each dgap */
-  dgaps=malloc(sizeof(int)*list_length);
-  dgapbits=malloc(sizeof(char)*list_length);
-  if ((!dgaps)||(!dgapbits))
-	 {
-		fprintf(stderr,"Could not allocate d-gap array for "
-				  "list of length %d\n",list_length);
-		exit(3);
-	 }
-  dgaps[0]=list[0]-1;
-  /* the number of bits required per d-gap is based on one less than the interval, since we can assume that there is an increase
-	  of at least one each time */
-  for(i=1;i<list_length;i++) dgaps[i]=list[i]-list[i-1]-1;
-  for(i=0;i<list_length;i++) dgapbits[i]=log2_ceil(dgaps[i]);
-
-  /* Perform greedy encoding */
-  for(i=0;i<list_length;)
-	 {
-		/* Which code is best? Count the number of wasted bits versus bits
-			saved, and choose the code that saves the most bits. */
-		int best_code=-1;
-		int best_wastage=999999999;
-		int best_length=-1;
-		int best_width=-1;
-		int code,w;
-		int bits_wasted;
-		int max_l;
-		int dgaps_that_fit;
-
-		for(code=1;code<=16;code++)
-		  {
-			 
-			 /* Set s number and field width from selector table */
-			 l=selector_tables[current_table].s_num[code];
-			 w=selector_tables[current_table].field_width[code];
-			 if (w==99) w=max_bits; else w+=current_width;
-
-			 if (w<0) continue;
-			 
-			 /* Allow extension if s_num is 3 and escape is enabled */
-			 if (l==3&&escape) max_l=3+15; else max_l=l;
-			 
-			 /* Convert from 1-origin to 0-origin */
-			 l--; max_l--;
-
-			 /* Work out how many of the coming dgaps can each be encoded in w bits or less */
-			 for(dgaps_that_fit=0;
-				  (dgaps_that_fit<possible_lengths[max_l])
-			       &&(i+dgaps_that_fit<list_length)
-					 &&dgaps[i+dgaps_that_fit]<(1<<w)
-					 ;)
-				dgaps_that_fit++;
-
-			 if (i+dgaps_that_fit<list_length)
-				/* Reduce maximum length according to the data being processed */
-				while((max_l>-1)&&dgaps_that_fit<possible_lengths[max_l])
-				  max_l--;
-
-			 for(;l<=max_l;l++)
-				{
-				  /* Work out the number of selector fields, and hence nybls, saved */
-				  bits_wasted=-selector_bits_saved[l];
-
-				  /* Work out the number of bits wasted */
-				  for(k=possible_lengths[l]-possible_lengths[l-1];
-						k<possible_lengths[l];k++)
-					 {
-						/* this dgap is too large to fir in the current field width, so reject this option */
-						if (dgapbits[i+k]>w)
-						  { bits_wasted=999999999; break; }
-						else
-						  bits_wasted+=current_width-dgapbits[i+k];
-					 }
-			 
-				  if ((best_code==-1)||
-						(bits_wasted<best_wastage))
-					 {
-						best_code=code-1;
-						best_wastage=bits_wasted;
-						best_length=l;
-						best_width=w;
-					 }
-				}
-		  }
-
-		if (best_code==-1)
-		  {
-			 printf("Whoop! no code works here, which is trollop.\n");
-			 exit(-3);
-		  }
-
-		/* Select new current_width and current_table */
-		current_width=best_width;
-		current_table=current_width;
-		if (current_table>3) current_table=3;
-		if (max_bits-current_width<3)
-		  current_table=6-(max_bits-current_width);
-
-		/* Write code and escape nybble */
-		encode_bits(4,best_code,out,out_bits,out_len);
-		if (escape&&best_length>=2)
-		  encode_bits(4,best_length-2,out,out_bits,out_len);
-
-		/* Encode each posting */
-		k=i+possible_lengths[best_length];
-		if (k>list_length) k=list_length;
-		for(;i<k;i++)
-		  {
-			 if (dgaps[i]>=(1<<best_width))
-				{
-				  printf("Encoding entry #%d = %d in %d bits\n",
-							i,dgaps[i],best_width);
-				  printf("   VALUE TOO BIG FOR FIELD\n");
-				  printf("m=%d, s3=%d, escape=%d, best_code=%d\n",
-							m,s3,escape,best_code);
-				  exit(-3);
-				}
-			 if (i) 
-				encode_bits(best_width,list[i]-list[i-1]-1,out,out_bits,out_len);
-			 else encode_bits(best_width,list[i]-1,out,out_bits,out_len);
-		  }
-	 }
-
-  return 0;
-}
-
-int ic_encode_selector_greedy(int *list,
-										int list_length,
-										int *frequencies,
-										int *word_positions,
-										int corpus_document_count,
-										int max_document_words,
-										unsigned char *out,
-										unsigned int *out_bits,int out_len)
-{
-  int m,s1=1,s2=2,s3=3,escape;
-  
-  int out_bits_in=*out_bits;
-  int out_bits_coded;
-
-  int shortest_length=-1;
-  int sl_s1=1,sl_s2=2,sl_s3=3,sl_m=1,sl_escape=0;
-
-  int model_number;
-
-	 for(m=1;m<=8;m++)
-		for(escape=0;escape<2;escape++)
-		  for(s3=3;s3<5;s3++)
-			 {
-				/** Test Parameters */
-				out_bits_coded=out_bits_in;
-				
-				ic_encode_selector_greedy_r(s1,s2,s3,m,escape,
-													 list,list_length,
-													 frequencies,
-													 word_positions,
-													 corpus_document_count,
-													 max_document_words,
-													 out,&out_bits_coded,out_len);
-				out_bits_coded-=out_bits_in;
-				
-				/* Remember these parameters if they give the shortest output so far */
-				if (out_bits_coded<shortest_length
-					 ||shortest_length==-1)
-				  {
-					 shortest_length=out_bits_coded;
-					 sl_s1=s1; sl_s2=s2; sl_s3=s3;
-					 sl_m=m; sl_escape=escape;
-				  }
-			 }
-  
-  /* Output model description */
-  model_number=sl_m-1;
-  if (sl_s3==4) model_number|=1<<3;
-  if (sl_escape) model_number|=1<<4;
-  encode_bits(5,model_number,out,out_bits,out_len);
-
-  /* output encoded stream */
-  ic_encode_selector_greedy_r(sl_s1,sl_s2,sl_s3,sl_m,sl_escape,
-										list,list_length,
-										frequencies,
-										word_positions,
-										corpus_document_count,
-										max_document_words,
-										out,out_bits,out_len);
-
-  return 0;
-}
-
 
 int ic_decode_selector(int *list,
-							  int list_length,
-							  int *frequencies,
-							  int *word_positions,
-							  int corpus_document_count,
-							  int max_document_words,
-							  unsigned char *out,
-							  unsigned int *out_bits)
+		       int list_length,
+		       int *frequencies,
+		       int *word_positions,
+		       int corpus_document_count,
+		       int max_document_words,
+		       range_coder *c)
 {
   int max_bits=log2_ceil(corpus_document_count);
-
+  
   int model_number;
   int m,s1=1,s2=2,s3=3,escape=0;
   
   int s1_m,s2_m,s3_m;
   int s3_m_ext[16];
-
+  
   int i;
-
+  
   int current_table=6;
   int current_width=max_bits;
-
+  
   int code,count;
   int field_width_modifier,field_width;
   int s_num,s3_extension;
-
+  
   int value=0;
-
+  
   /* Read model description */
-  decode_few_bits(5,&model_number,out,out_bits);
+  decode_few_bits(5,(unsigned int *)&model_number,c);
   
   m=(model_number&7)+1;
   if (model_number&8) s3=4;
   if (model_number&16) escape=1;
-
+  
   /* Get extended lengths ready for fast lookup */
   s1_m=s1*m; s2_m=s2*m; s3_m=s3*m;
   for(i=0;i<16;i++)
-	 s3_m_ext[i]=(s3+i)*m;
-
+    s3_m_ext[i]=(s3+i)*m;
+  
   /* Follow back-track to select optimal codes to describe this list */
   for(i=0;i<list_length;)
-	 {
-		decode_few_bits(4,&code,out,out_bits); code++;
-
-		field_width_modifier
-		  =selector_tables[current_table].field_width[code];
-		s_num
-		  =selector_tables[current_table].s_num[code];
-
-		if (field_width_modifier!=99)
-		  field_width=current_width+field_width_modifier;
-		else
-		  field_width=max_bits;
-
-		switch(s_num)
-		  {
-		  case 1: count=s1_m; break;
-		  case 2: count=s2_m; break;
-		  case 3:
-			 if (escape)
-				decode_few_bits(4,&s3_extension,out,out_bits);
-			 else s3_extension=0;
-			 count=s3_m_ext[s3_extension];
-			 break;
-		  default:
-			 fprintf(stderr,
-						"ERROR: illegal s value (%d) encountered during decoding"
-						" @ #%d\n",
-						s_num,i);
-			 fprintf(stderr,"       Selector table was #%d, code number was #%d\n"
-						,current_table,code);
-			 exit(3);
-		  }
-
-		/* Decode each d-gap using the specified field width */
-		if ((i+count>list_length)) count=list_length-i;
-		count+=i;
-		if (field_width<25)
-		  {
-			 for(;i!=count;i++)
-				{
-				  int dgap;
-				  decode_few_bits(field_width,&dgap,out,out_bits);
-				  value=value+dgap+1;
-				  list[i]=value;
-				  /* if (i) list[i]=list[i-1]+dgap+1;
-					  else  list[i]=dgap+1; */
-				}
-		  }
-		else
-		  {
-			 for(;i!=count;i++)
-				{
-				  int dgap;
-				  decode_bits(field_width,&dgap,out,out_bits);
-				  value=value+dgap+1;
-				  list[i]=value;
-				  /* if (i) list[i]=list[i-1]+dgap+1;
-					  else  list[i]=dgap+1; */
-				}
-		  }
-
-		/* Select field width and table context for next code */
-		current_width=field_width;
-		if (current_width<0)
-		  {
-			 fprintf(stderr,
-						"ERROR: negative field width in stream @ offset #%d\n",i);
-			 exit(3);
-		  }
-		if (current_width<3) current_table=current_width;
-		else if ( current_width>=(max_bits-3))
-		  current_table=6-(max_bits-current_width);
-		else
-		  current_table=3;
-	 }
-
+    {
+      decode_few_bits(4,(unsigned int *)&code,c); code++;
+      
+      field_width_modifier
+	=selector_tables[current_table].field_width[code];
+      s_num
+	=selector_tables[current_table].s_num[code];
+      
+      if (field_width_modifier!=99)
+	field_width=current_width+field_width_modifier;
+      else
+	field_width=max_bits;
+      
+      switch(s_num)
+	{
+	case 1: count=s1_m; break;
+	case 2: count=s2_m; break;
+	case 3:
+	  if (escape)
+	    decode_few_bits(4,(unsigned int *)&s3_extension,c);
+	  else s3_extension=0;
+	  count=s3_m_ext[s3_extension];
+	  break;
+	default:
+	  fprintf(stderr,
+		  "ERROR: illegal s value (%d) encountered during decoding"
+		  " @ #%d\n",
+		  s_num,i);
+	  fprintf(stderr,"       Selector table was #%d, code number was #%d\n"
+		  ,current_table,code);
+	  exit(3);
+	}
+      
+      /* Decode each d-gap using the specified field width */
+      if ((i+count>list_length)) count=list_length-i;
+      count+=i;
+      if (field_width<25)
+	{
+	  for(;i!=count;i++)
+	    {
+	      int dgap;
+	      decode_few_bits(field_width,(unsigned int *)&dgap,c);
+	      value=value+dgap+1;
+	      list[i]=value;
+	      /* if (i) list[i]=list[i-1]+dgap+1;
+		 else  list[i]=dgap+1; */
+	    }
+	}
+      else
+	{
+	  for(;i!=count;i++)
+	    {
+	      int dgap;
+	      decode_bits(field_width,(unsigned int *)&dgap,c);
+	      value=value+dgap+1;
+	      list[i]=value;
+	      /* if (i) list[i]=list[i-1]+dgap+1;
+		 else  list[i]=dgap+1; */
+	    }
+	}
+      
+      /* Select field width and table context for next code */
+      current_width=field_width;
+      if (current_width<0)
+	{
+	  fprintf(stderr,
+		  "ERROR: negative field width in stream @ offset #%d\n",i);
+	  exit(3);
+	}
+      if (current_width<3) current_table=current_width;
+      else if ( current_width>=(max_bits-3))
+	current_table=6-(max_bits-current_width);
+      else
+	current_table=3;
+    }
+  
   return 0;
 }
 
@@ -2404,7 +1991,7 @@ int main(int argc,char **argv)
 	 }
   printf("Using %d integers ranging from %d to %d inclusive,"
 			" requiring %d bits\n",
-			DEMO_SIZE,list2[0],list2[DEMO_SIZE-1],
+	 DEMO_SIZE,list2[0],list2[DEMO_SIZE-1],
 			log2_ceil(list2[DEMO_SIZE-1]-list2[0]));
 
   if (DEMO_SIZE<20)
