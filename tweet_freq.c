@@ -221,18 +221,26 @@ int freq_compress(range_coder *c,unsigned char *m)
   range_encode_equiprobable(c,2,1); // not raw ASCII
   range_encode_equiprobable(c,2,1); // not packed ASCII
   
+  printf("%f bits to encode model\n",c->entropy);
+
   /* encode any non-ASCII characters */
   encodeNonAlpha(c,m);
   stripNonAlpha(m,alpha);
 
+  printf("%f bits after encode non-alpha\n",c->entropy);
+
   /* compress lower-caseified version of message */
   stripCase(alpha,lcalpha);
   encodeLCAlphaSpace(c,lcalpha);
+
+  printf("%f bits after encode chars\n",c->entropy);
   
   /* case must be encoded after symbols, so we know how many
      letters and where word breaks are */
   encodeCaseModel1(c,alpha);
   
+  printf("%f bits after encode case\n",c->entropy);
+
   if (c->bits_used>=7*strlen((char *)m))
     {
       /* we can't encode it more efficiently than 7-bit ASCII */
@@ -290,14 +298,14 @@ int main(int argc,char *argv[])
     freq_compress(c,(unsigned char *)m);
     range_conclude(c);
 
-    double percent=c->bits_used*1.0/(strlen(m)*8);
+    double percent=c->bits_used*100.0/(strlen(m)*8);
     if (percent<bestPercent) bestPercent=percent;
     if (percent>worstPercent) worstPercent=percent;
     runningPercent+=percent;
 
     lines++;
 
-    printf("Total encoded length = L%.1f+B%.1f+C%.1f+A%.1f = %f bits = %.2f%% (best:avg:worst %.2f%%:%.2f%%:%.2f%%)\n",
+    printf("Total encoded length = %d bits = %.2f%% (best:avg:worst %.2f%%:%.2f%%:%.2f%%)\n",
 	   c->bits_used,percent,bestPercent,runningPercent/lines,worstPercent);
     m[0]=0; fgets(m,1024,stdin);
   }
