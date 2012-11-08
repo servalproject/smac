@@ -201,6 +201,31 @@ int filterWords()
   return 0;
 }
 
+int writeWords()
+{
+  int i;
+  unsigned int total=0;
+  unsigned int tally=0;
+  printf("\nint wordCount=%d;\n",wordCount);
+  printf("char *wordList[]={\n");
+  for(i=0;i<wordCount;i++) { 
+    printf("\"%s\"",words[i]); 
+    if (i<(wordCount-1)) printf(",");
+    total+=wordCounts[i]; 
+    if (!(i&7)) printf("\n");
+  }
+  printf("};\n\n");
+  printf("unsigned int wordFrequencies[]={\n");
+  for(i=0;i<(wordCount-1);i++) {
+    tally+=wordCounts[i];   
+    printf("0x%x",(unsigned int)(tally*1.0*0xffffffff/total));
+    if (i<(wordCount-2)) printf(",");
+    if (!(i&7)) printf("\n");
+  }
+  printf("};\n");
+  return 0;
+}
+
 int main(int argc,char **argv)
 {
   char line[8192];
@@ -483,6 +508,7 @@ int main(int argc,char **argv)
   }
 
   filterWords();
+  writeWords();
 
   return 0;
 }
