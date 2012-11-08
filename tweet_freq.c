@@ -74,11 +74,8 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 
 int encodeLength(range_coder *c,unsigned char *m)
 {
-  int b=c->bits_used;
   int len=strlen((char *)m);
   range_encode_length(c,len);
-    
-  printf("Using %d bits to encode the length of the message.\n",c->bits_used-b);
 
   return 0;
 }
@@ -214,32 +211,38 @@ int freq_compress(range_coder *c,unsigned char *m)
   unsigned char alpha[1024]; // message with all non alpha/spaces removed
   unsigned char lcalpha[1024]; // message with all alpha chars folded to lower-case
 
-  /* Encode length of message */
-  encodeLength(c,m);
-  
   /* Use model instead of just packed ASCII */
   range_encode_equiprobable(c,2,1); // not raw ASCII
   range_encode_equiprobable(c,2,1); // not packed ASCII
-  
+
   printf("%f bits to encode model\n",c->entropy);
+  double lastEntropy=c->entropy;
+  
+  /* Encode length of message */
+  encodeLength(c,m);
+  
+  printf("%f bits to encode length\n",c->entropy-lastEntropy);
+  lastEntropy=c->entropy;
 
   /* encode any non-ASCII characters */
   encodeNonAlpha(c,m);
   stripNonAlpha(m,alpha);
 
-  printf("%f bits after encode non-alpha\n",c->entropy);
+  printf("%f bits to encode non-alpha\n",c->entropy-lastEntropy);
+  lastEntropy=c->entropy;
 
   /* compress lower-caseified version of message */
   stripCase(alpha,lcalpha);
   encodeLCAlphaSpace(c,lcalpha);
 
-  printf("%f bits after encode chars\n",c->entropy);
+  printf("%f bits to encode chars\n",c->entropy-lastEntropy);
+  lastEntropy=c->entropy;
   
   /* case must be encoded after symbols, so we know how many
      letters and where word breaks are */
   encodeCaseModel1(c,alpha);
   
-  printf("%f bits after encode case\n",c->entropy);
+  printf("%f bits to encode case\n",c->entropy-lastEntropy);
 
   if (c->bits_used>=7*strlen((char *)m))
     {
