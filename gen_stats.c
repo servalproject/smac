@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <math.h>
 
 /* 3rd - 1st order frequency statistics for all characters */
@@ -94,7 +95,7 @@ int countWord(char *word_in,int len)
      of the remaining words */
   char word[1024];
   strcpy(word,word_in);
-  if (words[len-1]=='s') len--;
+  //  if (word[len-1]=='s') len--;
   if (!strncmp("ing",&word[len-3],3)) len-=3;
   if (!strncmp("ed",&word[len-2],2)) len-=2;
   word[len]=0;
@@ -140,6 +141,21 @@ double entropyOfSymbol(long long v[69],int symbol)
   double entropy=-log((v[symbol]?v[symbol]:1)*1.0/total)/log(2);
   // fprintf(stderr,"Entropy of %c = %f\n",chars[symbol],entropy);
   return entropy;
+}
+
+double entropyOfWord(char *word)
+{
+  double entropyWord=entropyOfSymbol(counts1,charIdx(word[0]));
+if (word[1]) {
+  entropyWord+=entropyOfSymbol(counts2[charIdx(word[0])],charIdx(word[1]));
+  int j;
+  for(j=2;word[j];j++) {
+    entropyWord
+      +=entropyOfSymbol(counts3[charIdx(word[j-2])][charIdx(word[j-1])],
+			charIdx(word[j]));
+  }	
+ }
+ return entropyWord;
 }
 
 int filterWords()
@@ -193,16 +209,7 @@ int filterWords()
 	double entropyWord=0;
 	
 	char *word=words[i];
-	entropyWord+=entropyOfSymbol(counts1,charIdx(word[0]));
-	if (word[1]) {
-	  entropyWord+=entropyOfSymbol(counts2[charIdx(word[0])],charIdx(word[1]));
-	  int j;
-	  for(j=2;word[j];j++) {
-	    entropyWord
-	      +=entropyOfSymbol(counts3[charIdx(word[j-2])][charIdx(word[j-1])],
-				charIdx(word[j]));
-	  }	
-	}
+	entropyWord=entropyOfWord(word);
 	
 	if ((entropyOccurrence+occurenceEntropy)<entropyWord) {
 	  double savings=wordCounts[i]*(entropyWord-(entropyOccurrence+occurenceEntropy));
@@ -228,7 +235,7 @@ int filterWords()
 	}
       }
       if (!culled) {
-	printf("\n/* %d substitutable words in a total of %d word breaks. */\n",
+	printf("\n/* %d substitutable words in a total of %lld word breaks. */\n",
 	       usefulOccurrences,wordBreaks);
 	printf("unsigned int wordSubstitutionFlag[1]={0x%x};\n",
 	       (unsigned int)(usefulOccurrences*1.0/wordBreaks*0xffffffff));
