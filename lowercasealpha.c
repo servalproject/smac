@@ -81,7 +81,22 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 #endif
 
 	for(w=0;w<wordCount;w++) {
-	  if (!strncmp((char *)&s[o],wordList[w],strlen(wordList[w]))) {
+	  int d;
+	tryagain:
+	  d=strncmp((char *)&s[o],wordList[w],strlen(wordList[w]));
+#if 1
+	  /* skip through list quickly, and stop looking once we have passed the
+	     relevant part of the list. */
+	  if (d<0) break;
+	  if ((d>0)&&(wordCount-w>1000)) {
+	    d=strncmp((char *)&s[o],wordList[w+1000],strlen(wordList[w+1000]));
+	    if (d>0) {
+	      w+=1000;
+	      goto tryagain;
+	    }
+	  }
+#endif
+	  if (d==0) {
 	    if (0) printf("    word match: strlen=%d, longestLength=%d\n",
 			  (int)strlen(wordList[w]),(int)longestLength
 			  );
