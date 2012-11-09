@@ -115,18 +115,18 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	  range_coder *t=range_new_coder(2048);
 	  range_coder *tf=range_new_coder(1024);
 	  // approx cost of switching models twice
-	  double entropyFlat=7+entropyOfInverse(36+1+1);
+	  double entropyFlat=10+entropyOfInverse(69+1+1);
 	  int i;
 	  int cc2=c2;
 	  int cc1=c1;
 	  for(i=o;s[i]&&(isalnum(s[i])||s[i]==' ');i++) {
 	    int c3=charIdx(s[i]);
 	    range_encode_symbol(t,tweet_freqs3[cc1][cc2],69,c3);
-	    range_encode_equiprobable(tf,36+1+1,c3);
+	    range_encode_equiprobable(tf,69+1,c3);
 	    if (!s[i]) {
 	      /* encoding to the end of message saves us the 
 		 stop symbol */
-	      tf->entropy-=entropyOfInverse(36+1+1);
+	      tf->entropy-=entropyOfInverse(69+1);
 	    }
 	    if ((t->entropy-tf->entropy-entropyFlat)>longestSavings) {
 	      longestLength=i-o+1;
@@ -158,8 +158,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	    range_coder_free(t);
 	    double savings=entropy-substEntropy;
 	    
-	    if (strlen(wordList[w])>longestLength
-		||(savings>longestSavings)) {
+	    if (strlen(wordList[w])>longestLength) {
 	      longestLength=strlen(wordList[w]);
 	      longestWord=w;	      
 	      printf("spotted substitutable instance of '%s' -- save %f bits (%f vs %f)\n",
@@ -214,6 +213,8 @@ int encodeNonAlpha(range_coder *c,unsigned char *m)
      Encode count, then write the chars, then use interpolative encoding to
      encode their positions. */
 
+  unsigned int probNoNonAlpha=0.95*0xffffffff;
+
   char v[1024];
   int pos[1024];
   int count=0;
@@ -233,11 +234,11 @@ int encodeNonAlpha(range_coder *c,unsigned char *m)
   // This is a patently silly assumption.
   if (!count) {
     // printf("Using 1 bit to indicate no non-alpha/space characters.\n");
-    range_encode_equiprobable(c,2,1);
+    range_encode_symbol(c,&probNoNonAlpha,2,0);
     return 0;
   } else {
     // There are special characters present 
-    range_encode_equiprobable(c,2,0);
+    range_encode_symbol(c,&probNoNonAlpha,2,1);
   }
 
   printf("Using 8-bits to encode each of %d non-alpha chars.\n",count);
@@ -384,9 +385,11 @@ int freq_compress(range_coder *c,unsigned char *m)
   unsigned char alpha[1024]; // message with all non alpha/spaces removed
   unsigned char lcalpha[1024]; // message with all alpha chars folded to lower-case
 
+  unsigned int probPackedASCII=0.95*0xffffffff;
+
   /* Use model instead of just packed ASCII */
   range_encode_equiprobable(c,2,1); // not raw ASCII
-  range_encode_equiprobable(c,2,1); // not packed ASCII
+  range_encode_symbol(c,&probPackedASCII,2,0); // not packed ASCII
 
   printf("%f bits to encode model\n",c->entropy);
   double lastEntropy=c->entropy;
@@ -427,7 +430,7 @@ int freq_compress(range_coder *c,unsigned char *m)
       /* we can't encode it more efficiently than 7-bit ASCII */
       range_coder_reset(c);
       range_encode_equiprobable(c,2,1); // not raw ASCII
-      range_encode_equiprobable(c,2,0); // is packed ASCII
+      range_encode_symbol(c,&probPackedASCII,2,1); // is packed ASCII
       int i;
       for(i=0;m[i];i++) {
 	int v=m[i];
@@ -471,7 +474,9 @@ int main(int argc,char *argv[])
 
   char m[1024]; // raw message, no pre-processing
   
-  FILE *f=fopen(argv[1],"r");
+  FILE *f;
+
+  if (strcmp(argv[1],"-")) f=fopen(argv[1],"r"); else f=stdin;
   if (!f) {
     fprintf(stderr,"Failed to open `%s' for input.\n",argv[1]);
     exit(-1);
