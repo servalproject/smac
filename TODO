@@ -4,7 +4,6 @@ play well against currupted input in verbatim 253/254 codes memcpy()
 play with some form of entropy coding like Huffman or range coding
 
 tweet_freq:
-- flip case of "I" when a word
 - gather stats on all upper-case words and try encoding case that way
   (should be good for long strings of upper case characters as well)
 - gather stats on what fraction of words compress using 3rd-order symbol
