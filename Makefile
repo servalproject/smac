@@ -17,14 +17,8 @@ arithmetic:	arithmetic.c arithmetic.h
 gen_stats:	gen_stats.c
 	gcc -g -Wall -o gen_stats gen_stats.c
 
-#twitter_corpus1.txt:	some_tweets.json extract_tweet_text
-#	./extract_tweet_text
-
 tweet_stats.c:	gen_stats twitter_corpus*.txt
-	cat twitter_corpus*.txt |./gen_stats > tweet_stats.c
+	cat twitter_corpus*.txt |./gen_stats > message_stats.c
 
-tweet_freq:	tweet_freq.o tweet_stats.o arithmetic.o gsinterpolative.o
-	gcc -g -Wall -o tweet_freq tweet_freq.o tweet_stats.o arithmetic.o gsinterpolative.o
-
-eng_freq:	eng_freq.o gsinterpolative.o
-	gcc -g -Wall -o eng_freq eng_freq.o gsinterpolative.o
+tweet_freq:	tweet_freq.o message_stats.o arithmetic.o gsinterpolative.o lowercasealpha.o charset.o
+	gcc -g -Wall -o tweet_freq tweet_freq.o message_stats.o arithmetic.o gsinterpolative.o lowercasealpha.o charset.o
