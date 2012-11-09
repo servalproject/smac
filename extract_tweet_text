@@ -1,1 +1,13 @@
-cat some_tweets.json | sed -e 's/\([^\\]\)",".*$/\1/g' -e 's/^.*":"//' -e 's/&amp;/\&/g' -e 's/&gt;/>/g' -e 's/&lt;/</g' -e 's,\\/,/,g' -e's,\\",",g' | grep -v "\\u" >some_tweets.txt
+#!/bin/tcsh -f
+
+if ( "x$1" != "x" ) then
+   set json=$1
+else
+   set json=*.json
+endif
+
+set basename=`basename ${json} | cut -f1 -d.`
+echo "Reading from $json and writing to ${basename}.txt"
+cat ${json} | sed -e 's/\([^\\]\)",".*$/\1/g' -e 's/^.*":"//' -e 's/&amp;/\&/g' -e 's/&gt;/>/g' -e 's/&lt;/</g' -e 's,\\/,/,g' -e's,\\",",g' | grep -v "\\u" >${basename}.txt
+
+wc ${basename}.txt

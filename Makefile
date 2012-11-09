@@ -17,13 +17,11 @@ arithmetic:	arithmetic.c arithmetic.h
 gen_stats:	gen_stats.c
 	gcc -g -Wall -o gen_stats gen_stats.c
 
-some_tweets.txt:	some_tweets.json extract_tweet_text
-	./extract_tweet_text
+#twitter_corpus1.txt:	some_tweets.json extract_tweet_text
+#	./extract_tweet_text
 
-tweet_stats.c:	gen_stats some_tweets.txt
-	# Exclude \uXXXX encoded unicode from the stats generation,
-	# because in practice we would process it as UTF8
-	grep -v "\\u" some_tweets.txt |./gen_stats > tweet_stats.c
+tweet_stats.c:	gen_stats twitter_corpus*.txt
+	cat twitter_corpus*.txt |./gen_stats > tweet_stats.c
 
 tweet_freq:	tweet_freq.o tweet_stats.o arithmetic.o gsinterpolative.o
 	gcc -g -Wall -o tweet_freq tweet_freq.o tweet_stats.o arithmetic.o gsinterpolative.o

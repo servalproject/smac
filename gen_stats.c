@@ -56,7 +56,7 @@ int charInWord(unsigned c)
   return 0;
 }
 
-#define MAXWORDS 65536
+#define MAXWORDS 1000000
 char *words[MAXWORDS];
 int wordCounts[MAXWORDS];
 int wordCount=0;
@@ -233,6 +233,7 @@ int filterWords()
 
 
   /* Remove very rare words */
+  int filtered=0;
   for(i=0;i<wordCount;i++) 
     if (wordCounts[i]<5) {
       distributeWordCounts(words[i],wordCounts[i],i); 
@@ -243,6 +244,8 @@ int filterWords()
 	i--;
       }
       wordCount--;
+      filtered++;
+      if (!(filtered%1000)) fprintf(stderr,"Filtered %d words.\n",filtered);
     }
 
   int culled=1;
@@ -378,6 +381,8 @@ int main(int argc,char **argv)
     int c1=charIdx(' ');
     int c2=charIdx(' ');
     int lc=0;
+
+    if (!(lineCount%5000)) fprintf(stderr,"Read %d lines.\n",lineCount);
 
     /* record occurrance of message of this length.
        (minus one for the LF at end of line that we chop) */
