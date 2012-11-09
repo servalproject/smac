@@ -7,6 +7,7 @@ echo ">>> COMBINED corpora"
    echo -n "bits spent on length: "
    cat twitter_corpus*.txt | ./tweet_freq - | grep "bits to encode length"  | awk '{ n+=$1; } END { print n;}'
    echo -n "bits spent on case: "
+   cat twitter_corpus*.txt | ./tweet_freq - | grep "bits to encode case"  | awk '{ n+=$1; } END { print n;}'
 
 foreach corpus ( twitter_corpus*.txt )
    echo ">>>> $corpus"
