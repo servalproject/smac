@@ -196,7 +196,16 @@ int cmp_words(const void *a,const void *b)
   return strcmp(words[bb],words[aa]);
 }
 
-int sortWordList()
+int cmp_words_alpha(const void *a,const void *b)
+{
+  int aa=*(int *)a;
+  int bb=*(int *)b;
+
+  /* order by length, and then by reverse lexical order */
+  return strcmp(words[aa],words[bb]);
+}
+
+int sortWordList(int alphaP)
 {
   int v[wordCount];
   int counts[wordCount];
@@ -205,7 +214,10 @@ int sortWordList()
   for(i=0;i<wordCount;i++) v[i]=i;
 
   /* work out correct order */
-  qsort(v,wordCount,sizeof(int),cmp_words); 
+  if (alphaP)
+    qsort(v,wordCount,sizeof(int),cmp_words_alpha); 
+  else
+    qsort(v,wordCount,sizeof(int),cmp_words); 
   
   /* now regenerate lists */
   for(i=0;i<wordCount;i++)
@@ -255,7 +267,7 @@ int filterWords()
       /* Sort word list by longest words first, so that we cull long words before 
 	 their stems, so that the stemmed versions have a chance to be retained.
       */
-      sortWordList();
+      sortWordList(0);
 
       totalSavings=0;
       culled=0;
@@ -327,6 +339,14 @@ int writeWords()
   int i;
   unsigned int total=0;
   unsigned int tally=0;
+
+  /* Sort word list alphabetically, so that it can be searched efficiently during compression */
+  fprintf(stderr,"Sorting word list alphabetically for output.\n");
+  sortWordList(1);
+  
+  for(i=0;i<10;i++) fprintf(stderr,"  %s\n",words[i]);
+
+
   printf("\nint wordCount=%d;\n",wordCount);	 
   printf("char *wordList[]={\n");
   for(i=0;i<wordCount;i++) { 
