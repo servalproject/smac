@@ -109,6 +109,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
       int longestLength=0;
       double longestSavings=0;
       if (charInWord(s[o])) {
+#if 0
 	{
 	  /* See if it makes sense to encode part of the message from here
 	     without using 3rd order model. */
@@ -144,12 +145,13 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	  range_coder_free(t);
 	  range_coder_free(tf);
 	}
+#endif
 
 	for(w=0;w<wordCount;w++) {
 	  if (!strncmp((char *)&s[o],wordList[w],strlen(wordList[w]))) {
-	    printf("    word match: strlen=%d, longestLength=%d\n",
-		   (int)strlen(wordList[w]),(int)longestLength
-		   );
+	    if (0) printf("    word match: strlen=%d, longestLength=%d\n",
+			  (int)strlen(wordList[w]),(int)longestLength
+			  );
 	    double entropy=entropy3(c1,c2,wordList[w]);
 	    range_coder *t=range_new_coder(1024);
 	    range_encode_symbol(t,wordSubstitutionFlag,2,0);
@@ -161,7 +163,8 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	    if (strlen(wordList[w])>longestLength) {
 	      longestLength=strlen(wordList[w]);
 	      longestWord=w;	      
-	      printf("spotted substitutable instance of '%s' -- save %f bits (%f vs %f)\n",
+	      if (0)
+		printf("spotted substitutable instance of '%s' -- save %f bits (%f vs %f)\n",
 		     wordList[w],savings,substEntropy,entropy);
 	    }
 	  }
@@ -174,9 +177,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 
 	/* Encode the word */
 	range_encode_symbol(c,wordFrequencies,wordCount,longestWord);
-
+	
 	printf("substituted %s at a cost of %f bits.\n",
-	       wordList[longestWord],c->entropy-entropy);
+		 wordList[longestWord],c->entropy-entropy);
 
 	/* skip rest of word, but make sure we stay on track for 3rd order model
 	   state. */
@@ -188,8 +191,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	/* Encode "not substituting a word here" symbol */
 	double entropy=c->entropy;
 	range_encode_symbol(c,wordSubstitutionFlag,2,1);
-	printf("incurring non-substitution penalty = %f bits\n",
-	       c->entropy-entropy);
+	if (0)
+	  printf("incurring non-substitution penalty = %f bits\n",
+		 c->entropy-entropy);
       }
     }
     range_encode_symbol(c,tweet_freqs3[c1][c2],69,c3);    
