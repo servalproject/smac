@@ -345,6 +345,7 @@ int freq_compress(range_coder *c,unsigned char *m)
   /* case must be encoded after symbols, so we know how many
      letters and where word breaks are.
  */
+  mungeCase(alpha);
   encodeCaseModel1(c,alpha);
   
   printf("%f bits to encode case\n",c->entropy-lastEntropy);
