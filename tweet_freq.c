@@ -101,10 +101,14 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
       }
       if (longestWord>-1) {
 	/* Encode "we are substituting a word here */
+	double entropy=c->entropy;
 	range_encode_symbol(c,wordSubstitutionFlag,2,0);
 
 	/* Encode the word */
 	range_encode_symbol(c,wordFrequencies,wordCount,longestWord);
+
+	printf("substituted %s at a cost of %f bits.\n",
+	       wordList[longestWord],c->entropy-entropy);
 
 	/* skip rest of word, but make sure we stay on track for 3rd order model
 	   state. */
@@ -114,7 +118,10 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	continue;
       } else {
 	/* Encode "not substituting a word here" symbol */
+	double entropy=c->entropy;
 	range_encode_symbol(c,wordSubstitutionFlag,2,1);
+	printf("incurring non-substitution penalty = %f bits\n",
+	       c->entropy-entropy);
       }
     }
     range_encode_symbol(c,tweet_freqs3[c1][c2],69,c3);    

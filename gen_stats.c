@@ -61,10 +61,43 @@ int wordCounts[MAXWORDS];
 int wordCount=0;
 int totalWords=0;
 
-int countWord(char *word,int len)
+
+int distributeWordCounts(int w)
+{
+  int i;
+  int bestWord=-1;
+  int bestLen=0;
+  for(i=0;i<wordCount;i++) 
+    if (i!=w) {
+      if (!strncmp(words[i],words[w],strlen(words[i]))) {
+	if (strlen(words[i])>bestLen) {
+	  bestLen=strlen(words[i]);
+	  bestWord=i;
+	}
+      }
+  }
+  if (bestLen>0) {
+    fprintf(stderr,"Distributing counts for %s to %s\n",
+	    words[w],words[bestWord]);
+    wordCounts[bestWord]+=wordCounts[w];
+    wordCounts[w]=0;
+  }
+  return 0;
+}
+
+int countWord(char *word_in,int len)
 {
   if (len<1) return 0;
   //  fprintf(stderr,"saw %s\n",word);
+
+  /* Do some word trimming to reduce number of words and increase frequency
+     of the remaining words */
+  char word[1024];
+  strcpy(word,word_in);
+  if (words[len-1]=='s') len--;
+  if (!strncmp("ing",&word[len-3],3)) len-=3;
+  if (!strncmp("ed",&word[len-2],2)) len-=2;
+  word[len]=0;
 
   totalWords++;
 
@@ -84,6 +117,7 @@ int countWord(char *word,int len)
     if (wordCounts[i]==1) {
       fprintf(stderr,"replacing %s with %s (consider increasing MAXWORDS)\n",
 	      words[i],word);
+      distributeWordCounts(i); 
       free(words[i]);
       words[i]=strdup(word);
       wordCounts[i]=1;
@@ -182,6 +216,7 @@ int filterWords()
 	     directly. Either way, it doesn't make sense to introduce a symbol
 	     for it.
 	  */
+	  distributeWordCounts(i);
 	  if (i!=wordCount-1) {
 	    free(words[i]);
 	    words[i]=words[wordCount-1];
@@ -193,8 +228,10 @@ int filterWords()
 	}
       }
       if (!culled) {
-	printf("\nunsigned int wordSubstitutionFlag[1]={0x%x};\n",
-	       (unsigned int)(wordBreaks*1.0/usefulOccurrences*0xffffffff));
+	printf("\n/* %d substitutable words in a total of %d word breaks. */\n",
+	       usefulOccurrences,wordBreaks);
+	printf("unsigned int wordSubstitutionFlag[1]={0x%x};\n",
+	       (unsigned int)(usefulOccurrences*1.0/wordBreaks*0xffffffff));
       }
     }
   fprintf(stderr,"Expect to save %f bits by encoding %d common words\n",
