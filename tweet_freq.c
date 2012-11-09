@@ -72,6 +72,27 @@ int charInWord(unsigned c)
   return 0;
 }
 
+double entropy3(int c1,int c2, char *string)
+{
+  int i;
+  range_coder *t=range_new_coder(1024);
+  for(i=0;i<strlen(string);i++)
+    {
+      int c3=charIdx(string[i]);
+      range_encode_symbol(t,tweet_freqs3[c1][c2],69,c3);    
+      //      printf("entropy after %c = %f\n",string[i],t->entropy);
+      c1=c2; c2=c3;
+    }
+  double entropy=t->entropy;
+  range_coder_free(t);
+  return entropy;
+}
+
+double entropyOfInverse(int n)
+{
+  return -log(1.0/n)/log(2);
+}
+
 int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 {
   int c1=charIdx(' ');
@@ -79,22 +100,67 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
   int o;
   for(o=0;s[o];o++) {
     int c3=charIdx(s[o]);
+    
     if (!charInWord(s[o-1])) {
       /* We are at a word break, so see if we can do word substitution.
 	 Either way, we must flag whether we performed word substitution */
       int w;
       int longestWord=-1;
       int longestLength=0;
+      double longestSavings=0;
       if (charInWord(s[o])) {
+	{
+	  /* See if it makes sense to encode part of the message from here
+	     without using 3rd order model. */
+	  range_coder *t=range_new_coder(2048);
+	  range_coder *tf=range_new_coder(1024);
+	  // approx cost of switching models twice
+	  double entropyFlat=7+entropyOfInverse(36+1+1);
+	  int i;
+	  for(i=o;s[i]&&(isalnum(s[i])||s[i]==' ');i++) {
+	    int c3=charIdx(s[i]);
+	    range_encode_symbol(t,tweet_freqs3[c1][c2],69,c3);
+	    range_encode_equiprobable(tf,36+1+1,c3);
+	    if (!s[i]) {
+	      /* encoding to the end of message saves us the 
+		 stop symbol */
+	      tf->entropy-=entropyOfInverse(36+1+1);
+	    }
+	    if ((t->entropy-tf->entropy-entropyFlat)>longestSavings) {
+	      longestLength=i-o+1;
+	      longestSavings=t->entropy-tf->entropy-entropyFlat;
+	    }
+	    c1=c2; c2=c3;
+	  }
+	  if (longestLength>0)
+	    printf("Could save %f bits by flat coding next %d chars.\n",
+		   longestSavings,longestLength);
+	  else
+	    printf("No saving possible from flat coding.\n");
+	  longestSavings=0; longestLength=0;
+	  range_coder_free(t);
+	  range_coder_free(tf);
+	}
+
 	for(w=0;w<wordCount;w++) {
 	  if (!strncmp((char *)&s[o],wordList[w],strlen(wordList[w]))) {
 	    printf("    word match: strlen=%d, longestLength=%d\n",
 		   (int)strlen(wordList[w]),(int)longestLength
 		   );
-	    if (strlen(wordList[w])>longestLength) {
+	    double entropy=entropy3(c1,c2,wordList[w]);
+	    range_coder *t=range_new_coder(1024);
+	    range_encode_symbol(t,wordSubstitutionFlag,2,0);
+	    range_encode_symbol(t,wordFrequencies,wordCount,w);
+	    double substEntropy=t->entropy;
+	    range_coder_free(t);
+	    double savings=entropy-substEntropy;
+	    
+	    if (strlen(wordList[w])>longestLength
+		||(savings>longestSavings)) {
 	      longestLength=strlen(wordList[w]);
 	      longestWord=w;	      
-	      printf("spotted substitutable instance of '%s'\n",wordList[w]);
+	      printf("spotted substitutable instance of '%s' -- save %f bits (%f vs %f)\n",
+		     wordList[w],savings,substEntropy,entropy);
 	    }
 	  }
 	}
@@ -345,7 +411,7 @@ int freq_compress(range_coder *c,unsigned char *m)
   /* case must be encoded after symbols, so we know how many
      letters and where word breaks are.
  */
-  mungeCase(alpha);
+  mungeCase((char *)alpha);
   encodeCaseModel1(c,alpha);
   
   printf("%f bits to encode case\n",c->entropy-lastEntropy);
