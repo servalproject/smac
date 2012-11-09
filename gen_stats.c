@@ -96,8 +96,9 @@ int countWord(char *word_in,int len)
   char word[1024];
   strcpy(word,word_in);
   //  if (word[len-1]=='s') len--;
-  if (!strncmp("ing",&word[len-3],3)) len-=3;
-  if (!strncmp("ed",&word[len-2],2)) len-=2;
+  //  if (!strncmp("ing",&word[len-3],3)) len-=3;
+  // if (!strncmp("ed",&word[len-2],2)) len-=2;
+  //  if (!strncmp("er",&word[len-2],2)) len-=2;
   word[len]=0;
 
   totalWords++;
