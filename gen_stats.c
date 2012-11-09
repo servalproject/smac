@@ -192,6 +192,10 @@ int filterWords()
 	  culled++;
 	}
       }
+      if (!culled) {
+	printf("\nunsigned int wordSubstitutionFlag[1]={0x%x};\n",
+	       (unsigned int)(wordBreaks*1.0/usefulOccurrences*0xffffffff));
+      }
     }
   fprintf(stderr,"Expect to save %f bits by encoding %d common words\n",
 	  totalSavings,wordCount);
@@ -206,7 +210,7 @@ int writeWords()
   int i;
   unsigned int total=0;
   unsigned int tally=0;
-  printf("\nint wordCount=%d;\n",wordCount);
+  printf("\nint wordCount=%d;\n",wordCount);	 
   printf("char *wordList[]={\n");
   for(i=0;i<wordCount;i++) { 
     printf("\"%s\"",words[i]); 

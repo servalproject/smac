@@ -44,10 +44,14 @@ extern unsigned int tweet_freqs1[69];
 extern unsigned int caseend1[1][1];
 extern unsigned int caseposn2[2][80][1];
 extern unsigned int caseposn1[80][1];
-unsigned int casestartofmessage[1][1];
-unsigned int casestartofword2[2][1];
-unsigned int casestartofword3[2][2][1];
-unsigned int messagelengths[1024];
+extern unsigned int casestartofmessage[1][1];
+extern unsigned int casestartofword2[2][1];
+extern unsigned int casestartofword3[2][2][1];
+extern unsigned int messagelengths[1024];
+extern int wordCount;
+extern char *wordList[];
+extern unsigned int wordFrequencies[];
+extern unsigned int wordSubstitutionFlag[1];
 
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 int charIdx(unsigned char c)
@@ -59,6 +63,14 @@ int charIdx(unsigned char c)
   /* Not valid character -- must be encoded separately */
   return -1;
 }
+unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
+int charInWord(unsigned c)
+{
+  int i;
+  int cc=tolower(c);
+  for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
+  return 0;
+}
 
 int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 {
@@ -67,6 +79,44 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
   int o;
   for(o=0;s[o];o++) {
     int c3=charIdx(s[o]);
+    if (!charInWord(s[o-1])) {
+      /* We are at a word break, so see if we can do word substitution.
+	 Either way, we must flag whether we performed word substitution */
+      int w;
+      int longestWord=-1;
+      int longestLength=0;
+      if (charInWord(s[o])) {
+	for(w=0;w<wordCount;w++) {
+	  if (!strncmp((char *)&s[o],wordList[w],strlen(wordList[w]))) {
+	    printf("    word match: strlen=%d, longestLength=%d\n",
+		   (int)strlen(wordList[w]),(int)longestLength
+		   );
+	    if (strlen(wordList[w])>longestLength) {
+	      longestLength=strlen(wordList[w]);
+	      longestWord=w;	      
+	      printf("spotted substitutable instance of '%s'\n",wordList[w]);
+	    }
+	  }
+	}
+      }
+      if (longestWord>-1) {
+	/* Encode "we are substituting a word here */
+	range_encode_symbol(c,wordSubstitutionFlag,2,0);
+
+	/* Encode the word */
+	range_encode_symbol(c,wordFrequencies,wordCount,longestWord);
+
+	/* skip rest of word, but make sure we stay on track for 3rd order model
+	   state. */
+	o+=longestLength-1;
+	c3=charIdx(s[o-1]);
+	c2=charIdx(s[o]);
+	continue;
+      } else {
+	/* Encode "not substituting a word here" symbol */
+	range_encode_symbol(c,wordSubstitutionFlag,2,1);
+      }
+    }
     range_encode_symbol(c,tweet_freqs3[c1][c2],69,c3);    
     c1=c2; c2=c3;
   }
@@ -141,17 +191,9 @@ int encodeNonAlpha(range_coder *c,unsigned char *m)
   return 0;
 }
 
-unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
-int charInWord(unsigned c)
-{
-  int i;
-  int cc=tolower(c);
-  for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
-  return 0;
-}
 int mungeCase(char *m)
 {
-  int i,j;
+  int i;
 
   /* Change isolated I's to i, provided preceeding char is lower-case
      (so that we don't mess up all-caps).
@@ -209,10 +251,11 @@ double encodeCaseModel1(range_coder *c,unsigned char *line)
 	    if (wordNumber>2)
 	      frequencies[0]=
 		casestartofword3[lastWordInitialCase2][lastWordInitialCase][0];
-	    printf("last word began with case=%d, p_lower=%f\n",
-		   lastWordInitialCase,
-		   (frequencies[0]*1.0)/0x100000000
-		   );
+	    if (0)
+	      printf("last word began with case=%d, p_lower=%f\n",
+		     lastWordInitialCase,
+		     (frequencies[0]*1.0)/0x100000000
+		     );
 	  }
 	  if (0) printf("case of first letter of word/message @ %d: p=%f\n",
 			i,(frequencies[0]*1.0)/0x100000000);

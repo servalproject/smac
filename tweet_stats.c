@@ -6270,6 +6270,8 @@ unsigned int messagelengths[1024]={
    /* length = 1023 */ 0xffffffff
 };
 
+unsigned int wordSubstitutionFlag[1]={0x31c69e50};
+
 int wordCount=1027;
 char *wordList[]={
 "emily",
