@@ -63,26 +63,52 @@ int wordCount=0;
 int totalWords=0;
 
 
-int distributeWordCounts(int w)
+int distributeWordCounts(char *word_in,int count,int w)
 {
+  char word[1024];
+  strcpy(word,word_in);
+
   int i;
-  int bestWord=-1;
-  int bestLen=0;
+  int bestWord,bestLen,bestOffset;
+ tryagain:
+  bestWord=-1;
+  bestLen=0;
+  bestOffset=0;
+
+  int wordLen=strlen(word);
+  int max_offset=strlen(word);
+  /* actually max_offset should be zero, because we don't look for
+     substitutions in the middle of words */
+  max_offset=0;
+
   for(i=0;i<wordCount;i++) 
     if (i!=w) {
-      if (!strncmp(words[i],words[w],strlen(words[i]))) {
-	if (strlen(words[i])>bestLen) {
-	  bestLen=strlen(words[i]);
-	  bestWord=i;
+      int len=strlen(words[i]);
+      if (len>wordLen) continue;
+      int offset;
+      for(offset=0;offset<max_offset;offset++) {
+	if (!strncmp(words[i],&word[offset],len)) {
+	  if (len>bestLen&&len>2) {
+	    bestLen=len;
+	    bestWord=i;
+	    bestOffset=offset;
+	  }
 	}
       }
   }
   if (bestLen>0) {
-    fprintf(stderr,"Distributing counts for %s to %s\n",
-	    words[w],words[bestWord]);
-    wordCounts[bestWord]+=wordCounts[w];
-    wordCounts[w]=0;
+    fprintf(stderr,"Distributing counts for #%d/%d %s to %s\n",
+	    w,wordCount,word,words[bestWord]);
+    wordCounts[bestWord]+=count;
+    if (bestOffset) {
+      /* try to redistribute the start of the word also */
+      word[bestOffset]=0;
+      distributeWordCounts(word,count,w);
+    }
+    strcpy(word,&word[bestLen]);
+    goto tryagain;
   }
+  
   return 0;
 }
 
@@ -119,7 +145,7 @@ int countWord(char *word_in,int len)
     if (wordCounts[i]==1) {
       fprintf(stderr,"replacing %s with %s (consider increasing MAXWORDS)\n",
 	      words[i],word);
-      distributeWordCounts(i); 
+      distributeWordCounts(words[i],wordCounts[i],i); 
       free(words[i]);
       words[i]=strdup(word);
       wordCounts[i]=1;
@@ -209,6 +235,7 @@ int filterWords()
   /* Remove very rare words */
   for(i=0;i<wordCount;i++) 
     if (wordCounts[i]<5) {
+      distributeWordCounts(words[i],wordCounts[i],i); 
       if (i!=wordCount-1) {
 	free(words[i]);
 	words[i]=words[wordCount-1];
@@ -266,7 +293,7 @@ int filterWords()
 	     directly. Either way, it doesn't make sense to introduce a symbol
 	     for it.
 	  */
-	  distributeWordCounts(i);
+	  distributeWordCounts(words[i],wordCounts[i],i); 
 	  if (i!=wordCount-1) {
 	    free(words[i]);
 	    words[i]=words[wordCount-1];
