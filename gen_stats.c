@@ -159,6 +159,43 @@ if (word[1]) {
  return entropyWord;
 }
 
+int cmp_words(const void *a,const void *b)
+{
+  int aa=*(int *)a;
+  int bb=*(int *)b;
+
+  /* order by length, and then by reverse lexical order */
+  if (strlen(words[bb])>strlen(words[aa])) return 1;
+  if (strlen(words[bb])<strlen(words[aa])) return -1;
+  return strcmp(words[bb],words[aa]);
+}
+
+int sortWordList()
+{
+  int v[wordCount];
+  int counts[wordCount];
+  char *names[wordCount];
+  int i;
+  for(i=0;i<wordCount;i++) v[i]=i;
+
+  /* work out correct order */
+  qsort(v,wordCount,sizeof(int),cmp_words); 
+  
+  /* now regenerate lists */
+  for(i=0;i<wordCount;i++)
+    {
+      counts[i]=wordCounts[v[i]];
+      names[i]=words[v[i]];
+    }
+  for(i=0;i<wordCount;i++)
+    {
+      wordCounts[i]=counts[i];
+      words[i]=names[i];
+    }
+
+  return 0;
+}
+
 int filterWords()
 {
   /* Remove words from list that occur too rarely compared with their
@@ -185,6 +222,11 @@ int filterWords()
   double totalSavings=0;
   while(culled>0) 
     {
+      /* Sort word list by longest words first, so that we cull long words before 
+	 their stems, so that the stemmed versions have a chance to be retained.
+      */
+      sortWordList();
+
       totalSavings=0;
       culled=0;
       /* How many word occurrences are left */
