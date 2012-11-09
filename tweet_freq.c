@@ -117,9 +117,11 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	  // approx cost of switching models twice
 	  double entropyFlat=7+entropyOfInverse(36+1+1);
 	  int i;
+	  int cc2=c2;
+	  int cc1=c1;
 	  for(i=o;s[i]&&(isalnum(s[i])||s[i]==' ');i++) {
 	    int c3=charIdx(s[i]);
-	    range_encode_symbol(t,tweet_freqs3[c1][c2],69,c3);
+	    range_encode_symbol(t,tweet_freqs3[cc1][cc2],69,c3);
 	    range_encode_equiprobable(tf,36+1+1,c3);
 	    if (!s[i]) {
 	      /* encoding to the end of message saves us the 
@@ -130,8 +132,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	      longestLength=i-o+1;
 	      longestSavings=t->entropy-tf->entropy-entropyFlat;
 	    }
-	    c1=c2; c2=c3;
+	    cc1=cc2; cc2=c3;
 	  }
+
 	  if (longestLength>0)
 	    printf("Could save %f bits by flat coding next %d chars.\n",
 		   longestSavings,longestLength);
