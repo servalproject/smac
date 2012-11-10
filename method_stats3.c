@@ -49,12 +49,37 @@ int stripCase(unsigned char *in,unsigned char *out);
 int mungeCase(char *m);
 int encodeCaseModel1(range_coder *c,unsigned char *line);
 
+unsigned int probPackedASCII=0.95*0xffffffff;
+
+int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
+{
+  int i;
+  *len_out=0;
+
+  /* Check if message is encoded naturally */
+  int notRawASCII=range_decode_equiprobable(c,2);
+  if (notRawASCII==0) {
+    /* raw bytes -- copy from input to output */
+    for(i=0;c->bit_stream[i]&&i<1024;i++) m[i]=c->bit_stream[i];
+    m[i]=0;
+    *len_out=i;
+    return 0;
+  }
+  
+  int notPackedASCII=range_decode_symbol(c,&probPackedASCII,2);
+  int encodedLength=decodeLength(c);
+
+  if (notPackedASCII==0) {
+    /* packed ASCII -- copy from input to output */
+  }
+
+  return -1;
+}
+
 int stats3_compress(range_coder *c,unsigned char *m)
 {
   unsigned char alpha[1024]; // message with all non alpha/spaces removed
   unsigned char lcalpha[1024]; // message with all alpha chars folded to lower-case
-
-  unsigned int probPackedASCII=0.95*0xffffffff;
 
   /* Use model instead of just packed ASCII */
   range_encode_equiprobable(c,2,1); // not raw ASCII
@@ -96,10 +121,11 @@ int stats3_compress(range_coder *c,unsigned char *m)
 
   if (c->bits_used>=7*strlen((char *)m))
     {
-      /* we can't encode it more efficiently than 7-bit ASCII */
+      /* we can't encode it more efficiently than char symbols */
       range_coder_reset(c);
       range_encode_equiprobable(c,2,1); // not raw ASCII
       range_encode_symbol(c,&probPackedASCII,2,1); // is packed ASCII
+      encodeLength(c,strlen((char *)m));
       int i;
       for(i=0;m[i];i++) {
 	int v=m[i];
