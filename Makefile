@@ -4,10 +4,13 @@ CFLAGS=-g -Wall
 
 OBJS=	tweet_freq.o \
 	\
-	lowercasealpha.o \
+	case.o \
 	length.o \
+	lowercasealpha.o \
+	nonalpha.o \
 	\
 	charset.o \
+	entropyutil.o \
 	message_stats.o \
 	\
 	arithmetic.o \
