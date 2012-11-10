@@ -1,21 +1,21 @@
 #!/bin/tcsh -f
 
 echo ">>> COMBINED corpora"
-   cat twitter_corpus*.txt | ./tweet_freq -  | tail -1 | cut -f2- -d"(" | cut -f1 -d")"
+   cat twitter_corpus*.txt | ./method_stats3 -  | tail -1 | cut -f2- -d"(" | cut -f1 -d")"
    echo -n "bits spent on chars: "
-   cat twitter_corpus*.txt | ./tweet_freq - | grep "bits to encode chars"  | awk '{ n+=$1; } END { print n;}'
+   cat twitter_corpus*.txt | ./method_stats3 - | grep "bits to encode chars"  | awk '{ n+=$1; } END { print n;}'
    echo -n "bits spent on length: "
-   cat twitter_corpus*.txt | ./tweet_freq - | grep "bits to encode length"  | awk '{ n+=$1; } END { print n;}'
+   cat twitter_corpus*.txt | ./method_stats3 - | grep "bits to encode length"  | awk '{ n+=$1; } END { print n;}'
    echo -n "bits spent on case: "
-   cat twitter_corpus*.txt | ./tweet_freq - | grep "bits to encode case"  | awk '{ n+=$1; } END { print n;}'
+   cat twitter_corpus*.txt | ./method_stats3 - | grep "bits to encode case"  | awk '{ n+=$1; } END { print n;}'
 
 foreach corpus ( twitter_corpus*.txt )
    echo ">>>> $corpus"
-   ./tweet_freq $corpus  | tail -1 | cut -f2- -d"(" | cut -f1 -d")"
+   ./method_stats3 $corpus  | tail -1 | cut -f2- -d"(" | cut -f1 -d")"
    echo -n "bits spent on chars: "
-   ./tweet_freq $corpus | grep "bits to encode chars"  | awk '{ n+=$1; } END { print n;}'
+   ./method_stats3 $corpus | grep "bits to encode chars"  | awk '{ n+=$1; } END { print n;}'
    echo -n "bits spent on length: "
-   ./tweet_freq $corpus | grep "bits to encode length"  | awk '{ n+=$1; } END { print n;}'
+   ./method_stats3 $corpus | grep "bits to encode length"  | awk '{ n+=$1; } END { print n;}'
    echo -n "bits spent on case: "
-   ./tweet_freq $corpus | grep "bits to encode case"  | awk '{ n+=$1; } END { print n;}'
+   ./method_stats3 $corpus | grep "bits to encode case"  | awk '{ n+=$1; } END { print n;}'
 end
