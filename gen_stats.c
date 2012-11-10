@@ -97,8 +97,8 @@ int distributeWordCounts(char *word_in,int count,int w)
     }
 
   if (bestLen>0) {
-    fprintf(stderr,"Distributing counts for #%d/%d %s to %s\n",
-	    w,wordCount,word,words[bestWord]);
+    if (0) fprintf(stderr,"Distributing counts for #%d/%d %s to %s\n",
+		   w,wordCount,word,words[bestWord]);
     wordCounts[bestWord]+=count;
     strcpy(word,&word[bestLen]);
     goto tryagain;
@@ -239,7 +239,7 @@ int filterWords()
   */
   int i;
 
-  fprintf(stderr,"Filtering word list.\n");
+  fprintf(stderr,"Filtering word list [.=5k words]: ");
 
   /* Remove very rare words */
   int filtered=0;
@@ -254,9 +254,12 @@ int filterWords()
       }
       wordCount--;
       filtered++;
-      if (!(filtered%1000)) fprintf(stderr,"Filtered %d words.\n",filtered);
+      if (!(filtered%5000)) { fprintf(stderr,"."); fflush(stderr); }
     }
 
+  fprintf(stderr,"\n");
+
+  fprintf(stderr,"Culling words with low entropy that are better encoded directly: ");
   int culled=1;
   double totalSavings=0;
   while(culled>0) 
@@ -274,14 +277,17 @@ int filterWords()
       double occurenceEntropy=-log(usefulOccurrences*1.0/wordBreaks)/log(2);
       double nonoccurrenceEntropy=-log((wordBreaks-usefulOccurrences)*1.0/wordBreaks)/log(2);
       nonoccurrenceEntropy*=(wordBreaks-usefulOccurrences);     
-      fprintf(stderr,"%d words left.\n",wordCount);
-      fprintf(stderr,"  Total non-occurence penalty = %f bits.\n",
-	      nonoccurrenceEntropy);
-      fprintf(stderr,"  Occurence penalty = %f bits (%lld word breaks, %d common word occurrences).\n",
-	      occurenceEntropy,
-	      wordBreaks,usefulOccurrences);
+      if (0) {
+	fprintf(stderr,"%d words left.\n",wordCount);
+	fprintf(stderr,"  Total non-occurence penalty = %f bits.\n",
+		nonoccurrenceEntropy);
+	fprintf(stderr,"  Occurence penalty = %f bits (%lld word breaks, %d common word occurrences).\n",
+		occurenceEntropy,
+		wordBreaks,usefulOccurrences);
+      }
       occurenceEntropy+=nonoccurrenceEntropy/usefulOccurrences;
-      fprintf(stderr,"  Grossed up occurrence penalty (base + amortised non-occurrence penalty) = %f bits\n",occurenceEntropy);
+      if (0)
+	fprintf(stderr,"  Grossed up occurrence penalty (base + amortised non-occurrence penalty) = %f bits\n",occurenceEntropy);
       for(i=0;i<wordCount;i++) {
 
 	double entropyOccurrence=-log(wordCounts[i]*1.0/totalWords)/log(2);
@@ -321,12 +327,14 @@ int filterWords()
 	       usefulOccurrences,wordBreaks);
 	printf("unsigned int wordSubstitutionFlag[1]={0x%x};\n",
 	       (unsigned int)(usefulOccurrences*1.0/wordBreaks*0xffffffff));
-      }
+      } else {
+	fprintf(stderr,"%d+",culled); fflush(stderr); 
+      }      
     }
-  fprintf(stderr,"Expect to save %f bits by encoding %d common words\n",
+  fprintf(stderr,"0\nExpect to save %f bits by encoding %d common words\n",
 	  totalSavings,wordCount);
   fprintf(stderr,"Word list extract:\n");
-  for(i=0;i<16;i++)
+  for(i=0;i<16&&i<wordCount;i++)
     fprintf(stderr,"  %d %s\n",wordCounts[i],words[i]);
   return 0;
 }
@@ -341,7 +349,7 @@ int writeWords()
   fprintf(stderr,"Sorting word list alphabetically for output.\n");
   sortWordList(1);
   
-  for(i=0;i<10;i++) fprintf(stderr,"  %s\n",words[i]);
+  for(i=0;i<10&&i<wordCount;i++) fprintf(stderr,"  %d %s\n",wordCounts[i],words[i]);
 
 
   printf("\nint wordCount=%d;\n",wordCount);	 
@@ -400,7 +408,7 @@ int main(int argc,char **argv)
     int c2=charIdx(' ');
     int lc=0;
 
-    if (!(lineCount%5000)) { fprintf(stderr,".",lineCount); fflush(stderr); }
+    if (!(lineCount%5000)) { fprintf(stderr,"."); fflush(stderr); }
 
     /* record occurrance of message of this length.
        (minus one for the LF at end of line that we chop) */
@@ -649,7 +657,7 @@ int main(int argc,char **argv)
     printf("};\n");  
   }
 
-  fprintf(stderr,"listing words.\n");
+  fprintf(stderr,"Listing words.\n");
   listWords(wordTree);
   filterWords();
   writeWords();
