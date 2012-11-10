@@ -22,7 +22,7 @@ smaz_test: smaz_test.c smaz.c
 	gcc -o smaz_test -O2 -Wall -W -ansi -pedantic smaz.c smaz_test.c
 
 clean:
-	rm -rf smaz_test
+	rm -rf smaz_test *.o gen_stats tweet_freq
 
 arithmetic:	arithmetic.c arithmetic.h
 	# Build for running tests
