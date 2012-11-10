@@ -73,38 +73,31 @@ int distributeWordCounts(char *word_in,int count,int w)
  tryagain:
   bestWord=-1;
   bestLen=0;
-  bestOffset=0;
 
   int wordLen=strlen(word);
-  int max_offset=strlen(word);
-  /* actually max_offset should be zero, because we don't look for
-     substitutions in the middle of words */
-  max_offset=0;
 
-  for(i=0;i<wordCount;i++) 
+  /* Assumes word list is sorted with sortWordList(0) 
+     (sorted by length, then reverse lexographical) so
+     that we can short-cut this search. */
+  for(i=w+1;i<wordCount;i++) 
     if (i!=w) {
       int len=strlen(words[i]);
       if (len>wordLen) continue;
-      int offset;
-      for(offset=0;offset<max_offset;offset++) {
-	if (!strncmp(words[i],&word[offset],len)) {
-	  if (len>bestLen&&len>2) {
-	    bestLen=len;
-	    bestWord=i;
-	    bestOffset=offset;
-	  }
+      int d=strncmp(words[i],word,len);
+      if (!d) {
+	if (len>bestLen&&len>2) {
+	  bestLen=len;
+	  bestWord=i;
+	  break;
 	}
-      }
-  }
+      } else 
+	break;
+    }
+
   if (bestLen>0) {
     fprintf(stderr,"Distributing counts for #%d/%d %s to %s\n",
 	    w,wordCount,word,words[bestWord]);
     wordCounts[bestWord]+=count;
-    if (bestOffset) {
-      /* try to redistribute the start of the word also */
-      word[bestOffset]=0;
-      distributeWordCounts(word,count,w);
-    }
     strcpy(word,&word[bestLen]);
     goto tryagain;
   }
@@ -112,25 +105,38 @@ int distributeWordCounts(char *word_in,int count,int w)
   return 0;
 }
 
+int unsortedFrom=0;
 int countWord(char *word_in,int len)
 {
   if (len<1) return 0;
-  //  fprintf(stderr,"saw %s\n",word);
 
-  /* Do some word trimming to reduce number of words and increase frequency
-     of the remaining words */
   char word[1024];
   strcpy(word,word_in);
-  //  if (word[len-1]=='s') len--;
-  //  if (!strncmp("ing",&word[len-3],3)) len-=3;
-  // if (!strncmp("ed",&word[len-2],2)) len-=2;
-  //  if (!strncmp("er",&word[len-2],2)) len-=2;
   word[len]=0;
 
   totalWords++;
 
+  /* Keep list periodically sorted so that we can search quickly for insert/update */
+  if (wordCount-unsortedFrom>1000)
+    {
+      sortWordList(1);
+      unsortedFrom=wordCount;
+    }
+
   int i;
-  for(i=0;i<wordCount;i++) if (!strcmp(word,words[i])) { wordCounts[i]++; return 0; }
+  for(i=0;i<wordCount;i++) {
+    if (!strcmp(word,words[i])) { wordCounts[i]++; return 0; }
+
+    /* skip ahead if safe */
+    int step=20000;
+    while(step>50) {
+      if (i+step<wordCount&&i+step<unsortedFrom&&
+	  strcmp(word,words[i+step])<0) { i+=step-1; goto next; }
+      else step/=2;
+    }
+  next:
+  }
+
   if (i<MAXWORDS) {
     words[i]=strdup(word);
     wordCounts[i]=1;
