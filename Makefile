@@ -28,7 +28,7 @@ arithmetic:	arithmetic.c arithmetic.h
 gen_stats:	gen_stats.c
 	gcc -g -Wall -o gen_stats gen_stats.c
 
-message_stats.c:	gen_stats.c twitter_corpus*.txt
+message_stats.c:	gen_stats twitter_corpus*.txt
 	cat twitter_corpus*.txt |./gen_stats > message_stats.c
 
 tweet_freq:	$(OBJS)
