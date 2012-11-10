@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ctype.h>
 
 #include "arithmetic.h"
+#include "charset.h"
 
 int stripNonAlpha(unsigned char *in,unsigned char *out)
 {

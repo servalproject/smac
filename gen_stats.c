@@ -515,7 +515,7 @@ int main(int argc,char **argv)
   }
   fprintf(stderr,"\nWriting letter frequency statistics.\n");
 
-  printf("unsigned int tweet_freqs3[69][69][69]={\n");
+  printf("unsigned int char_freqs3[69][69][69]={\n");
   for(i=0;i<69;i++) {
     printf("  {\n");
     for(j=0;j<69;j++) {
@@ -537,7 +537,7 @@ int main(int argc,char **argv)
   }
   printf("};\n");
   
-  printf("\nunsigned int tweet_freqs2[69][69]={\n");
+  printf("\nunsigned int char_freqs2[69][69]={\n");
   for(j=0;j<69;j++) {
     int rowCount=0;
     double total=0;
@@ -555,7 +555,7 @@ int main(int argc,char **argv)
   }
   printf("};\n");
   
-  printf("\nunsigned int tweet_freqs1[69]={\n");
+  printf("\nunsigned int char_freqs1[69]={\n");
   {
     int rowCount=0;
     double total=0;

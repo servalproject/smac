@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "arithmetic.h"
 #include "message_stats.h"
+#include "charset.h"
 
 double entropy3(int c1,int c2, char *string);
 
@@ -42,7 +43,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
       int w;
       int longestWord=-1;
       int longestLength=0;
+#if 0
       double longestSavings=0;
+#endif
       if (charInWord(s[o])) {
 #if 0
 	{
@@ -57,7 +60,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	  int cc1=c1;
 	  for(i=o;s[i]&&(isalnum(s[i])||s[i]==' ');i++) {
 	    int c3=charIdx(s[i]);
-	    range_encode_symbol(t,tweet_freqs3[cc1][cc2],69,c3);
+	    range_encode_symbol(t,char_freqs3[cc1][cc2],69,c3);
 	    range_encode_equiprobable(tf,69+1,c3);
 	    if (!s[i]) {
 	      /* encoding to the end of message saves us the 
@@ -175,7 +178,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 		 c->entropy-entropy);
       }
     }
-    range_encode_symbol(c,tweet_freqs3[c1][c2],69,c3);    
+    range_encode_symbol(c,char_freqs3[c1][c2],69,c3);    
     c1=c2; c2=c3;
   }
   return 0;

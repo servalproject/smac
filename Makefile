@@ -1,6 +1,7 @@
 CC=gcc
 COPT=-g -Wall
 CFLAGS=-g -Wall
+DEFS=
 
 OBJS=	method_stats3.o \
 	\
@@ -15,6 +16,8 @@ OBJS=	method_stats3.o \
 	\
 	arithmetic.o \
 	gsinterpolative.o
+
+HDRS=	charset.h arithmetic.h message_stats.h Makefile
 
 all: method_stats3 arithmetic # smaz_test gen_stats tweet_stats.c
 
@@ -36,3 +39,6 @@ message_stats.c:	gen_stats twitter_corpus*.txt
 
 method_stats3:	$(OBJS)
 	gcc -g -Wall -o method_stats3 $(OBJS)
+
+%.o:	%.c $(HDRS)
+	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@

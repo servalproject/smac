@@ -25,8 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "arithmetic.h"
 #include "message_stats.h"
-
-int charIdx(unsigned char c);
+#include "charset.h"
 
 /* Calculate entropy of string using 3rd-order
    message statistics. */
@@ -37,7 +36,7 @@ double entropy3(int c1,int c2, char *string)
   for(i=0;i<strlen(string);i++)
     {
       int c3=charIdx(string[i]);
-      range_encode_symbol(t,tweet_freqs3[c1][c2],69,c3);    
+      range_encode_symbol(t,char_freqs3[c1][c2],69,c3);    
       c1=c2; c2=c3;
     }
   double entropy=t->entropy;
