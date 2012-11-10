@@ -41,6 +41,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "charset.h"
 
 int encodeLCAlphaSpace(range_coder *c,unsigned char *s);
+int encodeLength(range_coder *c,int length);
+int decodeLength(range_coder *c);
 
 double entropy3(int c1,int c2, char *string)
 {
@@ -61,16 +63,6 @@ double entropy3(int c1,int c2, char *string)
 double entropyOfInverse(int n)
 {
   return -log(1.0/n)/log(2);
-}
-
-
-int encodeLength(range_coder *c,unsigned char *m)
-{
-  int len=strlen((char *)m);
-
-  range_encode_symbol(c,messagelengths,1024,len);
-
-  return 0;
 }
 
 int encodeNonAlpha(range_coder *c,unsigned char *m)
@@ -261,7 +253,7 @@ int freq_compress(range_coder *c,unsigned char *m)
   double lastEntropy=c->entropy;
   
   /* Encode length of message */
-  encodeLength(c,m);
+  encodeLength(c,strlen((char *)m));
   
   printf("%f bits to encode length\n",c->entropy-lastEntropy);
   lastEntropy=c->entropy;
@@ -337,6 +329,15 @@ int main(int argc,char *argv[])
     fprintf(stderr,"Must provide message to compress.\n");
     exit(-1);
   }
+
+  int i;
+  for(i=1;i<wordCount-1;i++)
+    if (wordFrequencies[i]<=wordFrequencies[i-1]) {
+      fprintf(stderr,"poot: frequency of %s (#%d) = 0x%x, but %s (#%d) = 0x%x\n",
+	      wordList[i-1],i-1,wordFrequencies[i-1],
+	      wordList[i],i,wordFrequencies[i]);
+      exit(-1);
+    }
 
   char m[1024]; // raw message, no pre-processing
   
