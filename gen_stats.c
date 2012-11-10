@@ -58,9 +58,8 @@ int charInWord(unsigned c)
   return 0;
 }
 
-#define MAXWORDS 1000000
-char *words[MAXWORDS];
-int wordCounts[MAXWORDS];
+char **words;
+int *wordCounts;
 int wordCount=0;
 int totalWords=0;
 
@@ -142,19 +141,34 @@ int countWord(char *word_in,int len)
     *wi=calloc(sizeof(struct wordInstance),1);
     (*wi)->word=strdup(word);
     (*wi)->count=1;
+    wordCount++;
   }
    
   return 0;
 }
 
+int wordNumber=0;
+
 int listWords(struct wordInstance *n)
 {
   while(n) {
     if (n->left) listWords(n->left);
-    words[wordCount]=n->word;
-    wordCounts[wordCount++]=n->count;
+    if (wordNumber>=wordCount) {
+      fprintf(stderr,"word list seems to be longer than itself.\n");
+    }
+    words[wordNumber]=n->word;
+    wordCounts[wordNumber++]=n->count;
     n=n->right;
   }
+  return 0;
+}
+
+int listAllWords()
+{
+  fprintf(stderr,"Listing %d words.\n",wordCount);
+  words=calloc(sizeof(char *),wordCount);
+  wordCounts=calloc(sizeof(int),wordCount);
+  listWords(wordTree);
   return 0;
 }
 
@@ -392,7 +406,15 @@ int main(int argc,char **argv)
   }
   for(i=0;i<1024;i++) messagelengths[i]=0;
 
-  line[0]=0; fgets(line,8192,stdin);
+  int argn=1;
+  FILE *f=stdin;
+
+  if (argc>1) {
+    f=fopen(argv[argn++],"r");
+    fprintf(stderr,"Reading corpora from command line options.\n");
+  }
+
+  line[0]=0; fgets(line,8192,f);
   int lineCount=0;
   int wordPosn=-1;
   char word[1024];
@@ -480,8 +502,16 @@ int main(int argc,char **argv)
 	  c1=c2; c2=c3;
 	}
       }
-    
-    line[0]=0; fgets(line,8192,stdin);
+
+  trynextfile:    
+    line[0]=0; fgets(line,8192,f);
+    if (!line[0]) {
+      fclose(f); f=NULL;
+      while(f==NULL&&argn<argc) {
+	f=fopen(argv[argn++],"r");	
+      }
+      if (f) goto trynextfile;
+    }
   }
   fprintf(stderr,"\nWriting letter frequency statistics.\n");
 
@@ -657,8 +687,7 @@ int main(int argc,char **argv)
     printf("};\n");  
   }
 
-  fprintf(stderr,"Listing words.\n");
-  listWords(wordTree);
+  listAllWords();
   filterWords();
   writeWords();
 
