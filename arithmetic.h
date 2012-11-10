@@ -46,7 +46,7 @@ struct range_coder *range_new_coder(int bytes);
 int range_encode_length(range_coder *c,int len);
 int range_conclude(range_coder *c);
 int range_coder_free(range_coder *c);
-
+range_coder *range_coder_dup(range_coder *in);
 
 int ic_encode_recursive(int *list,
 								int list_length,

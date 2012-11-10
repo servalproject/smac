@@ -71,6 +71,14 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
 
   if (notPackedASCII==0) {
     /* packed ASCII -- copy from input to output */
+    for(i=0;i<encodedLength;i++) {
+      int symbol=range_decode_equiprobable(c,69);
+      int character=chars[symbol];
+      m[i]=character;     
+    }
+    m[i]=0;
+    *len_out=encodedLength;
+    return 0;
   }
 
   return -1;
