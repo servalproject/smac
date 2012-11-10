@@ -44,6 +44,10 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s);
 int encodeNonAlpha(range_coder *c,unsigned char *s);
 int encodeLength(range_coder *c,int length);
 int decodeLength(range_coder *c);
+int stripNonAlpha(unsigned char *in,unsigned char *out);
+int stripCase(unsigned char *in,unsigned char *out);
+int mungeCase(char *m);
+int encodeCaseModel1(range_coder *c,unsigned char *line);
 
 int stats3_compress(range_coder *c,unsigned char *m)
 {

@@ -52,7 +52,7 @@ int mungeCase(char *m)
   return 0;
 }
 
-double encodeCaseModel1(range_coder *c,unsigned char *line)
+int encodeCaseModel1(range_coder *c,unsigned char *line)
 {
   /*
     Have previously looked at flipping case of isolated I's 
