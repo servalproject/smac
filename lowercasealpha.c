@@ -91,16 +91,19 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	  int t=w|(1<<bit);
 
 	  /* stop if we have found first match */
-	  int d1=t ? strncmp(wordList[t-1],(char *)&s[o],strlen(wordList[t-1])) : -1;
 	  int d2=strncmp(wordList[t],(char *)&s[o],strlen(wordList[t]));
 	  /* if wordList[w-1] is lexographically earlier than the text,
 	     and wordList[w] is not lexographically earlier than the next, then
 	     we have found the point we are looking for, and can stop. */
-	  if (d1<0&&d2>=0) {
-	    // printf("word '%s' comes before '%s'\n",wordList[t-1],&s[o]);
-	    // printf("but '%s' equals or comes after '%s'\n",wordList[t],&s[o]);
-	    w=t;
-	    break;
+	  if (d2>=0) {
+	    int d1=t ? strncmp(wordList[t-1],(char *)&s[o],strlen(wordList[t-1])) : -1;
+	    if (d1<0)
+	      {
+		// printf("word '%s' comes before '%s'\n",wordList[t-1],&s[o]);
+		// printf("but '%s' equals or comes after '%s'\n",wordList[t],&s[o]);
+		w=t;
+		break;
+	      }
 	  } else if (d2<0) {
 	    /* if both are before where we are looking for, then set this bit in w. */
 	    // printf("word '%s' comes before '%s'\n",wordList[t],&s[o]);
