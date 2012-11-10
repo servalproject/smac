@@ -38,6 +38,8 @@ long long wordBreaks=0;
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
 
+int sortWordList(int alphaP);
+
 int charIdx(unsigned char c)
 {
   int i;
@@ -69,7 +71,7 @@ int distributeWordCounts(char *word_in,int count,int w)
   strcpy(word,word_in);
 
   int i;
-  int bestWord,bestLen,bestOffset;
+  int bestWord,bestLen;
  tryagain:
   bestWord=-1;
   bestLen=0;
@@ -105,6 +107,15 @@ int distributeWordCounts(char *word_in,int count,int w)
   return 0;
 }
 
+struct wordInstance {
+  char *word;
+  int count;
+  struct wordInstance *left;
+  struct wordInstance *right;
+} wordInstance;
+
+struct wordInstance *wordTree=NULL;
+
 int unsortedFrom=0;
 int countWord(char *word_in,int len)
 {
@@ -116,53 +127,35 @@ int countWord(char *word_in,int len)
 
   totalWords++;
 
-  /* Keep list periodically sorted so that we can search quickly for insert/update */
-  if (wordCount-unsortedFrom>1000)
-    {
-      sortWordList(1);
-      unsortedFrom=wordCount;
-    }
-
-  int i;
-  for(i=0;i<wordCount;i++) {
-    if (!strcmp(word,words[i])) { wordCounts[i]++; return 0; }
-
-    /* skip ahead if safe */
-    int step=20000;
-    while(step>50) {
-      if (i+step<wordCount&&i+step<unsortedFrom&&
-	  strcmp(word,words[i+step])<0) { i+=step-1; goto next; }
-      else step/=2;
-    }
-  next:
-  }
-
-  if (i<MAXWORDS) {
-    words[i]=strdup(word);
-    wordCounts[i]=1;
-    wordCount++;
-    return 0;
-  } 
-  /* Too many words -- replace one that has only one count */
-  int end=random()%MAXWORDS;
-  i=end+1;
-  while(i!=end) {
-    i=i%MAXWORDS;
-    if (wordCounts[i]==1) {
-      fprintf(stderr,"replacing %s with %s (consider increasing MAXWORDS)\n",
-	      words[i],word);
-      distributeWordCounts(words[i],wordCounts[i],i); 
-      free(words[i]);
-      words[i]=strdup(word);
-      wordCounts[i]=1;
+  struct wordInstance **wi=&wordTree;
+  while (*wi!=NULL) {
+    int d=strcmp(word,(*wi)->word);
+    if (d==0) {
+      (*wi)->count++;
       return 0;
-    }   
-    i++;
+    }
+    else if (d>0) wi=&(*wi)->left;
+    else wi=&(*wi)->right;
   }
-  
-  fprintf(stderr,"Ran out of word space. Definitely increase MAXWORDS.\n");
-  exit(-1);
 
+  if (!*wi) {
+    *wi=calloc(sizeof(struct wordInstance),1);
+    (*wi)->word=strdup(word);
+    (*wi)->count=1;
+  }
+   
+  return 0;
+}
+
+int listWords(struct wordInstance *n)
+{
+  while(n) {
+    if (n->left) listWords(n->left);
+    fprintf(stderr,"  %d. %s\n",wordCount,n->word);
+    words[wordCount]=n->word;
+    wordCounts[wordCount++]=n->count;
+    n=n->right;
+  }
   return 0;
 }
 
@@ -246,9 +239,8 @@ int filterWords()
      length, such that it is unlikely that they will be useful for compression.
   */
   int i;
-  
-  fprintf(stderr,"Filtering word list.\n");
 
+  fprintf(stderr,"Filtering word list.\n");
 
   /* Remove very rare words */
   int filtered=0;
@@ -656,6 +648,8 @@ int main(int argc,char **argv)
     printf("};\n");  
   }
 
+  fprintf(stderr,"listing words.\n");
+  listWords(wordTree);
   filterWords();
   writeWords();
 
