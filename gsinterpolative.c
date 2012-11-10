@@ -363,7 +363,7 @@ inline void ENCODE(binary_,)(int low,int *pp,int high,int step,range_coder *c)
 
 #ifdef ENCODING
   for(i=code_bits-1;i>=0;i++)
-    range_emitbit(c,(code >> i ) & 1 );
+    range_encode_equiprobable(c,2,(code >> i ) & 1 );
 #endif
   
 #ifdef DEBUG
