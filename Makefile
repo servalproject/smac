@@ -2,6 +2,17 @@ CC=gcc
 COPT=-g -Wall
 CFLAGS=-g -Wall
 
+OBJS=	tweet_freq.o \
+	\
+	lowercasealpha.o \
+	length.o \
+	\
+	charset.o \
+	message_stats.o \
+	\
+	arithmetic.o \
+	gsinterpolative.o
+
 all: tweet_freq arithmetic # smaz_test gen_stats tweet_stats.c
 
 smaz_test: smaz_test.c smaz.c
@@ -17,8 +28,8 @@ arithmetic:	arithmetic.c arithmetic.h
 gen_stats:	gen_stats.c
 	gcc -g -Wall -o gen_stats gen_stats.c
 
-tweet_stats.c:	gen_stats twitter_corpus*.txt
+message_stats.c:	gen_stats.c twitter_corpus*.txt
 	cat twitter_corpus*.txt |./gen_stats > message_stats.c
 
-tweet_freq:	tweet_freq.o message_stats.o arithmetic.o gsinterpolative.o lowercasealpha.o charset.o
-	gcc -g -Wall -o tweet_freq tweet_freq.o message_stats.o arithmetic.o gsinterpolative.o lowercasealpha.o charset.o
+tweet_freq:	$(OBJS)
+	gcc -g -Wall -o tweet_freq $(OBJS)
