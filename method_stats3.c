@@ -41,10 +41,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "charset.h"
 
 int encodeLCAlphaSpace(range_coder *c,unsigned char *s);
+int encodeNonAlpha(range_coder *c,unsigned char *s);
 int encodeLength(range_coder *c,int length);
 int decodeLength(range_coder *c);
 
-int freq_compress(range_coder *c,unsigned char *m)
+int stats3_compress(range_coder *c,unsigned char *m)
 {
   unsigned char alpha[1024]; // message with all non alpha/spaces removed
   unsigned char lcalpha[1024]; // message with all alpha chars folded to lower-case
@@ -129,57 +130,3 @@ int freq_compress(range_coder *c,unsigned char *m)
 }
 
 
-int main(int argc,char *argv[])
-{
-  if (!argv[1]) {
-    fprintf(stderr,"Must provide message to compress.\n");
-    exit(-1);
-  }
-
-  int i;
-  for(i=1;i<wordCount-1;i++)
-    if (wordFrequencies[i]<=wordFrequencies[i-1]) {
-      fprintf(stderr,"poot: frequency of %s (#%d) = 0x%x, but %s (#%d) = 0x%x\n",
-	      wordList[i-1],i-1,wordFrequencies[i-1],
-	      wordList[i],i,wordFrequencies[i]);
-      exit(-1);
-    }
-
-  char m[1024]; // raw message, no pre-processing
-  
-  FILE *f;
-
-  if (strcmp(argv[1],"-")) f=fopen(argv[1],"r"); else f=stdin;
-  if (!f) {
-    fprintf(stderr,"Failed to open `%s' for input.\n",argv[1]);
-    exit(-1);
-  }
-
-  m[0]=0; fgets(m,1024,f);
-  
-  int lines=0;
-  double runningPercent=0;
-  double worstPercent=0,bestPercent=100;
-
-  while(m[0]) {    
-    /* chop newline */
-    m[strlen(m)-1]=0;
-    if (1) printf(">>> %s\n",m);
-
-    range_coder *c=range_new_coder(1024);
-    freq_compress(c,(unsigned char *)m);
-
-    double percent=c->bits_used*100.0/(strlen(m)*8);
-    if (percent<bestPercent) bestPercent=percent;
-    if (percent>worstPercent) worstPercent=percent;
-    runningPercent+=percent;
-
-    lines++;
-
-    printf("Total encoded length = %d bits = %.2f%% (best:avg:worst %.2f%%:%.2f%%:%.2f%%)\n",
-	   c->bits_used,percent,bestPercent,runningPercent/lines,worstPercent);
-    m[0]=0; fgets(m,1024,f);
-  }
-  fclose(f);
-  return 0;
-}

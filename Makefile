@@ -3,7 +3,9 @@ COPT=-g -Wall
 CFLAGS=-g -Wall
 DEFS=
 
-OBJS=	method_stats3.o \
+OBJS=	main.o \
+	\
+	method_stats3.o \
 	\
 	case.o \
 	length.o \
