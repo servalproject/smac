@@ -26,6 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "message_stats.h"
 
+double entropy3(int c1,int c2, char *string);
+
 int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 {
   int c1=charIdx(' ');
@@ -80,23 +82,43 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	}
 #endif
 
-	for(w=0;w<wordCount;w++) {
+	/* Find the first word that matches */
+	w=0;
+	int bit;
+	for(bit=30;bit>=0;bit--) {
+	  if ((w|(1<<bit))>=wordCount) continue;
+       
+	  int t=w|(1<<bit);
+
+	  /* stop if we have found first match */
+	  int d1=t ? strncmp(wordList[t-1],(char *)&s[o],strlen(wordList[t-1])) : -1;
+	  int d2=strncmp(wordList[t],(char *)&s[o],strlen(wordList[t]));
+	  /* if wordList[w-1] is lexographically earlier than the text,
+	     and wordList[w] is not lexographically earlier than the next, then
+	     we have found the point we are looking for, and can stop. */
+	  if (d1<0&&d2>=0) {
+	    // printf("word '%s' comes before '%s'\n",wordList[t-1],&s[o]);
+	    // printf("but '%s' equals or comes after '%s'\n",wordList[t],&s[o]);
+	    w=t;
+	    break;
+	  } else if (d2<0) {
+	    /* if both are before where we are looking for, then set this bit in w. */
+	    // printf("word '%s' comes before '%s'\n",wordList[t],&s[o]);
+	    w=t;
+	  } else
+	    /* we have gone too far in the list, so don't set this bit.
+	       Continue iterating through lower-order bits. */
+	    continue;
+	}
+	// printf("starting to look from '%s' for '%s'\n",wordList[w],&s[o]);
+
+	for(;w<wordCount;w++) {
 	  int d;
-	tryagain:
-	  d=strncmp((char *)&s[o],wordList[w],strlen(wordList[w]));
-#if 1
-	  /* skip through list quickly, and stop looking once we have passed the
-	     relevant part of the list. */
-	  if (d<0) break;
-	  if ((d>0)&&(wordCount-w>1000)) {
-	    d=strncmp((char *)&s[o],wordList[w+1000],strlen(wordList[w+1000]));
-	    if (d>0) {
-	      w+=1000;
-	      goto tryagain;
-	    }
-	  }
-#endif
-	  if (d==0) {
+	  d=strncmp(wordList[w],(char *)&s[o],strlen(wordList[w]));
+	  if (d<0) {
+	    /* skip words prior to the one we are looking for */
+	    continue;
+	  } else if (d==0) {
 	    if (0) printf("    word match: strlen=%d, longestLength=%d\n",
 			  (int)strlen(wordList[w]),(int)longestLength
 			  );
@@ -111,11 +133,13 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	    if (strlen(wordList[w])>longestLength) {
 	      longestLength=strlen(wordList[w]);
 	      longestWord=w;	      
-	      if (0)
+	      if (1)
 		printf("spotted substitutable instance of '%s' -- save %f bits (%f vs %f)\n",
 		     wordList[w],savings,substEntropy,entropy);
 	    }
-	  }
+	  } else
+	    /* ran out of matching words, so stop search */
+	    break;
 	}
       }
       if (longestWord>-1) {
@@ -132,8 +156,12 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	/* skip rest of word, but make sure we stay on track for 3rd order model
 	   state. */
 	o+=longestLength-1;
-	c3=charIdx(s[o-1]);
-	c2=charIdx(s[o]);
+	if (s[o]) {
+	  c3=charIdx(s[o-1]);
+	  if (c3<0) { exit(-1); }
+	  c2=charIdx(s[o]);
+	  if (c2<0) { exit(-1); }
+	}
 	continue;
       } else {
 	/* Encode "not substituting a word here" symbol */
