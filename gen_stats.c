@@ -151,7 +151,6 @@ int listWords(struct wordInstance *n)
 {
   while(n) {
     if (n->left) listWords(n->left);
-    fprintf(stderr,"  %d. %s\n",wordCount,n->word);
     words[wordCount]=n->word;
     wordCounts[wordCount++]=n->count;
     n=n->right;
@@ -326,8 +325,8 @@ int filterWords()
     }
   fprintf(stderr,"Expect to save %f bits by encoding %d common words\n",
 	  totalSavings,wordCount);
-  fprintf(stderr,"Word list:\n");
-  for(i=0;i<wordCount;i++)
+  fprintf(stderr,"Word list extract:\n");
+  for(i=0;i<16;i++)
     fprintf(stderr,"  %d %s\n",wordCounts[i],words[i]);
   return 0;
 }
@@ -393,6 +392,7 @@ int main(int argc,char **argv)
   int wordCase[8]; for(i=0;i<8;i++) wordCase[i]=0;
   int wordCount=0;
 
+  fprintf(stderr,"Reading corpus [.=5k lines]: ");
   while(line[0]) {
     int som=1;
     lineCount++;
@@ -400,7 +400,7 @@ int main(int argc,char **argv)
     int c2=charIdx(' ');
     int lc=0;
 
-    if (!(lineCount%5000)) fprintf(stderr,"Read %d lines.\n",lineCount);
+    if (!(lineCount%5000)) { fprintf(stderr,".",lineCount); fflush(stderr); }
 
     /* record occurrance of message of this length.
        (minus one for the LF at end of line that we chop) */
@@ -475,6 +475,7 @@ int main(int argc,char **argv)
     
     line[0]=0; fgets(line,8192,stdin);
   }
+  fprintf(stderr,"\nWriting letter frequency statistics.\n");
 
   printf("unsigned int tweet_freqs3[69][69][69]={\n");
   for(i=0;i<69;i++) {
