@@ -52,6 +52,76 @@ int mungeCase(char *m)
   return 0;
 }
 
+int decodeCaseModel1(range_coder *c,unsigned char *line)
+{
+ int wordNumber=0;
+  int wordPosn=-1;
+  int lastWordInitialCase=0;
+  int lastWordInitialCase2=0;
+  int lastCase=0;
+
+  int i;
+  //  printf("caps eligble chars: ");
+  for(i=0;line[i];i++) {
+    int wordChar=charInWord(line[i]);
+    if (!wordChar) {	  
+      wordPosn=-1; lastCase=0;
+    } else {
+      if (isalpha(line[i])) {
+	if (wordPosn<0) wordNumber++;
+	wordPosn++;
+	int upper=-1;
+	int caseEnd=0;
+
+
+	/* note if end of word (which includes end of message,
+	   implicitly detected here by finding null at end of string */
+	if (!charInWord(line[i+1])) caseEnd=1;
+	if (wordPosn==0) {
+	  /* first letter of word, so can only use 1st-order model */
+	  unsigned int frequencies[1]={caseposn1[0][0]};
+	  if (i==0) frequencies[0]=casestartofmessage[0][0];
+	  else if (wordNumber>1&&wordPosn==0) {
+	    /* start of word, so use model that considers initial case of
+	       previous word */
+	    frequencies[0]=casestartofword2[lastWordInitialCase][0];
+	    if (wordNumber>2)
+	      frequencies[0]=
+		casestartofword3[lastWordInitialCase2][lastWordInitialCase][0];
+	    if (0)
+	      printf("last word began with case=%d, p_lower=%f\n",
+		     lastWordInitialCase,
+		     (frequencies[0]*1.0)/0x100000000
+		     );
+	  }
+	  if (0) printf("case of first letter of word/message @ %d: p=%f\n",
+			i,(frequencies[0]*1.0)/0x100000000);
+	  upper=range_decode_symbol(c,frequencies,2);
+	} else {
+	  /* subsequent letter, so can use case of previous letter in model */
+	  if (wordPosn>79) wordPosn=79;
+	  if (0) printf("case of first letter of word/message @ %d.%d: p=%f\n",
+			i,wordPosn,
+			(caseposn2[lastCase][wordPosn][0]*1.0)/0x100000000);
+	  upper=range_decode_symbol(c,caseposn2[lastCase][wordPosn],2);
+	}
+	if (isupper(line[i])) lastCase=1; else lastCase=0;
+	if (wordPosn==0) {
+	  lastWordInitialCase2=lastWordInitialCase;
+	  lastWordInitialCase=lastCase;
+	}      
+	if (upper==1) line[i]=toupper(line[i]);
+	else if (upper==-1) {
+	  fprintf(stderr,"%s(): character processed without determining case.\n",
+		  __FUNCTION__);
+	  exit(-1);
+	}
+      }
+    }    
+  }
+  return 0;
+}
+
 int encodeCaseModel1(range_coder *c,unsigned char *line)
 {
   /*

@@ -29,6 +29,47 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 double entropy3(int c1,int c2, char *string);
 
+int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
+{
+  int c1=charIdx(' ');
+  int c2=charIdx(' ');
+  int o;
+  for(o=0;s[o];o++) {
+    int c3=charIdx(s[o]);
+    
+    int substituted=0;
+    if (!charInWord(s[o-1])) {
+      /* We are at a word break, so see if we can do word substitution.
+	 Either way, we must flag whether we performed word substitution */
+      substituted=range_decode_symbol(c,wordSubstitutionFlag,2);
+    }
+    if (substituted)
+      {
+	int w=range_decode_symbol(c,wordFrequencies,wordCount);
+	int wordLength=strlen(wordList[w]);
+	
+	/* place word into output stream */
+	bcopy(wordList[w],&s[o],wordLength);
+	
+	/* skip rest of word, but make sure we stay on track for 3rd order model
+	   state. */
+	o+=wordLength-1;
+	if (s[o]) {
+	  c3=charIdx(s[o-1]);
+	  if (c3<0) { exit(-1); }
+	  c2=charIdx(s[o]);
+	  if (c2<0) { exit(-1); }
+	}
+	continue;
+      } else {
+      c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
+      s[o]=chars[c3];
+      c1=c2; c2=c3;
+    }
+  }
+  return 0;
+}
+
 int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 {
   int c1=charIdx(' ');

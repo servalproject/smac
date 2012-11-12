@@ -36,13 +36,27 @@ int stripNonAlpha(unsigned char *in,unsigned char *out)
   return 0;
 }
 
+unsigned int probNoNonAlpha=0.95*0xffffffff;
+
+int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
+		   unsigned char nonAlphaValues[],int *nonAlphaCount)
+{
+  int containsNonAlpha=range_decode_symbol(c,&probNoNonAlpha,2);
+  if (containsNonAlpha) {
+    printf("decodeNonAlpha() not implemented.\n");
+    return -1;
+  } else {
+    *nonAlphaCount=0;
+    return 0;
+  }
+}
+
+
 int encodeNonAlpha(range_coder *c,unsigned char *m)
 {
   /* Get positions and values of non-alpha chars.
      Encode count, then write the chars, then use interpolative encoding to
      encode their positions. */
-
-  unsigned int probNoNonAlpha=0.95*0xffffffff;
 
   char v[1024];
   int pos[1024];

@@ -49,6 +49,11 @@ int stripCase(unsigned char *in,unsigned char *out);
 int mungeCase(char *m);
 int encodeCaseModel1(range_coder *c,unsigned char *line);
 
+int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
+		   unsigned char nonAlphaValues[],int *nonAlphaCount);
+int decodeCaseModel1(range_coder *c,unsigned char *line);
+int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length);
+
 unsigned int probPackedASCII=0.95*0xffffffff;
 
 int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
@@ -81,7 +86,38 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
     return 0;
   }
 
-  return -1;
+  unsigned char nonAlphaValues[1024];
+  int nonAlphaPositions[1024];
+  int nonAlphaCount=0;
+
+  decodeNonAlpha(c,nonAlphaPositions,nonAlphaValues,&nonAlphaCount);
+
+  int alphaCount=(*len_out)-nonAlphaCount;
+
+  unsigned char lowerCaseAlphaChars[1025];
+
+  decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount);
+  lowerCaseAlphaChars[alphaCount]=0;
+
+  mungeCase((char *)lowerCaseAlphaChars);
+  decodeCaseModel1(c,lowerCaseAlphaChars);
+  
+  /* reintegrate alpha and non-alpha characters */
+  int nonAlphaPointer=0;
+  int alphaPointer=0; 
+  for(i=0;i<(*len_out);i++)
+    {
+      if (nonAlphaPositions[nonAlphaPointer]==i) {
+	m[i]=nonAlphaValues[nonAlphaPointer++];
+      } else {
+	m[i]=lowerCaseAlphaChars[alphaPointer++];
+      }
+    }
+  m[i]=0;
+
+  printf("Message decompressed to: %s\n",m);
+
+  return 0;
 }
 
 int stats3_compress(range_coder *c,unsigned char *m)
