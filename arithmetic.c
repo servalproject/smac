@@ -77,21 +77,22 @@ int range_emitbit(range_coder *c,int b)
 int range_emit_stable_bits(range_coder *c)
 {
 
-  while(1) {
-
-  /* look for actually stable bits */
-  if (!((c->low^c->high)&0x80000000))
+  /* look for actually stable bits, i.e.,msb of low and high match */
+  while (!((c->low^c->high)&0x80000000))
     {
       int msb=c->low>>31;
+#ifdef DEBUG
+      printf("emitting stable bit = %d @ bit %d\n",msb,c->bits_used);
+#endif
       if (range_emitbit(c,msb)) return -1;
       if (c->underflow) {
 	int u;
 	if (msb) u=0; else u=1;
 	while (c->underflow-->0) {	  
-	  if (range_emitbit(c,u)) return -1;
 #ifdef DEBUG
 	  printf("emitting underflow bit = %d @ bit %d\n",u,c->bits_used);
 #endif
+	  if (range_emitbit(c,u)) return -1;
 	}
 	c->underflow=0;
       }
@@ -99,27 +100,72 @@ int range_emit_stable_bits(range_coder *c)
       c->high=c->high<<1;
       c->high|=1;
     }
+
   /* Now see if we have underflow, and need to count the number of underflowed
      bits. */
-  else if ((!c->norescale)&&((c->low&0xc0000000)==0x40000000)
-	   &&((c->high&0xc0000000)==0x80000000))
+  if (!c->norescale) range_rescale(c);
+
+  return 0;
+}
+
+int range_rescale(range_coder *c) {
+  
+  /* While:
+           c->low = 01<rest of bits>
+      and c->high = 10<rest of bits>
+
+     shift out the 2nd bit, so that we are left with:
+
+           c->low = 0<rest of bits>0
+	  c->high = 1<rest of bits>1
+  */
+  while (((c->low>>30)==0x1)&&((c->high>>30)==0x2))
     {
       c->underflow++;
 #ifdef DEBUG
       printf("underflow bit added @ bit %d\n",c->bits_used);
 #endif
-      c->low&=0x3fffffff;
       c->low=c->low<<1;
-      c->high|=0x40000000;
+      c->low&=0x7fffffff;
       c->high=c->high<<1;
       c->high|=1;
+      c->high=c->high|=0x80000000;
       if (c->low>=c->high) { 
 	fprintf(stderr,"oops\n");
 	exit(-1);
       }
     }
-  else 
-    return 0;
+  return 0;
+}
+
+
+/* If there are underflow bits, squash them back into 
+   the encoder/decoder state.  This is primarily for
+   debugging problems with the handling of underflow 
+   bits. */
+int range_unrescale_value(unsigned int v,int underflow_bits)
+{
+  int i;
+  unsigned int msb=v&0x80000000;
+  unsigned int o=msb|((v&0x7fffffff)>>underflow_bits);
+  if (!msb) {
+    for(i=0;i<underflow_bits;i++) {
+      o|=0x40000000>>i;
+    }
+  }
+#ifdef DEBUG
+  printf("0x%08x+%d underflows flattens to 0x%08x\n",
+	 v,underflow_bits,o);
+#endif
+  return o;
+}
+int range_unrescale(range_coder *c)
+{
+  if(c->underflow) {
+    c->low=range_unrescale_value(c->low,c->underflow);
+    c->value=range_unrescale_value(c->value,c->underflow);
+    c->high=range_unrescale_value(c->high,c->underflow);
+    c->underflow=0;
   }
   return 0;
 }
@@ -157,9 +203,9 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
   }
 
   unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
-  if (space<0x100000) {
-    fprintf(stderr,"Ran out of room in coder space (convergence around 0.5?)\n");
-    exit(-1);
+  if (space<0x1000000) {
+    c->errors++;
+    return -1;
   }
   unsigned int new_low=c->low+((p_low*space)>>32LL);
   unsigned int new_high=c->low+((p_high*space)>>32LL);
@@ -265,16 +311,16 @@ int range_conclude(range_coder *c)
   int i,msb=(v>>31)&1;
 
   /* output msb and any deferred underflow bits. */
-  //  printf("conclude emit: %d",msb);
+  if (0) printf("conclude emit: %d\n",msb);
   if (range_emitbit(c,msb)) return -1;
-  //  if (c->underflow>0) printf("  plus %d underflow bits.\n",c->underflow);
+  if (c->underflow>0) if (0) printf("  plus %d underflow bits.\n",c->underflow);
   while(c->underflow-->0) if (range_emitbit(c,msb^1)) return -1;
 
   /* now push bits until we know we have enough to unambiguously place the value
      within the final probability range. */
   for(i=1;i<bits;i++) {
     int b=(v>>(31-i))&1;
-    //    printf("%d",b);
+    if (0) printf("  %d\n",b);
     if (range_emitbit(c,b)) return -1;
   }
   //  printf(" (of %s)\n",asbits(mean));
@@ -287,6 +333,8 @@ int range_coder_reset(struct range_coder *c)
   c->high=0xffffffff;
   c->entropy=0;
   c->bits_used=0;
+  c->underflow=0;
+  c->errors=0;
   return 0;
 }
 
@@ -374,6 +422,7 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
 
   // printf("p_low=0x%08x, p_high=0x%08x, space=%llu\n",p_low,p_high,space);  
 
+
   /* work out how many bits are still significant */
   c->low=new_low;
   c->high=new_high;
@@ -390,14 +439,18 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
     else if ((!c->norescale)&&(c->low&0x40000000)
 	     &&(!(c->high&0x40000000)))
       {
-	printf("removing underflow bit during decode @ bit %d\n",c->bits_used);
-	printf("  pre:  low=0x%08x, v=0x%08x, high=0x%08x\n",
-	       c->low,c->value,c->high);
+	if (0) {
+	  printf("removing underflow bit during decode @ bit %d\n",c->bits_used);
+	  printf("  pre:  low=0x%08x, v=0x%08x, high=0x%08x\n",
+		 c->low,c->value,c->high);
+	}
 	c->value^=0x40000000;
 	c->low&=0x3fffffff;
 	c->high|=0x40000000;
-	printf(" post:  low=0x%08x, v=0x%08x, high=0x%08x\n",
-	       c->low<<1,c->value<<1,c->high<<1);
+	if (0) {
+	  printf(" post:  low=0x%08x, v=0x%08x, high=0x%08x\n",
+		 c->low<<1,c->value<<1,c->high<<1);
+	}
       }
     else {
       /* nothing can be done */
@@ -489,37 +542,8 @@ int main() {
 
   int test,i,j;
 
-  srandom(0);
-
-  /* Test underflow rescaling */
-  if (0)
-  for(test=0;test<1024;test++)
-  {
-    frequencies[0]=0x7ffff000;
-    frequencies[1]=0x81000000;
-
-    for(i=0;i<50;i++) sequence[i]=random()%2;
-    length=50;
-
-    alphabet_size=3;
-    /* Make a nice sequence that sits close to 0.5 so that we build up some underflow */
-    for(i=0;i<length;i++) range_encode_symbol(c,frequencies,alphabet_size,sequence[i]);
-    /* Then emit it */
-    range_conclude(c);
-    printf("   With underflow rescaling: ");
-    printf(" %s\n",range_coder_lastbits(c,8192));
-    range_coder *c2=range_new_coder(8192);
-    /* repeat, but this time don't use underflow rescaling.
-       the output should be the same (or at least very nearly so). */
-    c2->norescale=1;
-    for(i=0;i<length;i++) range_encode_symbol(c2,frequencies,alphabet_size,sequence[i]);
-    range_conclude(c2);
-    printf("Without underflow rescaling: ");
-    printf(" %s\n",range_coder_lastbits(c2,8192));
-
-    range_coder_free(c2);
-    range_coder_reset(c);
-  }
+  test_rescale(c);
+  test_rescale2(c);
 
   srandom(0);
   for(test=0;test<1024;test++)
@@ -732,4 +756,106 @@ int main() {
   return 0;
 }
 
+int test_rescale(range_coder *c)
+{
+  int i;
+  srandom(0);
+
+  /* Test underflow rescaling */
+  printf("Testing range coder rescaling functions.\n");
+  for(i=0;i<10000000;i++)
+    {
+      range_coder_reset(c);
+      /* Generate pair of values with non-matching MSBs. 
+	 There is a 50% of one or more underflow bits */
+      c->low=random()&0x7fffffff;
+      c->high=random()|0x80000000;
+      unsigned int low_before=c->low;
+      unsigned int high_before=c->high;
+      range_emit_stable_bits(c);
+      unsigned int low_flattened=range_unrescale_value(c->low,c->underflow);
+      unsigned int high_flattened=range_unrescale_value(c->high,c->underflow);
+      unsigned int low_diff=low_before^low_flattened;
+      unsigned int high_diff=high_before^high_flattened;
+      if (low_diff||high_diff) {
+	printf(">>> Range-coder rescaling test #%d failed:\n",i);
+	printf("low: before=0x%08x, after=0x%08x, reflattened=0x%08x, diff=0x%08x  underflows=%d\n",
+	       low_before,c->low,low_flattened,low_diff,c->underflow);
+	printf("     before as bits=%s\n",asbits(low_before));
+	printf("      after as bits=%s\n",asbits(c->low));
+	printf("reflattened as bits=%s\n",asbits(low_flattened));
+	printf("high: before=0x%08x, after=0x%08x, reflattended=0x%08x, diff=0x%08x\n",
+	       high_before,c->high,high_flattened,high_diff);
+	exit(0);
+      }
+    }
+  printf("  -- passed\n");
+  return 0;
+}
+
+int test_rescale2(range_coder *c)
+{
+  int i,test;
+  unsigned int frequencies[1024];
+  int sequence[1024];
+  int alphabet_size;
+  int length;
+
+  printf("Testing rescaling in actual use (50 random symbols from 3-symbol alphabet with ~49.5%%:1.5%%:49%% split)\n");
+
+  for(test=0;test<1024;test++)
+  {
+    /* Make a nice sequence that sits close to 0.5 so that we build up some underflow */
+    frequencies[0]=0x7ffff000;
+    frequencies[1]=0x81000000;
+    length=50;
+    alphabet_size=3;
+
+    range_coder *c2=range_new_coder(8192);
+    c2->errors=1;
+    
+    /* Keep going until we find a sequence that doesn't have too many underflows
+       in a row that we cannot encode it successfully. */
+    while(c2->errors) {
+      range_coder_reset(c2);
+      c2->norescale=1;
+      for(i=0;i<50;i++) sequence[i]=random()%3;
+
+      /* Now encode with rescaling enabled */
+      range_coder_reset(c);
+      for(i=0;i<length;i++) range_encode_symbol(c,frequencies,alphabet_size,sequence[i]);
+      range_conclude(c);
+      /* Then repeat without rescaling */
+
+      /* repeat, but this time don't use underflow rescaling.
+	 the output should be the same (or at least very nearly so). */
+      for(i=0;i<length;i++) range_encode_symbol(c2,frequencies,alphabet_size,sequence[i]);
+      range_conclude(c2);
+
+    }
+
+    char c_bits[8193];
+    char c2_bits[8193];
+
+    sprintf(c_bits,"%s",range_coder_lastbits(c,8192));
+    sprintf(c2_bits,"%s",range_coder_lastbits(c2,8192));
+
+    if (strcmp(c_bits,c2_bits)) {
+      printf("Test #%d failed -- bitstreams generated with and without rescaling differ.\n",test);
+      printf("   With underflow rescaling: ");
+      if (c->errors) printf("<too many underflows, preventing encoding>\n");
+      else printf(" %s\n",c_bits);
+      printf("Without underflow rescaling: ");
+      if (c2->errors) printf("<too many underflows, preventing encoding>\n");
+      else printf(" %s\n",c2_bits);
+      exit(-1);
+    }
+
+    range_coder_free(c2);
+    range_coder_reset(c);
+  }
+  printf("   -- passed.\n");
+  return 0;
+}
 #endif
+

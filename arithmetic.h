@@ -21,6 +21,7 @@ typedef struct range_coder {
   unsigned int high;
   unsigned int value;
   int underflow;
+  int errors;
   
   /* if non-zero, prevents use of underflow/overflow rescaling */
   int norescale;
@@ -47,6 +48,8 @@ int range_encode_length(range_coder *c,int len);
 int range_conclude(range_coder *c);
 int range_coder_free(range_coder *c);
 range_coder *range_coder_dup(range_coder *in);
+int range_rescale(range_coder *c);
+int range_unrescale_value(unsigned int v,int underflow_bits);
 
 int ic_encode_recursive(int *list,
 								int list_length,
