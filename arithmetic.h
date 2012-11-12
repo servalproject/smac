@@ -22,7 +22,9 @@ typedef struct range_coder {
   unsigned int value;
   int underflow;
   int errors;
-  
+  int decodingP;
+  char *debug;
+
   /* if non-zero, prevents use of underflow/overflow rescaling */
   int norescale;
 

@@ -34,8 +34,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 int range_emitbit(range_coder *c,int b);
 
-#undef DEBUG
-
 int bits2bytes(int b)
 {
   int extra=0;
@@ -90,24 +88,28 @@ int range_emit_stable_bits(range_coder *c)
   while (!((c->low^c->high)&0x80000000))
     {
       int msb=c->low>>31;
-#ifdef DEBUG
-      printf("emitting stable bit = %d @ bit %d\n",msb,c->bits_used);
-#endif
-      if (range_emitbit(c,msb)) return -1;
+      if (0)
+	printf("emitting stable bit = %d @ bit %d\n",msb,c->bits_used);
+
+      if (!c->decodingP) if (range_emitbit(c,msb)) return -1;
       if (c->underflow) {
 	int u;
 	if (msb) u=0; else u=1;
 	while (c->underflow-->0) {	  
-#ifdef DEBUG
-	  printf("emitting underflow bit = %d @ bit %d\n",u,c->bits_used);
-#endif
-	  if (range_emitbit(c,u)) return -1;
+	  if (0)
+	    printf("emitting underflow bit = %d @ bit %d\n",u,c->bits_used);
+
+	  if (!c->decodingP) if (range_emitbit(c,u)) return -1;
 	}
 	c->underflow=0;
       }
       c->low=c->low<<1;
-      c->high=c->high<<1;
+      c->high=c->high<<1;      
       c->high|=1;
+      if (c->decodingP) {
+	c->value=c->value<<1;
+	c->value|=range_decode_getnextbit(c);
+      }
     }
 
   /* Now see if we have underflow, and need to count the number of underflowed
@@ -131,18 +133,28 @@ int range_rescale(range_coder *c) {
   while (((c->low>>30)==0x1)&&((c->high>>30)==0x2))
     {
       c->underflow++;
-#ifdef DEBUG
-      printf("underflow bit added @ bit %d\n",c->bits_used);
-#endif
-      c->low=c->low<<1;
-      c->low&=0x7fffffff;
-      c->high=c->high<<1;
-      c->high|=1;
-      c->high=c->high|=0x80000000;
-      if (c->low>=c->high) { 
+      if (0)
+	printf("underflow bit added @ bit %d\n",c->bits_used);
+
+      unsigned int new_low=c->low<<1;
+      new_low&=0x7fffffff;
+      unsigned int new_high=c->high<<1;
+      new_high|=1;
+      new_high|=0x80000000;
+      if (new_low>=new_high) { 
 	fprintf(stderr,"oops\n");
 	exit(-1);
       }
+      if (c->debug)
+	printf("%s: rescaling: old=[0x%08x,0x%08x], new=[0x%08x,0x%08x]\n",
+	       c->debug,c->low,c->high,new_low,new_high);
+
+      if (c->decodingP) {
+	c->value=(c->value&0x80000000)|((c->value<<1)&0x7ffffffe);
+	c->value=range_decode_getnextbit(c);
+      }
+      c->low=new_low;
+      c->high=new_high;
     }
   return 0;
 }
@@ -162,10 +174,10 @@ int range_unrescale_value(unsigned int v,int underflow_bits)
       o|=0x40000000>>i;
     }
   }
-#ifdef DEBUG
-  printf("0x%08x+%d underflows flattens to 0x%08x\n",
-	 v,underflow_bits,o);
-#endif
+  if (0)
+    printf("0x%08x+%d underflows flattens to 0x%08x\n",
+	   v,underflow_bits,o);
+
   return o;
 }
 int range_unrescale(range_coder *c)
@@ -203,6 +215,11 @@ char *asbits(unsigned int v)
   return bitstring;
 }
 
+unsigned long long range_space(range_coder *c)
+{
+  return (unsigned long long)c->high-(unsigned long long)c->low;
+}
+
 int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 {
   if (p_low>=p_high) {
@@ -210,15 +227,35 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 	    p_low,p_high);
     exit(-1);
   }
-  if (p_low>MAXVALUE||p_high>MAXVALUE) {
+  if (p_low>MAXVALUE||p_high>MAXVALUEPLUS1) {
     fprintf(stderr,"range_encode() called with p_low or p_high >=0x%x: p_low=0x%x, p_high=0x%x\n",
 	    MAXVALUE,p_low,p_high);
     exit(-1);
   }
 
-  unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
+  unsigned long long space=range_space(c);
+
+#if 0
+  /* Make sure that space calculation only uses the correct precision, so that
+     the calculation comes out the same, whether or not rescaling is being used. */ 
+  if (!c->norescale) space&=0xffffffff<<SHIFTUPBITS;
+  else {
+    /* erg, this is trickier here, because we need to know how many bits are
+       underflowed */
+    int i;
+    for(i=1;i<SHIFTUPBITS;i++) {
+      int low_bit=c->low>>(31-i);
+      int high_bit=c->high>>(31-i);
+      if (low_bit==1&&high_bit==0) continue;
+    }
+    /* if in doubt, do the same as with rescaling */
+    space&=0xffffffff<<SHIFTUPBITS;
+  }
+#endif
+
   if (space<MAXVALUEPLUS1) {
     c->errors++;
+    if (c->debug) printf("%s : ERROR: space(0x%08llx)<0x%08x\n",c->debug,space,MAXVALUEPLUS1);
     return -1;
   }
   unsigned int new_low=c->low+((p_low*space)>>(32LL-SHIFTUPBITS));
@@ -227,20 +264,32 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
   c->low=new_low;
   c->high=new_high;
 
-  unsigned int p_diff=p_high-p_low+1;
-  unsigned int p_range=(unsigned long long)p_diff<<(long long)SHIFTUPBITS;
+  if (c->debug) {
+    printf("%s: space=0x%08llx[%s], new_low=0x%08x, new_high=0x%08x\n",
+	   c->debug,space,asbits(space),new_low,new_high);
+  }
+
+  unsigned long long p_diff=p_high-p_low;
+  unsigned long long p_range=(unsigned long long)p_diff<<(long long)SHIFTUPBITS;
   double p=((double)p_range)/(double)0x100000000;
   double this_entropy=-log(p)/log(2);
   if (0)
-    printf("entropy of range 0x%x(p_low=0x%x, p_high=0x%x, p_diff=0x%x) = %f, shiftupbits=%lld\n",
-	   p_range,p_low,p_high,p_diff,this_entropy,SHIFTUPBITS);
+    printf("%s: entropy of range 0x%llx(p_low=0x%x, p_high=0x%x, p_diff=0x%llx) = %f, shiftupbits=%lld\n",
+	   c->debug,p_range,p_low,p_high,p_diff,this_entropy,SHIFTUPBITS);
   if (this_entropy<0) {
-    fprintf(stderr,"entropy of symbol is negative!\n");
+    fprintf(stderr,"entropy of symbol is negative! (p=%f, e=%f)\n",p,this_entropy);
     exit(-1);
   }
   c->entropy+=this_entropy;
 
   if (range_emit_stable_bits(c)) return -1;
+
+  if (c->debug) {
+    unsigned long long space=range_space(c);
+    printf("%s: after rescale: space=0x%08llx[%s], low=0x%08x, high=0x%08x\n",
+	   c->debug,space,asbits(space),c->low,c->high);
+  }
+
   return 0;
 }
 
@@ -275,7 +324,7 @@ char *range_coder_lastbits(range_coder *c,int count)
 int range_status(range_coder *c,int decoderP)
 {
   unsigned int value = decoderP?c->value:(((unsigned long long)c->high+(unsigned long long)c->low)>>1LL);
-  unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
+  unsigned long long space=range_space(c);
   if (!c) return -1;
   char *prefix=range_coder_lastbits(c,90);
   char spaces[8193];
@@ -297,23 +346,30 @@ int range_status(range_coder *c,int decoderP)
    in the current range */
 int range_conclude(range_coder *c)
 {
-  int bits=0;
+  int bits;
   unsigned int v;
   unsigned int mean=((c->high-c->low)/2)+c->low;
+
+  range_check(c,__LINE__);
 
   /* wipe out hopefully irrelevant bits from low part of range */
   v=0;
   int mask=0xffffffff;
-  while((v<=c->low)||((v+mask)>=c->high))
+  bits=0;
+  while((v<c->low)||((v+mask)>c->high))
     {
       bits++;
+      if (bits>=32) {
+	fprintf(stderr,"Could not conclude coder:\n");
+	fprintf(stderr,"  low=0x%08x, high=0x%08x\n",c->low,c->high);
+      }
       v=(mean>>(32-bits))<<(32-bits);
       mask=0xffffffff>>bits;
     }
   /* Actually, apparently 2 bits is always the correct answer, because normalisation
      means that we always have 2 uncommitted bits in play, excepting for underflow
      bits, which we handle separately. */
-  if (bits<2) bits=2;
+  // if (bits<2) bits=2;
 
   v=(mean>>(32-bits))<<(32-bits);
   v|=0xffffffff>>bits;
@@ -321,7 +377,7 @@ int range_conclude(range_coder *c)
   if (0) {
     c->value=v;
     printf("%d bits to conclude 0x%08x (low=%08x, mean=%08x, high=%08x\n",
-	 bits,v,c->low,mean,c->high);
+	   bits,v,c->low,mean,c->high);
     range_status(c,0);
     c->value=0;
   }
@@ -370,9 +426,12 @@ struct range_coder *range_new_coder(int bytes)
 /* Assumes probabilities are cumulative */
 int range_encode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_size,int symbol)
 {
+  if (c->errors) return -1;
+  range_check(c,__LINE__);
+
   unsigned int p_low=0;
   if (symbol>0) p_low=frequencies[symbol-1];
-  unsigned int p_high=MAXVALUE;
+  unsigned int p_high=MAXVALUEPLUS1;
   if (symbol<(alphabet_size-1)) p_high=frequencies[symbol]-1;
   // range_status(c,0);
   // printf("symbol=%d, p_low=%u, p_high=%u\n",symbol,p_low,p_high);
@@ -381,8 +440,17 @@ int range_encode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
 
 int range_check(range_coder *c,int line)
 {
+  if (c->low>=c->high) 
+    {
+      fprintf(stderr,"c->low >= c->high at line %d\n",line);
+      exit(-1);
+    }
+  if (!c->decodingP) return 0;
+
   if (c->value>c->high||c->value<c->low) {
     fprintf(stderr,"c->value out of bounds %d\n",line);
+    fprintf(stderr,"  low=0x%08x, value=0x%08x, high=0x%08x\n",
+	    c->low,c->value,c->high);
     range_status(c,1);
     exit(-1);
   }
@@ -392,12 +460,12 @@ int range_check(range_coder *c,int line)
 int range_decode_equiprobable(range_coder *c,int alphabet_size)
 {
   unsigned long long s;
-  unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
+  unsigned long long space=range_space(c);
   unsigned int v=(c->value-c->low)/space;
   s=v/alphabet_size;
   unsigned int p_low=(s<<SIGNIFICANTBITS)/alphabet_size;
   unsigned int p_high=((s+1)<<SIGNIFICANTBITS)/alphabet_size-1;
-  if (s==alphabet_size) p_high=MAXVALUE;
+  if (s==alphabet_size) p_high=MAXVALUEPLUS1;
   
   return range_decode_common(c,p_low,p_high,s);
 }
@@ -405,21 +473,21 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
 int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_size)
 {
   int s;
-  unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
+  unsigned long long space=range_space(c);
   unsigned int v=(((unsigned long long)(c->value-c->low))<<32LL)/space;
   
-  //  printf(" decode: v=%f; ",v);
+  if (c->debug) printf(" decode: v=0x%08x; ",v);
   // range_status(c);
 
   for(s=0;s<(alphabet_size-1);s++)
-    if (v<=frequencies[s]) break;
+    if (v<=(frequencies[s]<<SHIFTUPBITS)) break;
   
   unsigned int p_low=0;
   if (s>0) p_low=frequencies[s-1];
-  unsigned int p_high=MAXVALUE;
+  unsigned int p_high=MAXVALUEPLUS1;
   if (s<alphabet_size-1) p_high=frequencies[s]-1;
 
-  // printf("s=%d, v=%f, p_low=%f, p_high=%f\n",s,v,p_low,p_high);
+  if (c->debug) printf("s=%d, v=0x%08x, p_low=0x%08x, p_high=0x%08x\n",s,v,p_low,p_high);
   // range_status(c);
 
   // printf("in decode_symbol() about to call decode_common()\n");
@@ -429,10 +497,10 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
 
 int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,int s)
 {
-  unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
-  long long new_low=c->low+(((unsigned long long)p_low*space)>>32LL);
-  long long new_high=c->low+(((unsigned long long)p_high*space)>>32LL);
-  if (p_high>=MAXVALUE) new_high=c->high;
+  unsigned long long space=range_space(c);
+  long long new_low=c->low+(((unsigned long long)p_low*space)>>(32LL-SHIFTUPBITS));
+  long long new_high=c->low+(((unsigned long long)p_high*space)>>(32LL-SHIFTUPBITS));
+  if (p_high>=MAXVALUEPLUS1) new_high=c->high;
   if (new_high>0xffffffff) {
     printf("new_high=0x%llx\n",new_high);
     new_high=0xffffffff;
@@ -446,50 +514,18 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
   c->low=new_low;
   c->high=new_high;
 
+  if (c->debug) printf("%s: after decode: low=0x%08x, high=0x%08x\n",
+		       c->debug,c->low,c->high);
+
   // printf("after decode before renormalise:\n");
   // range_status(c,1);
 
   range_check(c,__LINE__);
-  while(1) {
-    if ((c->low&MSBVALUE)==(c->high&MSBVALUE))
-      {
-	/* MSBs match, so bit will get shifted out */
-      }
-    else if ((!c->norescale)&&(c->low&HALFMSBVALUE)
-	     &&(!(c->high&HALFMSBVALUE)))
-      {
-	if (0) {
-	  printf("removing underflow bit during decode @ bit %d\n",c->bits_used);
-	  printf("  pre:  low=0x%08x, v=0x%08x, high=0x%08x\n",
-		 c->low,c->value,c->high);
-	}
-	c->value^=HALFMSBVALUE;
-	c->low&=HALFMSBVALUEMINUS1;
-	c->high|=HALFMSBVALUE;
-	if (0) {
-	  printf(" post:  low=0x%08x, v=0x%08x, high=0x%08x\n",
-		 c->low<<1,c->value<<1,c->high<<1);
-	}
-      }
-    else {
-      /* nothing can be done */
-      range_check(c,__LINE__);
-      return s;
-    }
-
-    c->low=c->low<<1;
-    c->high=c->high<<1;
-    c->high|=1;
-    c->value=c->value<<1;
-    c->value|=range_decode_getnextbit(c);
-    if (c->value>c->high||c->value<c->low) {
-      fprintf(stderr,"c->value out of bounds @ line %d\n",__LINE__);
-      fprintf(stderr,"c->low=0x%08x, c->value=0x%08x, c->high=0x%08x\n",c->low,c->value,c->high);
-      range_status(c,1);
-      exit(-1);
-    }
-  }
+  c->decodingP=1;
+  range_emit_stable_bits(c);
+  c->decodingP=0;
   range_check(c,__LINE__);
+
   return s;
 }
 
@@ -554,223 +590,9 @@ int range_coder_free(range_coder *c)
 int main() {
   struct range_coder *c=range_new_coder(8192);
 
-  unsigned int frequencies[1024];
-  int sequence[1024];
-  int alphabet_size;
-  int length;
-
-  int test,i,j;
-
   test_rescale(c);
   test_rescale2(c);
-
-  srandom(0);
-  for(test=0;test<1024;test++)
-    {
-      /* Pick a random alphabet size */
-      // alphabet_size=1+random()%1023;
-      alphabet_size=1+test%1023;
- 
-      /* Generate incremental probabilities.
-         Start out with randomly selected probabilities, then sort them.
-	 It may make sense later on to use some non-uniform distributions
-	 as well.
-
-	 We only need n-1 probabilities for alphabet of size n, because the
-	 probabilities are fences between the symbols, and p=0 and p=1 are implied
-	 at each end.
-      */
-      for(i=0;i<alphabet_size-1;i++)
-	frequencies[i]=random()&MAXVALUE;
-      frequencies[alphabet_size-1]=0;
-
-      qsort(frequencies,alphabet_size-1,sizeof(unsigned int),cmp_uint);
-
-      /* now generate random string to compress */
-      length=1+random()%1023;
-      for(i=0;i<length;i++) sequence[i]=random()%alphabet_size;
-
-      int norescale;
-      for (norescale=1;norescale>=0;norescale--)
-	{
-	  
-	  printf("Test #%d : %d symbols, with %d symbol alphabet, norescale=%d\n",
-		 test,length,alphabet_size,norescale);
-	  
-	  /* Quick test. If it works, no need to go into more thorough examination. */
-	  range_coder_reset(c);
-	  c->norescale=norescale;
-	  for(i=0;i<length;i++) {
-	    if (range_encode_symbol(c,frequencies,alphabet_size,sequence[i]))
-	      {
-		fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
-			i,length);
-		exit(-1);
-	      }
-	  }
-	  range_conclude(c);
-	  /* Now convert encoder state into a decoder state */
-	  int error=0;
-	  range_coder *vc=range_coder_dup(c);
-	  vc->bit_stream_length=vc->bits_used;
-	  vc->bits_used=0;
-	  range_decode_prefetch(vc);
-	  for(i=0;i<length;i++) {
-	    // printf("decode symbol #%d\n",i);
-	    // range_status(vc,1);
-	    if (range_decode_symbol(vc,frequencies,alphabet_size)!=sequence[i])
-	      { error++; break; }
-	  }
-	  range_coder_free(vc);
-	  /* go to next test if this one passes. */
-	  if (!error) {
-	    fprintf(stderr,"Test #%d passed: encoded %d symbols in %d bits (%f bits of entropy)\n",
-		    test,length,c->bits_used,c->entropy);
-	    continue;
-	  }
-	  {
-	    int k;
-	    printf("symbol probability steps: ");
-	    for(k=0;k<alphabet_size-1;k++) printf(" %f[0x%08x]",frequencies[k]*1.0/MAXVALUEPLUS1,frequencies[k]);
-	    printf("\n");
-	    printf("symbol list: ");
-	    for(k=0;k<length;k++) printf(" %d#%d",sequence[k],k);
-	    printf("\n");
-	  }
-	  fprintf(stderr,"Test #%d failed: verify error of symbol %d\n",test,i);
-	  
-	  
-	  /* Encode the random symbols */
-	  range_coder_reset(c);
-	  c->norescale=norescale;
-	  for(i=0;i<length;i++) {
-	    range_coder *dup=range_coder_dup(c);
-	    
-	    if (range_encode_symbol(c,frequencies,alphabet_size,sequence[i]))
-	      {
-		fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
-			i,length);
-		exit(-1);
-	      }
-	    
-	    /* verify as we go, so that we can report any divergence that we
-	       notice. */
-	    range_coder *vc=range_coder_dup(c);
-	    range_conclude(vc);
-	    printf("bit sequence: %s\n",range_coder_lastbits(vc,8192));
-	    /* Now convert encoder state into a decoder state */
-	    vc->bit_stream_length=vc->bits_used;
-	    vc->bits_used=0;
-	    range_decode_prefetch(vc);
-	    
-	    for(j=0;j<=i;j++) {
-	      range_coder *vc2=range_coder_dup(vc);
-	      if (!vc2) {
-		fprintf(stderr,"vc2=range_coder_dup(vc) failed\n");
-		exit(-1);
-	      }	  
-	      
-	      if (0&&j==i) {
-		printf("coder status before emitting symbol #%d:\n",i); 
-		range_status(dup,0);
-		printf("coder status after emitting symbol #%d:\n",i); 
-		range_status(c,0);
-	      }
-	      if (0) {
-		printf("decoder status before extracting symbol #%d:\n",j);
-		range_status(vc2,1);
-		
-		int s;
-		unsigned long long space=(unsigned long long)vc2->high-(unsigned long long)vc2->low+1;
-		unsigned int v=((unsigned long long)(vc2->value-vc2->low)<<32LL)/space;
-		
-		printf(" decode: v=%u\n",v);
-		range_status(c,1);
-		
-		for(s=0;s<(alphabet_size-1);s++)
-		  if (v<frequencies[s]) break;
-		
-		double p_low=0;
-		if (s>0) p_low=frequencies[s-1]*1.0/MAXVALUEPLUS1;
-		double p_high=1;
-		if (s<alphabet_size-1) p_high=frequencies[s]*1.0/MAXVALUEPLUS1;
-		
-		//	    printf("  s=%d, p_v=%f, p_low=%f, p_high=%f\n",s,v*1.0/0x100000000,p_low,p_high);
-		//      printf("  low=0x%08x, v=0x%08x, high=0x%08x\n",vc2->low,vc2->value,vc2->high);
-	      }
-	      
-	      /* Show encoder status at that point in time */
-	      range_coder *vc3=range_new_coder(8192);
-	      vc3->norescale=c->norescale;
-	      int k;
-	      for(k=0;k<j;k++) {	   
-		if (range_encode_symbol(vc3,frequencies,alphabet_size,sequence[k]))
-		  {
-		    fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
-			    k,length);
-		    exit(-1);
-		  }		
-	      }
-	      /* only one side is expected to match at any time */
-	      if (vc3->low!=vc2->low||vc3->high!=vc2->high) {
-		printf("Encoder/decoder status diverged after symbol #%d\n",j);
-		printf("decode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc2->low,vc2->value,vc2->high);
-		printf("encode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc3->low,vc3->value,vc3->high);
-		exit(-1);
-	      }
-	      
-	      int s=range_decode_symbol(vc,frequencies,alphabet_size);
-	      if (s!=sequence[j]) {
-		fflush(stdout);
-		fprintf(stderr,"Verify error decoding symbol %d of [0,%d] (expected %d, but got %d)\n",j,i,sequence[j],s);
-		if (j==i-1) {
-		  fflush(stdout);
-		  fprintf(stderr,"Verify is on final character.\n"
-			  "Encoder state before encoding final symbol was as follows:\n");
-		  fflush(stderr);
-		} 
-		
-		{
-		  double p_v=(vc2->value-vc2->low)*1.0/(vc2->high-vc2->low+1);
-		  
-		  unsigned long long space=(unsigned long long)vc2->high-(unsigned long long)vc2->low+1;
-		  unsigned int v=(((unsigned long long)(vc2->value-vc2->low))<<32LL)/space;
-		  
-		  printf("Encoder/decoder status (range) at symbol #%d\n",j);
-		  printf("  decode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc2->low,vc2->value,vc2->high);
-		  printf("         p_v=%f, v=0x%08x\n",p_v,v);
-		  
-		  printf("  encode:  low=0x%08x, v=0x%08x, high=0x%08x\n",vc3->low,vc3->value,vc3->high);
-		  printf("Decoder bitstream:\n");
-		  range_status(vc2,1);
-		  printf("Encoder bitstream:\n");
-		  range_status(vc3,1);
-		}
-
-		if (norescale==0) {
-		  // Compute with no rescaling so that we can compare bitstreams 
-		  range_coder_reset(c);
-		  c->norescale=1;
-		  for(j=0;j<i;j++) 
-		    range_encode_symbol(c,frequencies,alphabet_size,sequence[j]);
-		  range_conclude(c);
-		  printf("bit sequence sans rescale: %s\n",range_coder_lastbits(c,8192));
-		}
-
-
-		exit(-1);
-	      }
-	      
-	      range_coder_free(vc2);
-	      range_coder_free(vc3);
-	    }
-	    
-	    range_coder_free(vc);
-	    range_coder_free(dup);
-	  }
-	  range_conclude(c);
-	}
-    }
+  test_verify(c);
 
   return 0;
 }
@@ -779,6 +601,8 @@ int test_rescale(range_coder *c)
 {
   int i;
   srandom(0);
+
+  c->debug=NULL;
 
   /* Test underflow rescaling */
   printf("Testing range coder rescaling functions.\n");
@@ -808,7 +632,7 @@ int test_rescale(range_coder *c)
 	printf("     before as bits=%s\n",asbits(high_before));
 	printf("      after as bits=%s\n",asbits(c->high));
 	printf("reflattened as bits=%s\n",asbits(high_flattened));
-	exit(0);
+	return -1;
       }
     }
   printf("  -- passed\n");
@@ -827,6 +651,7 @@ int test_rescale2(range_coder *c)
 
   for(test=0;test<1024;test++)
   {
+    printf("   Test #%d ...\n",test);
     /* Make a nice sequence that sits close to 0.5 so that we build up some underflow */
     frequencies[0]=0x7ffff0;
     frequencies[1]=0x810000;
@@ -836,9 +661,13 @@ int test_rescale2(range_coder *c)
     range_coder *c2=range_new_coder(8192);
     c2->errors=1;
     
+    c->debug=NULL;
+    c2->debug=NULL;
+
     /* Keep going until we find a sequence that doesn't have too many underflows
        in a row that we cannot encode it successfully. */
-    while(c2->errors) {
+    int tries=100;
+    while(c2->errors&&(tries--)) {
       range_coder_reset(c2);
       c2->norescale=1;
       for(i=0;i<50;i++) sequence[i]=random()%3;
@@ -847,13 +676,18 @@ int test_rescale2(range_coder *c)
       range_coder_reset(c);
       for(i=0;i<length;i++) range_encode_symbol(c,frequencies,alphabet_size,sequence[i]);
       range_conclude(c);
+      
       /* Then repeat without rescaling */
 
       /* repeat, but this time don't use underflow rescaling.
 	 the output should be the same (or at least very nearly so). */
       for(i=0;i<length;i++) range_encode_symbol(c2,frequencies,alphabet_size,sequence[i]);
       range_conclude(c2);
-
+      printf("%d errors\n",c2->errors);
+    }
+    if (tries<1) {
+      printf("Repeatedly failed to generate a valid test.\n");
+      continue;
     }
 
     char c_bits[8193];
@@ -862,20 +696,201 @@ int test_rescale2(range_coder *c)
     sprintf(c_bits,"%s",range_coder_lastbits(c,8192));
     sprintf(c2_bits,"%s",range_coder_lastbits(c2,8192));
 
+    /* Find minimum number of symbols to encode to produce
+       the error. */
     if (strcmp(c_bits,c2_bits)) {
-      printf("Test #%d failed -- bitstreams generated with and without rescaling differ.\n",test);
+      for(length=1;length<50;length++) 
+	{
+	  range_coder_reset(c2);
+	  c2->norescale=1;
+
+	  /* Now encode with rescaling enabled */
+	  range_coder_reset(c);
+	  for(i=0;i<length;i++) range_encode_symbol(c,frequencies,alphabet_size,sequence[i]);
+	  range_conclude(c);
+	  /* Then repeat without rescaling */
+	  
+	  /* repeat, but this time don't use underflow rescaling.
+	     the output should be the same (or at least very nearly so). */
+	  for(i=0;i<length;i++) range_encode_symbol(c2,frequencies,alphabet_size,sequence[i]);
+	  range_conclude(c2);
+
+	  sprintf(c_bits,"%s",range_coder_lastbits(c,8192));
+	  sprintf(c2_bits,"%s",range_coder_lastbits(c2,8192));
+	  if(strcmp(c_bits,c2_bits)) break;
+	}   
+
+      printf("Test #%d failed -- bitstreams generated with and without rescaling differ (symbol count = %d).\n",test,length);
       printf("   With underflow rescaling: ");
       if (c->errors) printf("<too many underflows, preventing encoding>\n");
       else printf(" %s\n",c_bits);
       printf("Without underflow rescaling: ");
       if (c2->errors) printf("<too many underflows, preventing encoding>\n");
       else printf(" %s\n",c2_bits);
-      exit(-1);
+      printf("                Differences: ");
+      int i;
+      int len=strlen(c2_bits);
+      if (len>strlen(c_bits)) len=strlen(c_bits);
+      for(i=0;i<len;i++)
+	{
+	  if (c_bits[i]!=c2_bits[i]) printf("X"); else printf(" ");
+	}
+      printf("\n");
+
+      /* Display information about the state of encoding with and without rescaling to help figure out what is going on */
+      printf("Progressive coder states with and without rescaling:\n");
+      range_coder_reset(c2);
+      c2->norescale=1;
+      range_coder_reset(c);
+      printf("##  : With rescaling                        : flattened values                : without rescaling\n");
+      i=0;
+      printf("%02db : low=0x%08x, high=0x%08x, uf=%d : low=0x%08x, high=0x%08x : low=0x%08x, high=0x%08x\n",
+	     i,
+	     c->low,c->high,c->underflow,
+	     range_unrescale_value(c->low,c->underflow),
+	     range_unrescale_value(c->high,c->underflow),
+	     c2->low,c2->high);
+      c->debug="with rescale"; c2->debug="  no rescale";
+      for(i=0;i<length;i++)
+	{
+	  range_encode_symbol(c,frequencies,alphabet_size,sequence[i]);
+	  range_encode_symbol(c2,frequencies,alphabet_size,sequence[i]);
+	  printf("%02da : low=0x%08x, high=0x%08x, uf=%d : low=0x%08x, high=0x%08x : low=0x%08x, high=0x%08x %s\n",
+		 i,
+		 c->low,c->high,c->underflow,
+		 range_unrescale_value(c->low,c->underflow),
+		 range_unrescale_value(c->high,c->underflow),
+		 c2->low,c2->high,
+		 (range_unrescale_value(c->low,c->underflow)!=c2->low)||(range_unrescale_value(c->high,c->underflow)!=c2->high)?"!=":"  "
+		 );
+	}
+
+      c->debug=NULL; c2->debug=NULL;
+      return -1;
     }
 
     range_coder_free(c2);
     range_coder_reset(c);
   }
+  printf("   -- passed.\n");
+  return 0;
+}
+
+int test_verify(range_coder *c)
+{
+  unsigned int frequencies[1024];
+  int sequence[1024];
+  int alphabet_size;
+  int length;
+
+  int test,i;
+
+  srandom(0);
+  for(test=0;test<1024;test++)
+    {
+      /* Pick a random alphabet size */
+      // alphabet_size=1+random()%1023;
+      alphabet_size=1+test%1023;
+ 
+      /* Generate incremental probabilities.
+         Start out with randomly selected probabilities, then sort them.
+	 It may make sense later on to use some non-uniform distributions
+	 as well.
+
+	 We only need n-1 probabilities for alphabet of size n, because the
+	 probabilities are fences between the symbols, and p=0 and p=1 are implied
+	 at each end.
+      */
+      for(i=0;i<alphabet_size-1;i++)
+	frequencies[i]=random()&MAXVALUE;
+      frequencies[alphabet_size-1]=0;
+
+      qsort(frequencies,alphabet_size-1,sizeof(unsigned int),cmp_uint);
+
+      /* now generate random string to compress */
+      length=1+random()%1023;
+      for(i=0;i<length;i++) sequence[i]=random()%alphabet_size;
+
+      int norescale=0;
+
+      printf("Test #%d : %d symbols, with %d symbol alphabet, norescale=%d\n",
+	     test,length,alphabet_size,norescale);
+      
+      /* Quick test. If it works, no need to go into more thorough examination. */
+      range_coder_reset(c);
+      c->norescale=norescale;
+      for(i=0;i<length;i++) {
+	if (range_encode_symbol(c,frequencies,alphabet_size,sequence[i]))
+	  {
+	    fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
+		    i,length);
+	    return -1;
+	  }
+      }
+      range_conclude(c);
+
+      /* Now convert encoder state into a decoder state */
+      int error=0;
+      range_coder *vc=range_coder_dup(c);
+      vc->bit_stream_length=vc->bits_used;
+      vc->bits_used=0;
+      range_decode_prefetch(vc);
+      for(i=0;i<length;i++) {
+	// printf("decode symbol #%d\n",i);
+	// range_status(vc,1);
+	if (range_decode_symbol(vc,frequencies,alphabet_size)!=sequence[i])
+	  { error++; break; }
+      }
+      range_coder_free(vc);
+      
+      /* go to next test if this one passes. */
+      if (!error) {
+	fprintf(stderr,"Test #%d passed: encoded %d symbols in %d bits (%f bits of entropy)\n",
+		test,length,c->bits_used,c->entropy);
+	continue;
+      }
+      
+      int k;
+      fprintf(stderr,"Test #%d failed: verify error of symbol %d\n",test,i);
+      printf("symbol probability steps: ");
+      for(k=0;k<alphabet_size-1;k++) printf(" %f[0x%08x]",frequencies[k]*1.0/MAXVALUEPLUS1,frequencies[k]);
+      printf("\n");
+      printf("symbol list: ");
+      for(k=0;k<=i;k++) printf(" %d#%d",sequence[k],k);
+      printf(" ...\n");
+      	  	  
+      /* Encode the random symbols */
+      range_coder_reset(c);
+      c->norescale=norescale;
+      c->debug="encode";
+      for(k=0;k<=i;k++) {
+	range_coder *dup=range_coder_dup(c);
+	dup->debug="encode";
+	if (range_encode_symbol(c,frequencies,alphabet_size,sequence[k]))
+	  {
+	    fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
+		    i,length);
+	    return -1;
+	  }
+      }
+      range_conclude(c);
+      printf("bit sequence: %s\n",range_coder_lastbits(c,8192));
+
+      /* Also decode */
+      vc=range_coder_dup(c);
+      /* Now convert encoder state into a decoder state */
+      vc->bit_stream_length=vc->bits_used;
+      vc->bits_used=0;
+      vc->debug="decode";
+      
+      range_decode_prefetch(vc);
+	    
+      for(k=0;k<=i;k++) {	   
+	int d=range_decode_symbol(vc,frequencies,alphabet_size);
+      }
+      range_coder_free(vc);
+      return -1;
+    }
   printf("   -- passed.\n");
   return 0;
 }
