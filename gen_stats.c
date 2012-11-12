@@ -340,7 +340,7 @@ int filterWords()
 	printf("\n/* %d substitutable words in a total of %lld word breaks. */\n",
 	       usefulOccurrences,wordBreaks);
 	printf("unsigned int wordSubstitutionFlag[1]={0x%x};\n",
-	       (unsigned int)(usefulOccurrences*1.0/wordBreaks*0xffffffff));
+	       (unsigned int)(usefulOccurrences*1.0/wordBreaks*0xffffff));
       } else {
 	fprintf(stderr,"%d+",culled); fflush(stderr); 
       }      
@@ -378,7 +378,7 @@ int writeWords()
   printf("unsigned int wordFrequencies[]={\n");
   for(i=0;i<(wordCount-1);i++) {
     tally+=wordCounts[i];   
-    printf("0x%x",(unsigned int)(tally*1.0*0xffffffff/total));
+    printf("0x%x",(unsigned int)(tally*1.0*0xffffff/total));
     if (i<(wordCount-2)) printf(",");
     if (!(i&7)) printf("\n");
   }
@@ -527,7 +527,7 @@ int main(int argc,char **argv)
       }
       printf("      /* %c %c */ {",chars[i],chars[j]);
       for(k=0;k<69;k++) {
-	total+=counts3[i][j][k]*1.0*0xffffffff/rowCount;
+	total+=counts3[i][j][k]*1.0*0xffffff/rowCount;
 	printf("0x%x",(unsigned int)total);
 	if (k<(69-1)) printf(",");
       }
@@ -547,7 +547,7 @@ int main(int argc,char **argv)
     }
     printf("      /* %c */ {",chars[j]);
     for(k=0;k<69;k++) {
-      total+=counts2[j][k]*1.0*0xffffffff/rowCount;
+      total+=counts2[j][k]*1.0*0xffffff/rowCount;
       printf("0x%x",(unsigned int)total);
       if (k<(69-1)) printf(",");
     }
@@ -565,7 +565,7 @@ int main(int argc,char **argv)
     }
     for(k=0;k<69;k++) {
       total+=counts1[k]*1.0/rowCount;
-      printf("0x%x",(unsigned int)(total*0xffffffff));
+      printf("0x%x",(unsigned int)(total*0xffffff));
       if (k<(69-1)) printf(",");
     }
     printf("};\n");  
@@ -579,7 +579,7 @@ int main(int argc,char **argv)
       rowCount+=casestartofmessage[k];
     }
     for(k=0;k<(2-1);k++) {
-      printf("%.6f",casestartofmessage[k]*1.0*0xffffffff/rowCount);
+      printf("%.6f",casestartofmessage[k]*1.0*0xffffff/rowCount);
       if (k<(2-1)) printf(",");
     }
     printf("}};\n");  
@@ -593,7 +593,7 @@ int main(int argc,char **argv)
       rowCount+=casestartofword2[j][k];    
     }
     k=0;
-    printf("{0x%x}",(unsigned int)(casestartofword2[j][k]*1.0*0xffffffff/rowCount));
+    printf("{0x%x}",(unsigned int)(casestartofword2[j][k]*1.0*0xffffff/rowCount));
     if (j<(2-1)) printf(",");
     
     printf("\n");
@@ -610,7 +610,7 @@ int main(int argc,char **argv)
 	rowCount+=casestartofword3[i][j][k];    
       }
       k=0;
-      printf("    {0x%x}",(unsigned int)(casestartofword3[i][j][k]*1.0*0xffffffff/rowCount));
+      printf("    {0x%x}",(unsigned int)(casestartofword3[i][j][k]*1.0*0xffffff/rowCount));
       if (j<(2-1)) printf(",");
       
       printf("\n");
@@ -627,7 +627,7 @@ int main(int argc,char **argv)
       rowCount+=caseend[k];
     }
     for(k=0;k<(2-1);k++) {
-      printf("%.6f",caseend[k]*1.0*0xffffffff/rowCount);
+      printf("%.6f",caseend[k]*1.0*0xffffff/rowCount);
       if (k<(2-1)) printf(",");
     }
     printf("}};\n");  
@@ -642,7 +642,7 @@ int main(int argc,char **argv)
     }
     printf("      /* %dth char of word */ {",j);
     k=0;
-    printf("0x%x}",(unsigned int)(caseposn1[j][k]*1.0*0xffffffff/rowCount));
+    printf("0x%x}",(unsigned int)(caseposn1[j][k]*1.0*0xffffff/rowCount));
     if (j<(80-1)) printf(",");
     
     printf("\n");
@@ -660,7 +660,7 @@ int main(int argc,char **argv)
       }
       printf("      /* %dth char of word */ {",j);
       k=0;
-      printf("0x%x",(unsigned int)(caseposn2[i][j][k]*1.0*0xffffffff/rowCount));
+      printf("0x%x",(unsigned int)(caseposn2[i][j][k]*1.0*0xffffff/rowCount));
       printf("}");
       if (j<(80-1)) printf(",");
       
@@ -680,7 +680,7 @@ int main(int argc,char **argv)
     }
     for(k=0;k<1024;k++) {
       total+=messagelengths[k]*1.0/rowCount;
-      printf("   /* length = %d */ 0x%x",k,(unsigned int)(total*0xffffffff));
+      printf("   /* length = %d */ 0x%x",k,(unsigned int)(total*0xffffff));
       if (k<(1024-1)) printf(",");
       printf("\n");
     }

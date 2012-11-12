@@ -54,7 +54,7 @@ int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
 int decodeCaseModel1(range_coder *c,unsigned char *line);
 int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length);
 
-unsigned int probPackedASCII=0.95*0xffffffff;
+unsigned int probPackedASCII=0.95*0xffffff;
 
 int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
 {
@@ -142,14 +142,14 @@ int stats3_compress(range_coder *c,unsigned char *m)
   encodeNonAlpha(c,m);
   stripNonAlpha(m,alpha);
 
-  printf("%f bits to encode non-alpha\n",c->entropy-lastEntropy);
+  printf("%f bits (%d emitted) to encode non-alpha\n",c->entropy-lastEntropy,c->bits_used);
   lastEntropy=c->entropy;
 
   /* compress lower-caseified version of message */
   stripCase(alpha,lcalpha);
   encodeLCAlphaSpace(c,lcalpha);
 
-  printf("%f bits to encode chars\n",c->entropy-lastEntropy);
+  printf("%f bits (%d emitted) to encode chars\n",c->entropy-lastEntropy,c->bits_used);
   lastEntropy=c->entropy;
   
   /* case must be encoded after symbols, so we know how many
@@ -158,7 +158,7 @@ int stats3_compress(range_coder *c,unsigned char *m)
   mungeCase((char *)alpha);
   encodeCaseModel1(c,alpha);
   
-  printf("%f bits to encode case\n",c->entropy-lastEntropy);
+  printf("%f bits (%d emitted) to encode case\n",c->entropy-lastEntropy,c->bits_used);
 
   range_conclude(c);
   printf("%d bits actually used after concluding.\n",c->bits_used);

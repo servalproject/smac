@@ -36,7 +36,7 @@ int stripNonAlpha(unsigned char *in,unsigned char *out)
   return 0;
 }
 
-unsigned int probNoNonAlpha=0.95*0xffffffff;
+unsigned int probNoNonAlpha=0.95*0xffffff;
 
 int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
 		   unsigned char nonAlphaValues[],int *nonAlphaCount)

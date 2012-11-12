@@ -23,6 +23,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 #include "arithmetic.h"
 
+#define MAXVALUE 0xffffff
+#define MAXVALUEPLUS1 (MAXVALUE+1)
+#define MSBVALUE 0x800000
+#define MSBVALUEMINUS1 (MSBVALUE-1)
+#define HALFMSBVALUE (MSBVALUE>>1)
+#define HALFMSBVALUEMINUS1 (HALFMSBVALUE-1)
+#define SIGNIFICANTBITS 24
+#define SHIFTUPBITS (32LL-SIGNIFICANTBITS)
+
 int range_emitbit(range_coder *c,int b);
 
 #undef DEBUG
@@ -196,26 +205,35 @@ char *asbits(unsigned int v)
 
 int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 {
-  if (p_low>p_high) {
-    fprintf(stderr,"range_encode() called with p_low>p_high: p_low=%u, p_high=%u\n",
+  if (p_low>=p_high) {
+    fprintf(stderr,"range_encode() called with p_low>=p_high: p_low=%u, p_high=%u\n",
 	    p_low,p_high);
+    exit(-1);
+  }
+  if (p_low>MAXVALUE||p_high>MAXVALUE) {
+    fprintf(stderr,"range_encode() called with p_low or p_high >=0x%x: p_low=0x%x, p_high=0x%x\n",
+	    MAXVALUE,p_low,p_high);
     exit(-1);
   }
 
   unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
-  if (space<0x1000000) {
+  if (space<MAXVALUEPLUS1) {
     c->errors++;
     return -1;
   }
-  unsigned int new_low=c->low+((p_low*space)>>32LL);
-  unsigned int new_high=c->low+((p_high*space)>>32LL);
+  unsigned int new_low=c->low+((p_low*space)>>(32LL-SHIFTUPBITS));
+  unsigned int new_high=c->low+((p_high*space)>>(32LL-SHIFTUPBITS));
 
   c->low=new_low;
   c->high=new_high;
 
-  double p_range=p_high-p_low+1;
-  p_range/=0x100000000;
-  double this_entropy=-log(p_range)/log(2);
+  unsigned int p_diff=p_high-p_low+1;
+  unsigned int p_range=(unsigned long long)p_diff<<(long long)SHIFTUPBITS;
+  double p=((double)p_range)/(double)0x100000000;
+  double this_entropy=-log(p)/log(2);
+  if (0)
+    printf("entropy of range 0x%x(p_low=0x%x, p_high=0x%x, p_diff=0x%x) = %f, shiftupbits=%lld\n",
+	   p_range,p_low,p_high,p_diff,this_entropy,SHIFTUPBITS);
   if (this_entropy<0) {
     fprintf(stderr,"entropy of symbol is negative!\n");
     exit(-1);
@@ -228,8 +246,8 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 
 int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 {
-  unsigned int p_low=((unsigned long long)symbol<<32LL)/alphabet_size;
-  unsigned int p_high=((unsigned long long)(symbol+1)<<32LL)/alphabet_size-1;
+  unsigned int p_low=((unsigned long long)symbol<<SIGNIFICANTBITS)/alphabet_size;
+  unsigned int p_high=((unsigned long long)(symbol+1)<<SIGNIFICANTBITS)/alphabet_size-1;
   return range_encode(c,p_low,p_high);
 }
 
@@ -354,10 +372,10 @@ int range_encode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
 {
   unsigned int p_low=0;
   if (symbol>0) p_low=frequencies[symbol-1];
-  unsigned int p_high=0xffffffff;
+  unsigned int p_high=MAXVALUE;
   if (symbol<(alphabet_size-1)) p_high=frequencies[symbol]-1;
-  //  range_status(c,0);
-  //  printf("symbol=%d, p_low=%u, p_high=%u\n",symbol,p_low,p_high);
+  // range_status(c,0);
+  // printf("symbol=%d, p_low=%u, p_high=%u\n",symbol,p_low,p_high);
   return range_encode(c,p_low,p_high);
 }
 
@@ -377,9 +395,9 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
   unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
   unsigned int v=(c->value-c->low)/space;
   s=v/alphabet_size;
-  unsigned int p_low=(s<<32LL)/alphabet_size;
-  unsigned int p_high=((s+1)<<32LL)/alphabet_size-1;
-  if (s==alphabet_size) p_high=0xffffffff;
+  unsigned int p_low=(s<<SIGNIFICANTBITS)/alphabet_size;
+  unsigned int p_high=((s+1)<<SIGNIFICANTBITS)/alphabet_size-1;
+  if (s==alphabet_size) p_high=MAXVALUE;
   
   return range_decode_common(c,p_low,p_high,s);
 }
@@ -398,7 +416,7 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   
   unsigned int p_low=0;
   if (s>0) p_low=frequencies[s-1];
-  unsigned int p_high=0xffffffff;
+  unsigned int p_high=MAXVALUE;
   if (s<alphabet_size-1) p_high=frequencies[s]-1;
 
   // printf("s=%d, v=%f, p_low=%f, p_high=%f\n",s,v,p_low,p_high);
@@ -414,7 +432,7 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
   unsigned long long space=(unsigned long long)c->high-(unsigned long long)c->low+1;
   long long new_low=c->low+(((unsigned long long)p_low*space)>>32LL);
   long long new_high=c->low+(((unsigned long long)p_high*space)>>32LL);
-  if (p_high>=0xffffffff) new_high=c->high;
+  if (p_high>=MAXVALUE) new_high=c->high;
   if (new_high>0xffffffff) {
     printf("new_high=0x%llx\n",new_high);
     new_high=0xffffffff;
@@ -422,6 +440,7 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
 
   // printf("p_low=0x%08x, p_high=0x%08x, space=%llu\n",p_low,p_high,space);  
 
+  range_check(c,__LINE__);
 
   /* work out how many bits are still significant */
   c->low=new_low;
@@ -432,21 +451,21 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
 
   range_check(c,__LINE__);
   while(1) {
-    if ((c->low&0x80000000)==(c->high&0x80000000))
+    if ((c->low&MSBVALUE)==(c->high&MSBVALUE))
       {
 	/* MSBs match, so bit will get shifted out */
       }
-    else if ((!c->norescale)&&(c->low&0x40000000)
-	     &&(!(c->high&0x40000000)))
+    else if ((!c->norescale)&&(c->low&HALFMSBVALUE)
+	     &&(!(c->high&HALFMSBVALUE)))
       {
 	if (0) {
 	  printf("removing underflow bit during decode @ bit %d\n",c->bits_used);
 	  printf("  pre:  low=0x%08x, v=0x%08x, high=0x%08x\n",
 		 c->low,c->value,c->high);
 	}
-	c->value^=0x40000000;
-	c->low&=0x3fffffff;
-	c->high|=0x40000000;
+	c->value^=HALFMSBVALUE;
+	c->low&=HALFMSBVALUEMINUS1;
+	c->high|=HALFMSBVALUE;
 	if (0) {
 	  printf(" post:  low=0x%08x, v=0x%08x, high=0x%08x\n",
 		 c->low<<1,c->value<<1,c->high<<1);
@@ -562,7 +581,7 @@ int main() {
 	 at each end.
       */
       for(i=0;i<alphabet_size-1;i++)
-	frequencies[i]=random()<<1;
+	frequencies[i]=random()&MAXVALUE;
       frequencies[alphabet_size-1]=0;
 
       qsort(frequencies,alphabet_size-1,sizeof(unsigned int),cmp_uint);
@@ -612,7 +631,7 @@ int main() {
 	  {
 	    int k;
 	    printf("symbol probability steps: ");
-	    for(k=0;k<alphabet_size-1;k++) printf(" %f[0x%08x]",frequencies[k]*1.0/0x100000000,frequencies[k]);
+	    for(k=0;k<alphabet_size-1;k++) printf(" %f[0x%08x]",frequencies[k]*1.0/MAXVALUEPLUS1,frequencies[k]);
 	    printf("\n");
 	    printf("symbol list: ");
 	    for(k=0;k<length;k++) printf(" %d#%d",sequence[k],k);
@@ -672,9 +691,9 @@ int main() {
 		  if (v<frequencies[s]) break;
 		
 		double p_low=0;
-		if (s>0) p_low=frequencies[s-1]*1.0/0x100000000;
+		if (s>0) p_low=frequencies[s-1]*1.0/MAXVALUEPLUS1;
 		double p_high=1;
-		if (s<alphabet_size-1) p_high=frequencies[s]*1.0/0x100000000;
+		if (s<alphabet_size-1) p_high=frequencies[s]*1.0/MAXVALUEPLUS1;
 		
 		//	    printf("  s=%d, p_v=%f, p_low=%f, p_high=%f\n",s,v*1.0/0x100000000,p_low,p_high);
 		//      printf("  low=0x%08x, v=0x%08x, high=0x%08x\n",vc2->low,vc2->value,vc2->high);
@@ -786,6 +805,9 @@ int test_rescale(range_coder *c)
 	printf("reflattened as bits=%s\n",asbits(low_flattened));
 	printf("high: before=0x%08x, after=0x%08x, reflattended=0x%08x, diff=0x%08x\n",
 	       high_before,c->high,high_flattened,high_diff);
+	printf("     before as bits=%s\n",asbits(high_before));
+	printf("      after as bits=%s\n",asbits(c->high));
+	printf("reflattened as bits=%s\n",asbits(high_flattened));
 	exit(0);
       }
     }
@@ -806,8 +828,8 @@ int test_rescale2(range_coder *c)
   for(test=0;test<1024;test++)
   {
     /* Make a nice sequence that sits close to 0.5 so that we build up some underflow */
-    frequencies[0]=0x7ffff000;
-    frequencies[1]=0x81000000;
+    frequencies[0]=0x7ffff0;
+    frequencies[1]=0x810000;
     length=50;
     alphabet_size=3;
 
