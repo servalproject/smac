@@ -113,7 +113,8 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   int alphaPointer=0;
   for(i=0;i<(*len_out);i++)
     {
-      if (nonAlphaPositions[nonAlphaPointer]==i) {
+      if (nonAlphaPointer<nonAlphaCount
+	  &&nonAlphaPositions[nonAlphaPointer]==i) {
 	m[i]=nonAlphaValues[nonAlphaPointer++];
       } else {
 	m[i]=lowerCaseAlphaChars[alphaPointer++];
