@@ -81,12 +81,7 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   if (notPackedASCII==0) {
     /* packed ASCII -- copy from input to output */
     printf("decoding packed ASCII\n");
-    for(i=0;i<encodedLength;i++) {
-      int symbol=range_decode_equiprobable(c,69);
-      int character=chars[symbol];
-      m[i]=character;     
-    }
-    m[i]=0;
+    decodePackedASCII(c,m,encodedLength);
     return 0;
   }
 
@@ -170,25 +165,24 @@ int stats3_compress(range_coder *c,unsigned char *m)
 
   if (c->bits_used>=7*strlen((char *)m))
     {
-      /* we can't encode it more efficiently than char symbols */
-      range_coder_reset(c);
-      range_encode_equiprobable(c,2,1); // not raw ASCII
-      range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
-      encodeLength(c,strlen((char *)m));
-      int i;
-      for(i=0;m[i];i++) {
-	int v=m[i];
-	int upper=0;
-	if (isalpha(v)&&isupper(v)) upper=1;
-	v=tolower(v);
-	v=charIdx(v);
-	range_encode_equiprobable(c,69,v);
-	if (isalpha(v))
-	  range_encode_equiprobable(c,2,upper);
+      /* Can we code it more efficiently without statistical modelling? */
+      range_coder *c2=range_new_coder(1024);
+      range_encode_equiprobable(c2,2,1); // not raw ASCII
+      range_encode_symbol(c2,&probPackedASCII,2,0); // is packed ASCII
+      encodeLength(c2,strlen((char *)m));
+      encodePackedASCII(c2,m);
+      range_conclude(c2);
+      if (c2->bits_used<c->bits_used) {
+	range_coder_reset(c);
+	range_encode_equiprobable(c,2,1); // not raw ASCII
+	range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
+	encodeLength(c,strlen((char *)m));
+	encodePackedASCII(c,m);
+	range_conclude(c);
+	printf("Reverting to raw non-statistical encoding: %d chars in %d bits\n",
+	       (int)strlen((char *)m),c->bits_used);
       }
-      range_conclude(c);
-      printf("Reverting to raw non-statistical encoding: %d chars in 2+%f bits\n",
-	     (int)strlen((char *)m),c->entropy-2.0);
+      range_coder_free(c2);
     }
   
   if ((c->bits_used>=8*strlen((char*)m))

@@ -11,6 +11,7 @@ OBJS=	main.o \
 	length.o \
 	lowercasealpha.o \
 	nonalpha.o \
+	packedascii.o \
 	\
 	charset.o \
 	entropyutil.o \

@@ -169,7 +169,7 @@ int encodeCaseModel1(range_coder *c,unsigned char *line)
 	       previous word */
 	    frequencies[0]=casestartofword2[lastWordInitialCase][0];
 	    if (wordNumber>2)
-	      frequencies[0]=
+ 	      frequencies[0]=
 		casestartofword3[lastWordInitialCase2][lastWordInitialCase][0];
 	    if (0)
 	      printf("last word began with case=%d, p_lower=%f\n",
