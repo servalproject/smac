@@ -22,7 +22,7 @@ OBJS=	main.o \
 
 HDRS=	charset.h arithmetic.h message_stats.h Makefile
 
-all: method_stats3 arithmetic # smaz_test gen_stats tweet_stats.c
+all: method_stats3 arithmetic gsinterpolative # smaz_test gen_stats tweet_stats.c
 
 smaz_test: smaz_test.c smaz.c
 	gcc -o smaz_test -O2 -Wall -W -ansi -pedantic smaz.c smaz_test.c
@@ -43,5 +43,13 @@ message_stats.c:	gen_stats twitter_corpus*.txt
 method_stats3:	$(OBJS)
 	gcc -g -Wall -o method_stats3 $(OBJS)
 
+gsinterpolative:	gsinterpolative.c $(OBJS)
+	gcc -g -Wall -DSTANDALONE -o gsinterpolative{,.c} arithmetic.o
+
 %.o:	%.c $(HDRS)
 	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
+
+test:	gsinterpolative arithmetic
+	./gsinterpolative
+	./arithmetic
+	./method_stats3 twitter_corpus*.txt

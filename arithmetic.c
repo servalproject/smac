@@ -291,8 +291,8 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 
 int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 {
-  unsigned int p_low=((unsigned long long)symbol<<SIGNIFICANTBITS)/alphabet_size;
-  unsigned int p_high=((unsigned long long)(symbol+1)<<SIGNIFICANTBITS)/alphabet_size;
+  unsigned int p_low=((symbol+0LL)<<SIGNIFICANTBITS)/alphabet_size;
+  unsigned int p_high=((symbol+1LL)<<SIGNIFICANTBITS)/alphabet_size;
   if (symbol==alphabet_size-1) p_high=MAXVALUEPLUS1;
   return range_encode(c,p_low,p_high);
 }
@@ -464,8 +464,8 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
   s=v/step;
  refines:
   if (s==alphabet_size) s=alphabet_size-1;
-  unsigned int p_low=(s<<SIGNIFICANTBITS)/alphabet_size;
-  unsigned int p_high=((s+1)<<SIGNIFICANTBITS)/alphabet_size;
+  unsigned int p_low=((s+0LL)<<SIGNIFICANTBITS)/alphabet_size;
+  unsigned int p_high=((s+1LL)<<SIGNIFICANTBITS)/alphabet_size;
   if (s==alphabet_size) p_high=MAXVALUEPLUS1;  
 
   /* Check that binning is correct (some rounding errors
@@ -474,11 +474,25 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
     unsigned int new_low,new_high;
     range_calc_new_range(c,p_low,p_high,&new_low,&new_high);
     if (new_low>c->value||new_high<c->value) {
+      // printf("original calculation: s=%d (alphabet_size=%d)\n",
+      //     s,alphabet_size);
+      while (new_low>c->value||new_high<c->value) {
+	if (new_low>c->value) s--;
+	if (new_high<c->value) s++;
+
+	p_low=((s+0LL)<<SIGNIFICANTBITS)/alphabet_size;
+	p_high=((s+1LL)<<SIGNIFICANTBITS)/alphabet_size;
+	range_calc_new_range(c,p_low,p_high,&new_low,&new_high);
+	if (new_low<=c->value&&new_high>=c->value)
+	  {
+	    //	    printf("final calculation: s=%d\n",s);
+	    break;
+	  }
+      }
       if (!allow_refine) {
 	printf("%s(): Could not determine symbol\n",__FUNCTION__);
 	exit(-1);
       }
-      if (c->value>new_high) s++; else s--;
       allow_refine=0;
       goto refines;
     }

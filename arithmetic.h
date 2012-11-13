@@ -52,18 +52,13 @@ int range_coder_free(range_coder *c);
 range_coder *range_coder_dup(range_coder *in);
 int range_rescale(range_coder *c);
 int range_unrescale_value(unsigned int v,int underflow_bits);
+int range_decode_prefetch(range_coder *c);
 
 int ic_encode_recursive(int *list,
-								int list_length,
-								int *frequencies,
-								int *word_positions,
-								int corpus_document_count,
-								int max_document_words,
-								range_coder *c);
-int ic_encode_heiriter(int *list,
-							  int list_length,
-							  int *frequencies,
-							  int *word_positions,
-							  int corpus_document_count,
-							  int max_document_words,
-							  range_coder *c);
+			int list_length,
+			int max_value,
+			range_coder *c);
+int ic_decode_recursive(int *list,
+			int list_length,
+			int max_value,
+			range_coder *c);

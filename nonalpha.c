@@ -99,7 +99,7 @@ int encodeNonAlpha(range_coder *c,unsigned char *m)
   // printf("Using %f bits to encode the number of non-alpha/space chars.\n",countBits);
 
   /* Encode the positions of special characters */
-  ic_encode_heiriter(pos,count,NULL,NULL,len,len,c);
+  ic_encode_recursive(pos,count,len,c);
   
   /* Encode the characters */
   for(i=0;i<count;i++) {
