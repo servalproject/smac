@@ -69,6 +69,7 @@ int main(int argc,char *argv[])
       d->bit_stream_length=d->bits_used;
       d->bits_used=0;
       d->low=0; d->high=0xffffffff;
+      
       range_decode_prefetch(d);
 
       stats3_decompress(d,mout,&lenout);
@@ -76,7 +77,6 @@ int main(int argc,char *argv[])
       printf("<<< %s\n",mout);
       if (lenout!=strlen(m)) {	
 	printf("Verify error: length mismatch: decoded = %d, original = %d\n",lenout,(int)strlen(m));
-	printf("m='%s'\n",m);
 	exit(-1);
       } else if (strcasecmp(m,mout)) {
 	printf("Verify error: even ignoring case, the messages do not match.\n");

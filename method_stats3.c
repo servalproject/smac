@@ -65,8 +65,12 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   int notRawASCII=range_decode_equiprobable(c,2);
   if (notRawASCII==0) {
     /* raw bytes -- copy from input to output */
-    printf("decoding raw bytes\n");
-    for(i=0;c->bit_stream[i]&&i<1024;i++) m[i]=c->bit_stream[i];
+    printf("decoding raw bytes: bits_used=%d\n",c->bits_used);
+    for(i=0;c->bit_stream[i]&&i<1024&&i<(c->bit_stream_length>>3);i++) {
+      m[i]=c->bit_stream[i];
+      printf("%d 0x%02x\n",i,c->bit_stream[i]);
+    }
+    printf("%d 0x%02x\n",i,c->bit_stream[i]);
     m[i]=0;
     *len_out=i;
     return 0;
@@ -196,6 +200,7 @@ int stats3_compress(range_coder *c,unsigned char *m)
       for(i=0;m[i];i++) c->bit_stream[i]=m[i];
       c->bits_used=8*i;
       c->entropy=8*i;
+
       printf("Reverting to raw 8-bit encoding: used %d bits\n",c->bits_used);
     }
 
