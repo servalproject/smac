@@ -88,29 +88,32 @@ int decodeCaseModel1(range_coder *c,unsigned char *line)
 	    if (wordNumber>2)
 	      frequencies[0]=
 		casestartofword3[lastWordInitialCase2][lastWordInitialCase][0];
-	    if (0)
+	    if (1)
 	      printf("last word began with case=%d, p_lower=%f\n",
 		     lastWordInitialCase,
-		     (frequencies[0]*1.0)/0x100000000
+		     (frequencies[0]*1.0)/0x1000000
 		     );
 	  }
-	  if (0) printf("case of first letter of word/message @ %d: p=%f\n",
-			i,(frequencies[0]*1.0)/0x100000000);
+	  if (1) printf("case of first letter of word/message @ %d: p=%f\n",
+			i,(frequencies[0]*1.0)/0x1000000);
 	  upper=range_decode_symbol(c,frequencies,2);
 	} else {
 	  /* subsequent letter, so can use case of previous letter in model */
 	  if (wordPosn>79) wordPosn=79;
-	  if (0) printf("case of first letter of word/message @ %d.%d: p=%f\n",
+	  if (1) printf("case of first letter of word/message @ %d.%d: p=%f\n",
 			i,wordPosn,
-			(caseposn2[lastCase][wordPosn][0]*1.0)/0x100000000);
+			(caseposn2[lastCase][wordPosn][0]*1.0)/0x1000000);
+	  printf("  lastCase=%d, wordPosn=%d\n",lastCase,wordPosn);
 	  upper=range_decode_symbol(c,caseposn2[lastCase][wordPosn],2);
 	}
+
+	if (upper==1) line[i]=toupper(line[i]);
+
 	if (isupper(line[i])) lastCase=1; else lastCase=0;
 	if (wordPosn==0) {
 	  lastWordInitialCase2=lastWordInitialCase;
 	  lastWordInitialCase=lastCase;
 	}      
-	if (upper==1) line[i]=toupper(line[i]);
 	else if (upper==-1) {
 	  fprintf(stderr,"%s(): character processed without determining case.\n",
 		  __FUNCTION__);
@@ -166,21 +169,22 @@ int encodeCaseModel1(range_coder *c,unsigned char *line)
 	    if (wordNumber>2)
 	      frequencies[0]=
 		casestartofword3[lastWordInitialCase2][lastWordInitialCase][0];
-	    if (0)
+	    if (1)
 	      printf("last word began with case=%d, p_lower=%f\n",
 		     lastWordInitialCase,
-		     (frequencies[0]*1.0)/0x100000000
+		     (frequencies[0]*1.0)/0x1000000
 		     );
 	  }
-	  if (0) printf("case of first letter of word/message @ %d: p=%f\n",
-			i,(frequencies[0]*1.0)/0x100000000);
+	  if (1) printf("case of first letter of word/message @ %d: p=%f\n",
+			i,(frequencies[0]*1.0)/0x1000000);
 	  range_encode_symbol(c,frequencies,2,upper);
 	} else {
 	  /* subsequent letter, so can use case of previous letter in model */
 	  if (wordPosn>79) wordPosn=79;
-	  if (0) printf("case of first letter of word/message @ %d.%d: p=%f\n",
+	  if (1) printf("case of first letter of word/message @ %d.%d: p=%f\n",
 			i,wordPosn,
-			(caseposn2[lastCase][wordPosn][0]*1.0)/0x100000000);
+			(caseposn2[lastCase][wordPosn][0]*1.0)/0x1000000);
+	  printf("  lastCase=%d, wordPosn=%d\n",lastCase,wordPosn);
 	  range_encode_symbol(c,caseposn2[lastCase][wordPosn],2,upper);
 	}
 	if (isupper(line[i])) lastCase=1; else lastCase=0;
