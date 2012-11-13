@@ -36,14 +36,14 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
   int c3;
   int o,i;
   for(o=0;o<length;o++) {
-    printf("so far: '%s', c1=%d(%c), c2=%d(%c)\n",s,c1,chars[c1],c2,chars[c2]);
+    if (0) printf("so far: '%s', c1=%d(%c), c2=%d(%c)\n",s,c1,chars[c1],c2,chars[c2]);
 
     int substituted=0;
     if (!charInWord(chars[c2])) {
       /* We are at a word break, so see if we can do word substitution.
 	 Either way, we must flag whether we performed word substitution */
       substituted=1-range_decode_symbol(c,wordSubstitutionFlag,2);
-	printf("substitution flag = %d @ offset %d\n",substituted,o);
+      if (0) printf("substitution flag = %d @ offset %d\n",substituted,o);
     }
     if (substituted)
       {
@@ -66,7 +66,7 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
       } else {
       c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];
-      printf("  decode alpha char %d = %c\n",c3,s[o]);
+      if (0) printf("  decode alpha char %d = %c\n",c3,s[o]);
     }
     c1=c2; c2=c3;
   }
@@ -81,8 +81,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
   for(o=0;s[o];o++) {
     int c3=charIdx(s[o]);
     
-    printf("  encoding @ %d, c1=%d(%c) c2=%d(%c), c3=%d(%c)\n",
-	   o,c1,chars[c1],c2,chars[c2],c3,chars[c3]);
+    if (0)
+      printf("  encoding @ %d, c1=%d(%c) c2=%d(%c), c3=%d(%c)\n",
+	     o,c1,chars[c1],c2,chars[c2],c3,chars[c3]);
 
     if (!charInWord(chars[c2])) {
       /* We are at a word break, so see if we can do word substitution.
@@ -163,7 +164,8 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	/* Encode the word */
 	range_encode_symbol(c,wordFrequencies,wordCount,longestWord);
 	
-	printf("substituted %s at a cost of %f bits.\n",
+	if (0)
+	  printf("substituted %s at a cost of %f bits.\n",
 		 wordList[longestWord],c->entropy-entropy);
 
 	/* skip rest of word, but make sure we stay on track for 3rd order model
@@ -175,8 +177,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	  c2=charIdx(s[o]);
 	  if (c2<0) { exit(-1); }
 	}
-	printf("  post substitution @ %d, c1=%d(%c), c2=%d(%c)\n",
-	     o,c1,chars[c1],c2,chars[c2]);
+	if (0)
+	  printf("  post substitution @ %d, c1=%d(%c), c2=%d(%c)\n",
+		 o,c1,chars[c1],c2,chars[c2]);
 	continue;
       } else {
 	/* Encode "not substituting a word here" symbol */
@@ -187,8 +190,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 		 c->entropy-entropy);
       }
     } else {
-      printf("  not a wordbreak @ %d, c1=%d(%c), c2=%d(%c)\n",
-	     o,c2,chars[c2],c3,chars[c3]);
+      if (0)
+	printf("  not a wordbreak @ %d, c1=%d(%c), c2=%d(%c)\n",
+	       o,c2,chars[c2],c3,chars[c3]);
     }
     range_encode_symbol(c,char_freqs3[c1][c2],69,c3);    
     c1=c2; c2=c3;
