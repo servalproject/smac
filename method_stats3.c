@@ -65,6 +65,7 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   int notRawASCII=range_decode_equiprobable(c,2);
   if (notRawASCII==0) {
     /* raw bytes -- copy from input to output */
+    printf("decoding raw bytes\n");
     for(i=0;c->bit_stream[i]&&i<1024;i++) m[i]=c->bit_stream[i];
     m[i]=0;
     *len_out=i;
@@ -72,17 +73,20 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   }
   
   int notPackedASCII=range_decode_symbol(c,&probPackedASCII,2);
+
   int encodedLength=decodeLength(c);
+  for(i=0;i<encodedLength;i++) m[i]='?'; m[i]=0;
+  *len_out=encodedLength;
 
   if (notPackedASCII==0) {
     /* packed ASCII -- copy from input to output */
+    printf("decoding packed ASCII\n");
     for(i=0;i<encodedLength;i++) {
       int symbol=range_decode_equiprobable(c,69);
       int character=chars[symbol];
       m[i]=character;     
     }
     m[i]=0;
-    *len_out=encodedLength;
     return 0;
   }
 
@@ -94,6 +98,8 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
 
   int alphaCount=(*len_out)-nonAlphaCount;
 
+  printf("message contains %d non-alpha characters, %d alpha chars.\n",nonAlphaCount,alphaCount);
+
   unsigned char lowerCaseAlphaChars[1025];
 
   decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount);
@@ -104,7 +110,7 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   
   /* reintegrate alpha and non-alpha characters */
   int nonAlphaPointer=0;
-  int alphaPointer=0; 
+  int alphaPointer=0;
   for(i=0;i<(*len_out);i++)
     {
       if (nonAlphaPositions[nonAlphaPointer]==i) {
@@ -127,7 +133,7 @@ int stats3_compress(range_coder *c,unsigned char *m)
 
   /* Use model instead of just packed ASCII */
   range_encode_equiprobable(c,2,1); // not raw ASCII
-  range_encode_symbol(c,&probPackedASCII,2,0); // not packed ASCII
+  range_encode_symbol(c,&probPackedASCII,2,1); // not packed ASCII
 
   printf("%f bits to encode model\n",c->entropy);
   double lastEntropy=c->entropy;
@@ -168,7 +174,7 @@ int stats3_compress(range_coder *c,unsigned char *m)
       /* we can't encode it more efficiently than char symbols */
       range_coder_reset(c);
       range_encode_equiprobable(c,2,1); // not raw ASCII
-      range_encode_symbol(c,&probPackedASCII,2,1); // is packed ASCII
+      range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
       encodeLength(c,strlen((char *)m));
       int i;
       for(i=0;m[i];i++) {

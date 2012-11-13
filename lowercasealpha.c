@@ -33,15 +33,17 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
 {
   int c1=charIdx(' ');
   int c2=charIdx(' ');
-  int o;
-  for(o=0;s[o];o++) {
-    int c3=charIdx(s[o]);
-    
+  int c3;
+  int o,i;
+  for(o=0;o<length;o++) {
+    printf("so far: '%s', c1=%d(%c), c2=%d(%c)\n",s,c1,chars[c1],c2,chars[c2]);
+
     int substituted=0;
-    if (!charInWord(s[o-1])) {
+    if (!charInWord(chars[c2])) {
       /* We are at a word break, so see if we can do word substitution.
 	 Either way, we must flag whether we performed word substitution */
-      substituted=range_decode_symbol(c,wordSubstitutionFlag,2);
+      substituted=1-range_decode_symbol(c,wordSubstitutionFlag,2);
+	printf("substitution flag = %d @ offset %d\n",substituted,o);
     }
     if (substituted)
       {
@@ -55,8 +57,8 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
 	   state. */
 	o+=wordLength-1;
 	if (s[o]) {
-	  c3=charIdx(s[o-1]);
-	  if (c3<0) { exit(-1); }
+	  c1=charIdx(s[o-1]);
+	  if (c1<0) { exit(-1); }
 	  c2=charIdx(s[o]);
 	  if (c2<0) { exit(-1); }
 	}
@@ -64,8 +66,9 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
       } else {
       c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];
-      c1=c2; c2=c3;
+      printf("  decode alpha char %d = %c\n",c3,s[o]);
     }
+    c1=c2; c2=c3;
   }
   return 0;
 }
@@ -78,54 +81,17 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
   for(o=0;s[o];o++) {
     int c3=charIdx(s[o]);
     
-    if (!charInWord(s[o-1])) {
+    printf("  encoding @ %d, c1=%d(%c) c2=%d(%c), c3=%d(%c)\n",
+	   o,c1,chars[c1],c2,chars[c2],c3,chars[c3]);
+
+    if (!charInWord(chars[c2])) {
       /* We are at a word break, so see if we can do word substitution.
 	 Either way, we must flag whether we performed word substitution */
       int w;
       int longestWord=-1;
       int longestLength=0;
-#if 0
-      double longestSavings=0;
-#endif
-      if (charInWord(s[o])) {
-#if 0
-	{
-	  /* See if it makes sense to encode part of the message from here
-	     without using 3rd order model. */
-	  range_coder *t=range_new_coder(2048);
-	  range_coder *tf=range_new_coder(1024);
-	  // approx cost of switching models twice
-	  double entropyFlat=10+entropyOfInverse(69+1+1);
-	  int i;
-	  int cc2=c2;
-	  int cc1=c1;
-	  for(i=o;s[i]&&(isalnum(s[i])||s[i]==' ');i++) {
-	    int c3=charIdx(s[i]);
-	    range_encode_symbol(t,char_freqs3[cc1][cc2],69,c3);
-	    range_encode_equiprobable(tf,69+1,c3);
-	    if (!s[i]) {
-	      /* encoding to the end of message saves us the 
-		 stop symbol */
-	      tf->entropy-=entropyOfInverse(69+1);
-	    }
-	    if ((t->entropy-tf->entropy-entropyFlat)>longestSavings) {
-	      longestLength=i-o+1;
-	      longestSavings=t->entropy-tf->entropy-entropyFlat;
-	    }
-	    cc1=cc2; cc2=c3;
-	  }
 
-	  if (longestLength>0)
-	    printf("Could save %f bits by flat coding next %d chars.\n",
-		   longestSavings,longestLength);
-	  else
-	    printf("No saving possible from flat coding.\n");
-	  longestSavings=0; longestLength=0;
-	  range_coder_free(t);
-	  range_coder_free(tf);
-	}
-#endif
-
+      if (charInWord(chars[c3])) {
 	/* Find the first word that matches */
 	w=0;
 	int bit;
@@ -204,11 +170,13 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	   state. */
 	o+=longestLength-1;
 	if (s[o]) {
-	  c3=charIdx(s[o-1]);
-	  if (c3<0) { exit(-1); }
+	  c1=charIdx(s[o-1]);
+	  if (c1<0) { exit(-1); }
 	  c2=charIdx(s[o]);
 	  if (c2<0) { exit(-1); }
 	}
+	printf("  post substitution @ %d, c1=%d(%c), c2=%d(%c)\n",
+	     o,c1,chars[c1],c2,chars[c2]);
 	continue;
       } else {
 	/* Encode "not substituting a word here" symbol */
@@ -218,6 +186,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	  printf("incurring non-substitution penalty = %f bits\n",
 		 c->entropy-entropy);
       }
+    } else {
+      printf("  not a wordbreak @ %d, c1=%d(%c), c2=%d(%c)\n",
+	     o,c2,chars[c2],c3,chars[c3]);
     }
     range_encode_symbol(c,char_freqs3[c1][c2],69,c3);    
     c1=c2; c2=c3;
