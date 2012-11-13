@@ -32,6 +32,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define SIGNIFICANTBITS 24
 #define SHIFTUPBITS (32LL-SIGNIFICANTBITS)
 
+int range_calc_new_range(range_coder *c,
+			 unsigned int p_low, unsigned int p_high,
+			 unsigned int *new_low,unsigned int *new_high);
 int range_emitbit(range_coder *c,int b);
 
 int bits2bytes(int b)
@@ -58,7 +61,10 @@ int range_encode_length(range_coder *c,int len)
 int range_decode_getnextbit(range_coder *c)
 {
   /* return 0s once we have used all bits */
-  if (c->bit_stream_length<=c->bits_used) return 0;
+  if (c->bit_stream_length<=c->bits_used) {
+    c->bits_used++;
+    return 0;
+  }
 
   int bit=c->bit_stream[c->bits_used>>3]&(1<<(7-(c->bits_used&7)));
   c->bits_used++;
@@ -83,7 +89,7 @@ int range_emitbit(range_coder *c,int b)
 
 int range_emit_stable_bits(range_coder *c)
 {
-
+  range_check(c,__LINE__);
   /* look for actually stable bits, i.e.,msb of low and high match */
   while (!((c->low^c->high)&0x80000000))
     {
@@ -103,13 +109,19 @@ int range_emit_stable_bits(range_coder *c)
 	}
 	c->underflow=0;
       }
+      if (c->decodingP) {
+	// printf("value was 0x%08x (low=0x%08x, high=0x%08x)\n",c->value,c->low,c->high);
+      }
       c->low=c->low<<1;
       c->high=c->high<<1;      
       c->high|=1;
       if (c->decodingP) {
 	c->value=c->value<<1;
-	c->value|=range_decode_getnextbit(c);
+	int nextbit=range_decode_getnextbit(c);
+	c->value|=nextbit;
+	// printf("value became 0x%08x (low=0x%08x, high=0x%08x), nextbit=%d\n",c->value,c->low,c->high,nextbit);
       }
+      range_check(c,__LINE__);
     }
 
   /* Now see if we have underflow, and need to count the number of underflowed
@@ -150,11 +162,16 @@ int range_rescale(range_coder *c) {
 	       c->debug,c->low,c->high,new_low,new_high);
 
       if (c->decodingP) {
-	c->value=(c->value&0x80000000)|((c->value<<1)&0x7ffffffe);
-	c->value=range_decode_getnextbit(c);
+	unsigned int value_bits=((c->value<<1)&0x7ffffffe);
+	printf("value was 0x%08x (low=0x%08x, high=0x%08x), keepbits=0x%08x\n",c->value,c->low,c->high,value_bits);
+	c->value=(c->value&0x80000000)|value_bits;
+	c->value|=range_decode_getnextbit(c);
       }
       c->low=new_low;
       c->high=new_high;
+      if (c->decodingP)
+	printf("value became 0x%08x (low=0x%08x, high=0x%08x)\n",c->value,c->low,c->high);
+      range_check(c,__LINE__);
     }
   return 0;
 }
@@ -217,7 +234,7 @@ char *asbits(unsigned int v)
 
 unsigned long long range_space(range_coder *c)
 {
-  return (unsigned long long)c->high-(unsigned long long)c->low;
+  return ((unsigned long long)c->high-(unsigned long long)c->low)&0xffffff00;
 }
 
 int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
@@ -233,40 +250,17 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
     exit(-1);
   }
 
-  unsigned long long space=range_space(c);
-
-#if 0
-  /* Make sure that space calculation only uses the correct precision, so that
-     the calculation comes out the same, whether or not rescaling is being used. */ 
-  if (!c->norescale) space&=0xffffffff<<SHIFTUPBITS;
-  else {
-    /* erg, this is trickier here, because we need to know how many bits are
-       underflowed */
-    int i;
-    for(i=1;i<SHIFTUPBITS;i++) {
-      int low_bit=c->low>>(31-i);
-      int high_bit=c->high>>(31-i);
-      if (low_bit==1&&high_bit==0) continue;
-    }
-    /* if in doubt, do the same as with rescaling */
-    space&=0xffffffff<<SHIFTUPBITS;
-  }
-#endif
-
-  if (space<MAXVALUEPLUS1) {
-    c->errors++;
-    if (c->debug) printf("%s : ERROR: space(0x%08llx)<0x%08x\n",c->debug,space,MAXVALUEPLUS1);
-    return -1;
-  }
-  unsigned int new_low=c->low+((p_low*space)>>(32LL-SHIFTUPBITS));
-  unsigned int new_high=c->low+((p_high*space)>>(32LL-SHIFTUPBITS));
-
+  unsigned int new_low,new_high;
+  range_calc_new_range(c,p_low,p_high,&new_low,&new_high);
+  
+  range_check(c,__LINE__);
   c->low=new_low;
   c->high=new_high;
+  range_check(c,__LINE__);
 
   if (c->debug) {
     printf("%s: space=0x%08llx[%s], new_low=0x%08x, new_high=0x%08x\n",
-	   c->debug,space,asbits(space),new_low,new_high);
+	   c->debug,range_space(c),asbits(range_space(c)),new_low,new_high);
   }
 
   unsigned long long p_diff=p_high-p_low;
@@ -282,6 +276,7 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
   }
   c->entropy+=this_entropy;
 
+  range_check(c,__LINE__);
   if (range_emit_stable_bits(c)) return -1;
 
   if (c->debug) {
@@ -472,22 +467,32 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
 
 int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_size)
 {
+  c->decodingP=1;
+  range_check(c,__LINE__);
+  c->decodingP=0;
   int s;
   unsigned long long space=range_space(c);
-  unsigned int v=(((unsigned long long)(c->value-c->low))<<32LL)/space;
+  //  unsigned long long v=(((unsigned long long)(c->value-c->low))<<24LL)/space;
   
-  if (c->debug) printf(" decode: v=0x%08x; ",v);
+  if (1||c->debug) printf(" decode: value=0x%08x; ",c->value);
   // range_status(c);
-
-  for(s=0;s<(alphabet_size-1);s++)
-    if (v<=(frequencies[s]<<SHIFTUPBITS)) break;
+  
+  for(s=0;s<(alphabet_size-1);s++) {
+    unsigned int boundary=c->low+((frequencies[s]*space)>>(32LL-SHIFTUPBITS));
+    if (c->value<boundary) {
+      printf("value(0x%x) < frequencies[%d](boundary = 0x%x)\n",
+	     c->value,s,frequencies[s]);
+      break;
+    }
+  }
   
   unsigned int p_low=0;
   if (s>0) p_low=frequencies[s-1];
   unsigned int p_high=MAXVALUEPLUS1;
   if (s<alphabet_size-1) p_high=frequencies[s]-1;
 
-  if (c->debug) printf("s=%d, v=0x%08x, p_low=0x%08x, p_high=0x%08x\n",s,v,p_low,p_high);
+  if (c->debug) printf("s=%d, value=0x%08llx, p_low=0x%08x, p_high=0x%08x\n",
+		       s,c->value,p_low,p_high);
   // range_status(c);
 
   // printf("in decode_symbol() about to call decode_common()\n");
@@ -495,33 +500,53 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
     return range_decode_common(c,p_low,p_high,s);
 }
 
-int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,int s)
+int range_calc_new_range(range_coder *c,
+			 unsigned int p_low, unsigned int p_high,
+			 unsigned int *new_low,unsigned int *new_high)
 {
   unsigned long long space=range_space(c);
-  long long new_low=c->low+(((unsigned long long)p_low*space)>>(32LL-SHIFTUPBITS));
-  long long new_high=c->low+(((unsigned long long)p_high*space)>>(32LL-SHIFTUPBITS));
-  if (p_high>=MAXVALUEPLUS1) new_high=c->high;
+
+  if (space<MAXVALUEPLUS1) {
+    c->errors++;
+    if (c->debug) printf("%s : ERROR: space(0x%08llx)<0x%08x\n",c->debug,space,MAXVALUEPLUS1);
+    return -1;
+  }
+
+  *new_low=c->low+((p_low*space)>>(32LL-SHIFTUPBITS));
+  *new_high=c->low+((p_high*space)>>(32LL-SHIFTUPBITS));
+  if (p_high>=MAXVALUEPLUS1) *new_high=c->high;
+  return 0;
+}
+
+int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,int s)
+{
+  unsigned int new_low,new_high;
+
+  range_calc_new_range(c,p_low,p_high,&new_low,&new_high);
+
   if (new_high>0xffffffff) {
-    printf("new_high=0x%llx\n",new_high);
+    printf("new_high=0x%08x\n",new_high);
     new_high=0xffffffff;
   }
 
-  // printf("p_low=0x%08x, p_high=0x%08x, space=%llu\n",p_low,p_high,space);  
+  printf("rdc: low=0x%08x, value=0x%08x, high=0x%08x\n",c->low,c->value,c->high);
+  printf("rdc: p_low=0x%08x, p_high=0x%08x, space=%08llx, s=%d\n",
+	 p_low,p_high,range_space(c),s);  
 
+  c->decodingP=1;
   range_check(c,__LINE__);
 
   /* work out how many bits are still significant */
   c->low=new_low;
   c->high=new_high;
-
+  range_check(c,__LINE__);
+  
   if (c->debug) printf("%s: after decode: low=0x%08x, high=0x%08x\n",
 		       c->debug,c->low,c->high);
 
   // printf("after decode before renormalise:\n");
   // range_status(c,1);
 
-  range_check(c,__LINE__);
-  c->decodingP=1;
   range_emit_stable_bits(c);
   c->decodingP=0;
   range_check(c,__LINE__);
@@ -615,6 +640,7 @@ int test_rescale(range_coder *c)
       c->high=random()|0x80000000;
       unsigned int low_before=c->low;
       unsigned int high_before=c->high;
+      range_check(c,__LINE__);
       range_emit_stable_bits(c);
       unsigned int low_flattened=range_unrescale_value(c->low,c->underflow);
       unsigned int high_flattened=range_unrescale_value(c->high,c->underflow);
@@ -841,7 +867,6 @@ int test_verify(range_coder *c)
 	if (range_decode_symbol(vc,frequencies,alphabet_size)!=sequence[i])
 	  { error++; break; }
       }
-      range_coder_free(vc);
       
       /* go to next test if this one passes. */
       if (!error) {
@@ -863,6 +888,12 @@ int test_verify(range_coder *c)
       range_coder_reset(c);
       c->norescale=norescale;
       c->debug="encode";
+
+      vc->bits_used=0;
+      vc->low=0; vc->high=0xffffffff;
+      range_decode_prefetch(vc);
+      vc->debug="decode";
+
       for(k=0;k<=i;k++) {
 	range_coder *dup=range_coder_dup(c);
 	dup->debug="encode";
@@ -872,23 +903,24 @@ int test_verify(range_coder *c)
 		    i,length);
 	    return -1;
 	  }
+
+	/* Display relevent decode line with encoder state */
+	if (range_decode_symbol(vc,frequencies,alphabet_size)
+	    !=sequence[k])
+	  break;
+
+	printf("\n");
+
+	if (c->low!=vc->low||c->high!=vc->high) {
+	  printf("encoder and decoder have diverged.\n");
+	  break;
+	}
+
       }
       range_conclude(c);
+      range_coder_free(vc);
       printf("bit sequence: %s\n",range_coder_lastbits(c,8192));
 
-      /* Also decode */
-      vc=range_coder_dup(c);
-      /* Now convert encoder state into a decoder state */
-      vc->bit_stream_length=vc->bits_used;
-      vc->bits_used=0;
-      vc->debug="decode";
-      
-      range_decode_prefetch(vc);
-	    
-      for(k=0;k<=i;k++) {	   
-	int d=range_decode_symbol(vc,frequencies,alphabet_size);
-      }
-      range_coder_free(vc);
       return -1;
     }
   printf("   -- passed.\n");
