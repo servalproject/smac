@@ -24,29 +24,42 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "method_stats3.h"
 
+int processFile(FILE *f);
+
+int lines=0;
+double runningPercent=0;
+double worstPercent=0,bestPercent=100;
+
 int main(int argc,char *argv[])
 {
   if (!argv[1]) {
     fprintf(stderr,"Must provide message to compress.\n");
     exit(-1);
   }
-
-  char m[1024]; // raw message, no pre-processing
   
   FILE *f;
 
-  if (strcmp(argv[1],"-")) f=fopen(argv[1],"r"); else f=stdin;
-  if (!f) {
-    fprintf(stderr,"Failed to open `%s' for input.\n",argv[1]);
-    exit(-1);
+  int argn=1;
+
+  for(argn=1;argn<argc;argn++) {
+    if (strcmp(argv[1],"-")) f=fopen(argv[argn],"r"); else f=stdin;
+    if (!f) {
+      fprintf(stderr,"Failed to open `%s' for input.\n",argv[1]);
+      exit(-1);
+    } else {
+      processFile(f);
+      fclose(f);
+    }
   }
+  return 0;
+}
+
+int processFile(FILE *f)
+{
+  char m[1024]; // raw message, no pre-processing
 
   m[0]=0; fgets(m,1024,f);
   
-  int lines=0;
-  double runningPercent=0;
-  double worstPercent=0,bestPercent=100;
-
   while(m[0]) {    
     /* chop newline */
     m[strlen(m)-1]=0;
@@ -94,6 +107,5 @@ int main(int argc,char *argv[])
     lines++;
     m[0]=0; fgets(m,1024,f);
   }
-  fclose(f);
   return 0;
 }
