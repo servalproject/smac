@@ -121,8 +121,6 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
     }
   m[i]=0;
 
-  printf("Message decompressed to: %s\n",m);
-
   return 0;
 }
 
