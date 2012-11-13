@@ -27,8 +27,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 int processFile(FILE *f);
 
 int lines=0;
-double runningPercent=0;
 double worstPercent=0,bestPercent=100;
+long long total_compressed_bits=0;
+long long total_uncompressed_bits=0;
+long long total_alpha_bits=0;
+long long total_nonalpha_bits=0;
+long long total_case_bits=0;
+long long total_model_bits=0;
+long long total_length_bits=0;
+long long total_finalisation_bits=0;
 
 int main(int argc,char *argv[])
 {
@@ -51,6 +58,18 @@ int main(int argc,char *argv[])
       fclose(f);
     }
   }
+
+  printf("Summary:\n");
+  printf("         compressed size: %f%%\n",
+	 total_compressed_bits*100.0/total_uncompressed_bits);
+  printf("       uncompressed bits: %lld\n",total_uncompressed_bits);
+  printf("         compressed bits: %lld\n",total_compressed_bits);
+  printf("    length-encoding bits: %lld\n",total_length_bits);
+  printf("     model-encoding bits: %lld\n",total_model_bits);
+  printf("      case-encoding bits: %lld\n",total_case_bits);
+  printf("     alpha-encoding bits: %lld\n",total_alpha_bits);
+  printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
+
   return 0;
 }
 
@@ -63,18 +82,18 @@ int processFile(FILE *f)
   while(m[0]) {    
     /* chop newline */
     m[strlen(m)-1]=0;
-    if (1) printf(">>> %s\n",m);
 
     range_coder *c=range_new_coder(1024);
     stats3_compress(c,(unsigned char *)m);
 
+    total_compressed_bits+=c->bits_used;
+    total_uncompressed_bits+=strlen(m)*8;
+
     double percent=c->bits_used*100.0/(strlen(m)*8);
     if (percent<bestPercent) bestPercent=percent;
     if (percent>worstPercent) worstPercent=percent;
-    runningPercent+=percent;
 
-    printf("Total encoded length = %d bits = %.2f%% (best:avg:worst %.2f%%:%.2f%%:%.2f%%)\n",
-	   c->bits_used,percent,bestPercent,runningPercent/(lines+1),worstPercent);
+    /* Verify that compression worked */
     {
       int lenout=0;
       char mout[1025];
@@ -87,15 +106,17 @@ int processFile(FILE *f)
 
       stats3_decompress(d,mout,&lenout);
 
-      printf("<<< %s\n",mout);
       if (lenout!=strlen(m)) {	
 	printf("Verify error: length mismatch: decoded = %d, original = %d\n",lenout,(int)strlen(m));
-	exit(-1);
+	printf("   Input: %s\n  Output: %s\n",m,mout);
+      	exit(-1);
       } else if (strcasecmp(m,mout)) {
 	printf("Verify error: even ignoring case, the messages do not match.\n");
+	printf("   Input: %s\n  Output: %s\n",m,mout);
 	exit(-1);
       } else if (strcmp(m,mout)) {
 	printf("Verify error: messages differ in case only.\n");
+	printf("   Input: %s\n  Output: %s\n",m,mout);
 	exit(-1);
       }
 

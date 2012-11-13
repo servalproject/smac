@@ -39,6 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "message_stats.h"
 #include "charset.h"
+#include "method_stats3.h"
 
 int encodeLCAlphaSpace(range_coder *c,unsigned char *s);
 int encodeNonAlpha(range_coder *c,unsigned char *s);
@@ -65,12 +66,12 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   int notRawASCII=range_decode_equiprobable(c,2);
   if (notRawASCII==0) {
     /* raw bytes -- copy from input to output */
-    printf("decoding raw bytes: bits_used=%d\n",c->bits_used);
+    // printf("decoding raw bytes: bits_used=%d\n",c->bits_used);
     for(i=0;c->bit_stream[i]&&i<1024&&i<(c->bit_stream_length>>3);i++) {
       m[i]=c->bit_stream[i];
-      printf("%d 0x%02x\n",i,c->bit_stream[i]);
+      // printf("%d 0x%02x\n",i,c->bit_stream[i]);
     }
-    printf("%d 0x%02x\n",i,c->bit_stream[i]);
+    // printf("%d 0x%02x\n",i,c->bit_stream[i]);
     m[i]=0;
     *len_out=i;
     return 0;
@@ -84,7 +85,7 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
 
   if (notPackedASCII==0) {
     /* packed ASCII -- copy from input to output */
-    printf("decoding packed ASCII\n");
+    // printf("decoding packed ASCII\n");
     decodePackedASCII(c,m,encodedLength);
     return 0;
   }
@@ -97,7 +98,7 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
 
   int alphaCount=(*len_out)-nonAlphaCount;
 
-  printf("message contains %d non-alpha characters, %d alpha chars.\n",nonAlphaCount,alphaCount);
+  // printf("message contains %d non-alpha characters, %d alpha chars.\n",nonAlphaCount,alphaCount);
 
   unsigned char lowerCaseAlphaChars[1025];
 
@@ -133,27 +134,33 @@ int stats3_compress(range_coder *c,unsigned char *m)
   range_encode_equiprobable(c,2,1); // not raw ASCII
   range_encode_symbol(c,&probPackedASCII,2,1); // not packed ASCII
 
-  printf("%f bits to encode model\n",c->entropy);
+  // printf("%f bits to encode model\n",c->entropy);
+  total_model_bits+=c->entropy;
   double lastEntropy=c->entropy;
   
   /* Encode length of message */
   encodeLength(c,strlen((char *)m));
   
-  printf("%f bits to encode length\n",c->entropy-lastEntropy);
+  // printf("%f bits to encode length\n",c->entropy-lastEntropy);
+  total_length_bits+=c->entropy-lastEntropy;
   lastEntropy=c->entropy;
 
   /* encode any non-ASCII characters */
   encodeNonAlpha(c,m);
   stripNonAlpha(m,alpha);
 
-  printf("%f bits (%d emitted) to encode non-alpha\n",c->entropy-lastEntropy,c->bits_used);
+  //  printf("%f bits (%d emitted) to encode non-alpha\n",c->entropy-lastEntropy,c->bits_used);
+  total_nonalpha_bits+=c->entropy-lastEntropy;
+
   lastEntropy=c->entropy;
 
   /* compress lower-caseified version of message */
   stripCase(alpha,lcalpha);
   encodeLCAlphaSpace(c,lcalpha);
 
-  printf("%f bits (%d emitted) to encode chars\n",c->entropy-lastEntropy,c->bits_used);
+  // printf("%f bits (%d emitted) to encode chars\n",c->entropy-lastEntropy,c->bits_used);
+  total_alpha_bits+=c->entropy-lastEntropy;
+
   lastEntropy=c->entropy;
   
   /* case must be encoded after symbols, so we know how many
@@ -162,10 +169,12 @@ int stats3_compress(range_coder *c,unsigned char *m)
   mungeCase((char *)alpha);
   encodeCaseModel1(c,alpha);
   
-  printf("%f bits (%d emitted) to encode case\n",c->entropy-lastEntropy,c->bits_used);
+  //  printf("%f bits (%d emitted) to encode case\n",c->entropy-lastEntropy,c->bits_used);
+  total_case_bits+=c->entropy-lastEntropy;
 
   range_conclude(c);
-  printf("%d bits actually used after concluding.\n",c->bits_used);
+  // printf("%d bits actually used after concluding.\n",c->bits_used);
+  total_finalisation_bits+=c->bits_used-c->entropy;
 
   if (c->bits_used>=7*strlen((char *)m))
     {
@@ -183,8 +192,8 @@ int stats3_compress(range_coder *c,unsigned char *m)
 	encodeLength(c,strlen((char *)m));
 	encodePackedASCII(c,m);
 	range_conclude(c);
-	printf("Reverting to raw non-statistical encoding: %d chars in %d bits\n",
-	       (int)strlen((char *)m),c->bits_used);
+	// printf("Reverting to raw non-statistical encoding: %d chars in %d bits\n",
+	//        (int)strlen((char *)m),c->bits_used);
       }
       range_coder_free(c2);
     }
@@ -201,7 +210,7 @@ int stats3_compress(range_coder *c,unsigned char *m)
       c->bits_used=8*i;
       c->entropy=8*i;
 
-      printf("Reverting to raw 8-bit encoding: used %d bits\n",c->bits_used);
+      // printf("Reverting to raw 8-bit encoding: used %d bits\n",c->bits_used);
     }
 
   return 0;
