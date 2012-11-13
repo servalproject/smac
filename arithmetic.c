@@ -455,15 +455,25 @@ int range_check(range_coder *c,int line)
 
 int range_decode_equiprobable(range_coder *c,int alphabet_size)
 {
-  unsigned long long s;
+  unsigned int s;
   unsigned long long space=range_space(c);
-  unsigned int v=(c->value-c->low)/space;
-  s=v/alphabet_size;
+  unsigned int v=c->value-c->low;
+  unsigned int step=space/alphabet_size;
+  s=v/step;
+  if (s==alphabet_size) s=alphabet_size-1;
   unsigned int p_low=(s<<SIGNIFICANTBITS)/alphabet_size;
   unsigned int p_high=((s+1)<<SIGNIFICANTBITS)/alphabet_size;
-  if (s==alphabet_size) p_high=MAXVALUEPLUS1;
+  if (s==alphabet_size) p_high=MAXVALUEPLUS1;  
+
+  if (0) {
+    printf("%s(): space=0x%08llx, low=0x%08x, value=0x%08x, high=0x%08x, v=0x%08x, step=0x%08x, s=%d\n",
+	   __FUNCTION__,space,c->low,c->value,c->high,v,step,s);
+    printf("  p_low=0x%x, p_high=0x%x\n",p_low,p_high);
+  }
   
-  return range_decode_common(c,p_low,p_high,s);
+  range_decode_common(c,p_low,p_high,s);
+  if (0) printf("  low=0x%08x, value=0x%08x, high=0x%08x\n",c->low,c->value,c->high);
+  return s;
 }
 
 int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_size)
