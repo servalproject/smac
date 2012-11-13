@@ -78,7 +78,13 @@ int main(int argc,char *argv[])
 	printf("Verify error: length mismatch: decoded = %d, original = %d\n",lenout,(int)strlen(m));
 	printf("m='%s'\n",m);
 	exit(-1);
-      } else printf("decoded length matches (%d)\n",lenout);
+      } else if (strcasecmp(m,mout)) {
+	printf("Verify error: even ignoring case, the messages do not match.\n");
+	exit(-1);
+      } else if (strcmp(m,mout)) {
+	printf("Verify error: messages differ in case only.\n");
+	exit(-1);
+      }
 
       range_coder_free(d);
     }
