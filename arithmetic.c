@@ -829,13 +829,14 @@ int test_verify(range_coder *c)
 
   fflush(stderr);
   fflush(stdout);
+  printf("Testing encoding/decoding: 1024 sequences with seq(0,1023,1) symbol alphabets.\n");
 
   srandom(0);
   for(test=0;test<1024;test++)
     {
       /* Pick a random alphabet size */
       // alphabet_size=1+random()%1023;
-      alphabet_size=1+test%1023;
+      alphabet_size=1+test%1024;
  
       /* Generate incremental probabilities.
          Start out with randomly selected probabilities, then sort them.
@@ -854,7 +855,6 @@ int test_verify(range_coder *c)
       qsort(frequencies,alphabet_size-1,sizeof(unsigned int),cmp_uint);
       for(i=0;i<alphabet_size-1;i++)
 	if (frequencies[i]==frequencies[i+1]) {
-	  printf("whoops -- frequency table contains a colission.\n");
 	  goto newalphabet;
 	}
 
@@ -864,8 +864,9 @@ int test_verify(range_coder *c)
 
       int norescale=0;
 
-      printf("Test #%d : %d symbols, with %d symbol alphabet, norescale=%d\n",
-	     test,length,alphabet_size,norescale);
+      if (0)
+	printf("Test #%d : %d symbols, with %d symbol alphabet, norescale=%d\n",
+	       test,length,alphabet_size,norescale);
       
       /* Quick test. If it works, no need to go into more thorough examination. */
       range_coder_reset(c);
@@ -895,8 +896,9 @@ int test_verify(range_coder *c)
       
       /* go to next test if this one passes. */
       if (!error) {
-	printf("Test #%d passed: encoded and verified %d symbols in %d bits (%f bits of entropy)\n",
-		test,length,c->bits_used,c->entropy);
+	if(0)
+	  printf("Test #%d passed: encoded and verified %d symbols in %d bits (%f bits of entropy)\n",
+		 test,length,c->bits_used,c->entropy);
 	continue;
       }
       
