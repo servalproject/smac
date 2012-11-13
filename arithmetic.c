@@ -163,13 +163,14 @@ int range_rescale(range_coder *c) {
 
       if (c->decodingP) {
 	unsigned int value_bits=((c->value<<1)&0x7ffffffe);
-	printf("value was 0x%08x (low=0x%08x, high=0x%08x), keepbits=0x%08x\n",c->value,c->low,c->high,value_bits);
+	if (c->debug)
+	  printf("value was 0x%08x (low=0x%08x, high=0x%08x), keepbits=0x%08x\n",c->value,c->low,c->high,value_bits);
 	c->value=(c->value&0x80000000)|value_bits;
 	c->value|=range_decode_getnextbit(c);
       }
       c->low=new_low;
       c->high=new_high;
-      if (c->decodingP)
+      if (c->decodingP&&c->debug)
 	printf("value became 0x%08x (low=0x%08x, high=0x%08x)\n",c->value,c->low,c->high);
       range_check(c,__LINE__);
     }
@@ -474,14 +475,15 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   unsigned long long space=range_space(c);
   //  unsigned long long v=(((unsigned long long)(c->value-c->low))<<24LL)/space;
   
-  if (1||c->debug) printf(" decode: value=0x%08x; ",c->value);
+  if (c->debug) printf(" decode: value=0x%08x; ",c->value);
   // range_status(c);
   
   for(s=0;s<(alphabet_size-1);s++) {
     unsigned int boundary=c->low+((frequencies[s]*space)>>(32LL-SHIFTUPBITS));
     if (c->value<boundary) {
-      printf("value(0x%x) < frequencies[%d](boundary = 0x%x)\n",
-	     c->value,s,frequencies[s]);
+      if (c->debug)
+	printf("value(0x%x) < frequencies[%d](boundary = 0x%x)\n",
+	       c->value,s,frequencies[s]);
       break;
     }
   }
@@ -491,7 +493,7 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   unsigned int p_high=MAXVALUEPLUS1;
   if (s<alphabet_size-1) p_high=frequencies[s]-1;
 
-  if (c->debug) printf("s=%d, value=0x%08llx, p_low=0x%08x, p_high=0x%08x\n",
+  if (c->debug) printf("s=%d, value=0x%08x, p_low=0x%08x, p_high=0x%08x\n",
 		       s,c->value,p_low,p_high);
   // range_status(c);
 
@@ -529,9 +531,11 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
     new_high=0xffffffff;
   }
 
-  printf("rdc: low=0x%08x, value=0x%08x, high=0x%08x\n",c->low,c->value,c->high);
-  printf("rdc: p_low=0x%08x, p_high=0x%08x, space=%08llx, s=%d\n",
-	 p_low,p_high,range_space(c),s);  
+  if (0) {
+    printf("rdc: low=0x%08x, value=0x%08x, high=0x%08x\n",c->low,c->value,c->high);
+    printf("rdc: p_low=0x%08x, p_high=0x%08x, space=%08llx, s=%d\n",
+	   p_low,p_high,range_space(c),s);  
+  }
 
   c->decodingP=1;
   range_check(c,__LINE__);
