@@ -105,8 +105,8 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount);
   lowerCaseAlphaChars[alphaCount]=0;
 
-  mungeCase((char *)lowerCaseAlphaChars);
   decodeCaseModel1(c,lowerCaseAlphaChars);
+  mungeCase((char *)lowerCaseAlphaChars);
   
   /* reintegrate alpha and non-alpha characters */
   int nonAlphaPointer=0;

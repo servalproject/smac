@@ -44,7 +44,7 @@ int mungeCase(char *m)
      (so that we don't mess up all-caps).
   */
   for(i=1;m[i+1];i++)
-    if (m[i]=='I'&&(!isalpha(m[i-1]))&&(!isalpha(m[i+1])))
+    if (tolower(m[i])=='i'&&(!isalpha(m[i-1]))&&(!isalpha(m[i+1])))
       {
 	m[i]^=0x20;
       }
