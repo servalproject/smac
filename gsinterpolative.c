@@ -194,7 +194,7 @@ int ENCODE(ic_,_recursive)(int *list,
   /* Start at largest power of two, and round list size up to next power of two
      to keep recursion simple, and keep bit stream compatible with fast
      interpolative coder. */
-  int powerof2=biggest_power_of_2(list_length);
+  int powerof2=biggest_power_of_2(list_length+1);
   
   ENCODE(ic_,_recursive_r)(list,list_length,
 			   max_value,

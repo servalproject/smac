@@ -51,9 +51,11 @@ int mungeCase(char *m);
 int encodeCaseModel1(range_coder *c,unsigned char *line);
 
 int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
-		   unsigned char nonAlphaValues[],int *nonAlphaCount);
+		   unsigned char nonAlphaValues[],int *nonAlphaCount,int messageLength);
 int decodeCaseModel1(range_coder *c,unsigned char *line);
 int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length);
+int decodePackedASCII(range_coder *c, char *m,int encodedLength);
+int encodePackedASCII(range_coder *c,char *m);
 
 unsigned int probPackedASCII=0.95*0xffffff;
 
@@ -86,7 +88,7 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   if (notPackedASCII==0) {
     /* packed ASCII -- copy from input to output */
     // printf("decoding packed ASCII\n");
-    decodePackedASCII(c,m,encodedLength);
+    decodePackedASCII(c,(char *)m,encodedLength);
     return 0;
   }
 
@@ -94,7 +96,7 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   int nonAlphaPositions[1024];
   int nonAlphaCount=0;
 
-  decodeNonAlpha(c,nonAlphaPositions,nonAlphaValues,&nonAlphaCount);
+  decodeNonAlpha(c,nonAlphaPositions,nonAlphaValues,&nonAlphaCount,encodedLength);
 
   int alphaCount=(*len_out)-nonAlphaCount;
 
@@ -148,6 +150,7 @@ int stats3_compress(range_coder *c,unsigned char *m)
   /* encode any non-ASCII characters */
   encodeNonAlpha(c,m);
   stripNonAlpha(m,alpha);
+  int nonAlphaChars=strlen(m)-strlen(alpha);
 
   //  printf("%f bits (%d emitted) to encode non-alpha\n",c->entropy-lastEntropy,c->bits_used);
   total_nonalpha_bits+=c->entropy-lastEntropy;
@@ -176,21 +179,21 @@ int stats3_compress(range_coder *c,unsigned char *m)
   // printf("%d bits actually used after concluding.\n",c->bits_used);
   total_finalisation_bits+=c->bits_used-c->entropy;
 
-  if (c->bits_used>=7*strlen((char *)m))
+  if ((!nonAlphaChars)&&c->bits_used>=7*strlen((char *)m))
     {
       /* Can we code it more efficiently without statistical modelling? */
       range_coder *c2=range_new_coder(1024);
       range_encode_equiprobable(c2,2,1); // not raw ASCII
       range_encode_symbol(c2,&probPackedASCII,2,0); // is packed ASCII
       encodeLength(c2,strlen((char *)m));
-      encodePackedASCII(c2,m);
+      encodePackedASCII(c2,(char *)m);
       range_conclude(c2);
       if (c2->bits_used<c->bits_used) {
 	range_coder_reset(c);
 	range_encode_equiprobable(c,2,1); // not raw ASCII
 	range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
 	encodeLength(c,strlen((char *)m));
-	encodePackedASCII(c,m);
+	encodePackedASCII(c,(char *)m);
 	range_conclude(c);
 	// printf("Reverting to raw non-statistical encoding: %d chars in %d bits\n",
 	//        (int)strlen((char *)m),c->bits_used);

@@ -39,12 +39,28 @@ int stripNonAlpha(unsigned char *in,unsigned char *out)
 unsigned int probNoNonAlpha=0.95*0xffffff;
 
 int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
-		   unsigned char nonAlphaValues[],int *nonAlphaCount)
+		   unsigned char nonAlphaValues[],int *nonAlphaCount,int messageLength)
 {
+  int i;
   int containsNonAlpha=range_decode_symbol(c,&probNoNonAlpha,2);
-  if (containsNonAlpha) {
-    printf("decodeNonAlpha() not implemented.\n");
-    return -1;
+  if (containsNonAlpha) {    
+    int count=range_decode_equiprobable(c,messageLength+1);
+    
+    // printf("Decoding %d non-alpha characters.\n",count);
+
+    /* Decode the positions of special characters */
+    ic_decode_recursive(nonAlphaPositions,count,messageLength,c);
+    
+    /* Decode the characters */
+    for(i=0;i<count;i++) {
+      nonAlphaValues[i]=range_decode_equiprobable(c,256); 
+    }    
+
+    // for(i=0;i<count;i++)
+    //   printf("  nonalpha char #%d @ %d = 0x%02x\n",i,nonAlphaPositions[i],nonAlphaValues[i]);
+    *nonAlphaCount=count;
+
+    return 0;
   } else {
     *nonAlphaCount=0;
     return 0;
@@ -69,7 +85,7 @@ int encodeNonAlpha(range_coder *c,unsigned char *m)
     } else {
       /* non-alpha, so remember it */
       v[count]=m[i];
-      printf("non-alpha char: 0x%02x '%c'\n",m[i],m[i]);
+      // printf("non-alpha char: 0x%02x '%c' @ %d\n",m[i],m[i],i);
       pos[count++]=i;
     }
 
@@ -84,26 +100,20 @@ int encodeNonAlpha(range_coder *c,unsigned char *m)
     range_encode_symbol(c,&probNoNonAlpha,2,1);
   }
 
-  printf("Using 8-bits to encode each of %d non-alpha chars.\n",count);
+  // printf("Using 8-bits to encode each of %d non-alpha chars.\n",count);
 
-  /* Encode number of non-alpha chars using:
-     n 1's to specify how many bits required to encode the count.
-     Then 0.
-     Then n bits to encode the count.
-     So 2*ceil(log2(count))+1 bits
-  */
-
-  int len=strlen((char *)m);
-  range_encode_length(c,len);  
+  /* Encode number of non-alpha chars */
+  int messageLength=strlen((char *)m);
+  range_encode_equiprobable(c,messageLength+1,count);
 
   // printf("Using %f bits to encode the number of non-alpha/space chars.\n",countBits);
 
   /* Encode the positions of special characters */
-  ic_encode_recursive(pos,count,len,c);
+  ic_encode_recursive(pos,count,messageLength,c);
   
   /* Encode the characters */
   for(i=0;i<count;i++) {
-    range_encode_equiprobable(c,256,v[1]); 
+    range_encode_equiprobable(c,256,v[i]); 
   }
 
   // printf("Using interpolative coding for positions, total = %d bits.\n",posBits);

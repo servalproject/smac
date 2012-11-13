@@ -108,15 +108,19 @@ int processFile(FILE *f)
 
       if (lenout!=strlen(m)) {	
 	printf("Verify error: length mismatch: decoded = %d, original = %d\n",lenout,(int)strlen(m));
-	printf("   Input: %s\n  Output: %s\n",m,mout);
+	printf("   Input: [%s]\n  Output: [%s]\n",m,mout);
       	exit(-1);
       } else if (strcasecmp(m,mout)) {
 	printf("Verify error: even ignoring case, the messages do not match.\n");
-	printf("   Input: %s\n  Output: %s\n",m,mout);
+	printf("   Input: [%s]\n  Output: [%s]\n",m,mout);
+	int i;
+	for(i=0;i<strlen(m);i++)
+	  printf("<%02x>",m[i]);
+	printf("\n");
 	exit(-1);
       } else if (strcmp(m,mout)) {
 	printf("Verify error: messages differ in case only.\n");
-	printf("   Input: %s\n  Output: %s\n",m,mout);
+	printf("   Input: [%s]\n  Output: [%s]\n",m,mout);
 	exit(-1);
       }
 
