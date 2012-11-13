@@ -428,7 +428,7 @@ int range_encode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   unsigned int p_low=0;
   if (symbol>0) p_low=frequencies[symbol-1];
   unsigned int p_high=MAXVALUEPLUS1;
-  if (symbol<(alphabet_size-1)) p_high=frequencies[symbol]-1;
+  if (symbol<(alphabet_size-1)) p_high=frequencies[symbol];
   // range_status(c,0);
   // printf("symbol=%d, p_low=%u, p_high=%u\n",symbol,p_low,p_high);
   return range_encode(c,p_low,p_high);
@@ -483,15 +483,19 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
     if (c->value<boundary) {
       if (c->debug)
 	printf("value(0x%x) < frequencies[%d](boundary = 0x%x)\n",
-	       c->value,s,frequencies[s]);
+	       c->value,s,boundary);
       break;
+    } else {
+      if (0&&c->debug)
+	printf("value(0x%x) >= frequencies[%d](boundary = 0x%x)\n",
+	       c->value,s,boundary);
     }
   }
   
   unsigned int p_low=0;
   if (s>0) p_low=frequencies[s-1];
   unsigned int p_high=MAXVALUEPLUS1;
-  if (s<alphabet_size-1) p_high=frequencies[s]-1;
+  if (s<alphabet_size-1) p_high=frequencies[s];
 
   if (c->debug) printf("s=%d, value=0x%08x, p_low=0x%08x, p_high=0x%08x\n",
 		       s,c->value,p_low,p_high);
@@ -516,7 +520,7 @@ int range_calc_new_range(range_coder *c,
 
   *new_low=c->low+((p_low*space)>>(32LL-SHIFTUPBITS));
   *new_high=c->low+((p_high*space)>>(32LL-SHIFTUPBITS));
-  if (p_high>=MAXVALUEPLUS1) *new_high=c->high;
+  // if (p_high>=MAXVALUEPLUS1) *new_high=c->high;
   return 0;
 }
 
@@ -554,6 +558,9 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
   range_emit_stable_bits(c);
   c->decodingP=0;
   range_check(c,__LINE__);
+
+  if (c->debug) printf("%s: after rescale: low=0x%08x, high=0x%08x\n",
+		       c->debug,c->low,c->high);
 
   return s;
 }
@@ -619,8 +626,8 @@ int range_coder_free(range_coder *c)
 int main() {
   struct range_coder *c=range_new_coder(8192);
 
-  test_rescale(c);
-  test_rescale2(c);
+  //  test_rescale(c);
+  //  test_rescale2(c);
   test_verify(c);
 
   return 0;
@@ -815,6 +822,9 @@ int test_verify(range_coder *c)
 
   int test,i;
 
+  fflush(stderr);
+  fflush(stdout);
+
   srandom(0);
   for(test=0;test<1024;test++)
     {
@@ -831,11 +841,17 @@ int test_verify(range_coder *c)
 	 probabilities are fences between the symbols, and p=0 and p=1 are implied
 	 at each end.
       */
+    newalphabet:
       for(i=0;i<alphabet_size-1;i++)
 	frequencies[i]=random()&MAXVALUE;
       frequencies[alphabet_size-1]=0;
 
       qsort(frequencies,alphabet_size-1,sizeof(unsigned int),cmp_uint);
+      for(i=0;i<alphabet_size-1;i++)
+	if (frequencies[i]==frequencies[i+1]) {
+	  printf("whoops -- frequency table contains a colission.\n");
+	  goto newalphabet;
+	}
 
       /* now generate random string to compress */
       length=1+random()%1023;
@@ -874,7 +890,7 @@ int test_verify(range_coder *c)
       
       /* go to next test if this one passes. */
       if (!error) {
-	fprintf(stderr,"Test #%d passed: encoded %d symbols in %d bits (%f bits of entropy)\n",
+	printf("Test #%d passed: encoded and verified %d symbols in %d bits (%f bits of entropy)\n",
 		test,length,c->bits_used,c->entropy);
 	continue;
       }
@@ -885,7 +901,7 @@ int test_verify(range_coder *c)
       for(k=0;k<alphabet_size-1;k++) printf(" %f[0x%08x]",frequencies[k]*1.0/MAXVALUEPLUS1,frequencies[k]);
       printf("\n");
       printf("symbol list: ");
-      for(k=0;k<=i;k++) printf(" %d#%d",sequence[k],k);
+      for(k=0;k<=length;k++) printf(" %d#%d",sequence[k],k);
       printf(" ...\n");
       	  	  
       /* Encode the random symbols */
@@ -901,6 +917,7 @@ int test_verify(range_coder *c)
       for(k=0;k<=i;k++) {
 	range_coder *dup=range_coder_dup(c);
 	dup->debug="encode";
+	printf("Encoding symbol #%d = %d\n",k,sequence[k]);
 	if (range_encode_symbol(c,frequencies,alphabet_size,sequence[k]))
 	  {
 	    fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
