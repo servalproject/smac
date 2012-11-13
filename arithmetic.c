@@ -240,8 +240,8 @@ unsigned long long range_space(range_coder *c)
 
 int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 {
-  if (p_low>=p_high) {
-    fprintf(stderr,"range_encode() called with p_low>=p_high: p_low=%u, p_high=%u\n",
+  if (p_low>p_high) {
+    fprintf(stderr,"range_encode() called with p_low>p_high: p_low=%u, p_high=%u\n",
 	    p_low,p_high);
     exit(-1);
   }
@@ -292,7 +292,7 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 {
   unsigned int p_low=((unsigned long long)symbol<<SIGNIFICANTBITS)/alphabet_size;
-  unsigned int p_high=((unsigned long long)(symbol+1)<<SIGNIFICANTBITS)/alphabet_size-1;
+  unsigned int p_high=((unsigned long long)(symbol+1)<<SIGNIFICANTBITS)/alphabet_size;
   return range_encode(c,p_low,p_high);
 }
 
@@ -460,7 +460,7 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
   unsigned int v=(c->value-c->low)/space;
   s=v/alphabet_size;
   unsigned int p_low=(s<<SIGNIFICANTBITS)/alphabet_size;
-  unsigned int p_high=((s+1)<<SIGNIFICANTBITS)/alphabet_size-1;
+  unsigned int p_high=((s+1)<<SIGNIFICANTBITS)/alphabet_size;
   if (s==alphabet_size) p_high=MAXVALUEPLUS1;
   
   return range_decode_common(c,p_low,p_high,s);
@@ -481,9 +481,14 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   for(s=0;s<(alphabet_size-1);s++) {
     unsigned int boundary=c->low+((frequencies[s]*space)>>(32LL-SHIFTUPBITS));
     if (c->value<boundary) {
-      if (c->debug)
+      if (c->debug) {
 	printf("value(0x%x) < frequencies[%d](boundary = 0x%x)\n",
 	       c->value,s,boundary);
+	if (s>0) {
+	  boundary=c->low+((frequencies[s-1]*space)>>(32LL-SHIFTUPBITS));
+	  printf("  previous boundary @ 0x%08x\n",boundary);
+	}
+      }
       break;
     } else {
       if (0&&c->debug)
@@ -519,8 +524,8 @@ int range_calc_new_range(range_coder *c,
   }
 
   *new_low=c->low+((p_low*space)>>(32LL-SHIFTUPBITS));
-  *new_high=c->low+((p_high*space)>>(32LL-SHIFTUPBITS));
-  // if (p_high>=MAXVALUEPLUS1) *new_high=c->high;
+  *new_high=c->low+(((p_high)*space)>>(32LL-SHIFTUPBITS))-1;
+  if (p_high>=MAXVALUEPLUS1) *new_high=c->high;
   return 0;
 }
 
