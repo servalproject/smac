@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "message_stats.h"
 #include "charset.h"
 
+#undef DEBUG
+
 double entropy3(int c1,int c2, char *string);
 
 int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
@@ -36,14 +38,18 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
   int c3;
   int o,i;
   for(o=0;o<length;o++) {
-    if (0) printf("so far: '%s', c1=%d(%c), c2=%d(%c)\n",s,c1,chars[c1],c2,chars[c2]);
+#ifdef DEBUG
+      printf("so far: '%s', c1=%d(%c), c2=%d(%c)\n",s,c1,chars[c1],c2,chars[c2]);
+#endif
 
     int substituted=0;
     if (!charInWord(chars[c2])) {
       /* We are at a word break, so see if we can do word substitution.
 	 Either way, we must flag whether we performed word substitution */
       substituted=1-range_decode_symbol(c,wordSubstitutionFlag,2);
-      if (0) printf("substitution flag = %d @ offset %d\n",substituted,o);
+#ifdef DEBUG
+      printf("substitution flag = %d @ offset %d\n",substituted,o);
+#endif
     }
     if (substituted)
       {
@@ -66,7 +72,9 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
       } else {
       c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];
-      if (0) printf("  decode alpha char %d = %c\n",c3,s[o]);
+#ifdef DEBUG
+      printf("  decode alpha char %d = %c\n",c3,s[o]);
+#endif
     }
     c1=c2; c2=c3;
   }
@@ -81,9 +89,10 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
   for(o=0;s[o];o++) {
     int c3=charIdx(s[o]);
     
-    if (0)
+#ifdef DEBUG
       printf("  encoding @ %d, c1=%d(%c) c2=%d(%c), c3=%d(%c)\n",
 	     o,c1,chars[c1],c2,chars[c2],c3,chars[c3]);
+#endif
 
     if (!charInWord(chars[c2])) {
       /* We are at a word break, so see if we can do word substitution.
@@ -133,9 +142,11 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	    /* skip words prior to the one we are looking for */
 	    continue;
 	  } else if (d==0) {
-	    if (0) printf("    word match: strlen=%d, longestLength=%d\n",
-			  (int)strlen(wordList[w]),(int)longestLength
-			  );
+#ifdef DEBUG
+	    printf("    word match: strlen=%d, longestLength=%d\n",
+		   (int)strlen(wordList[w]),(int)longestLength
+		   );
+#endif
 	    double entropy=entropy3(c1,c2,wordList[w]);
 	    range_coder *t=range_new_coder(1024);
 	    range_encode_symbol(t,wordSubstitutionFlag,2,0);
@@ -147,9 +158,10 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	    if (strlen(wordList[w])>longestLength) {
 	      longestLength=strlen(wordList[w]);
 	      longestWord=w;	      
-	      if (1)
+#ifdef DEBUG
 		printf("spotted substitutable instance of '%s' -- save %f bits (%f vs %f)\n",
-		     wordList[w],savings,substEntropy,entropy);
+		       wordList[w],savings,substEntropy,entropy);
+#endif
 	    }
 	  } else
 	    /* ran out of matching words, so stop search */
@@ -164,9 +176,10 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	/* Encode the word */
 	range_encode_symbol(c,wordFrequencies,wordCount,longestWord);
 	
-	if (0)
+#ifdef DEBUG
 	  printf("substituted %s at a cost of %f bits.\n",
 		 wordList[longestWord],c->entropy-entropy);
+#endif
 
 	/* skip rest of word, but make sure we stay on track for 3rd order model
 	   state. */
@@ -177,22 +190,25 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	  c2=charIdx(s[o]);
 	  if (c2<0) { exit(-1); }
 	}
-	if (0)
+#ifdef DEBUG
 	  printf("  post substitution @ %d, c1=%d(%c), c2=%d(%c)\n",
 		 o,c1,chars[c1],c2,chars[c2]);
+#endif
 	continue;
       } else {
 	/* Encode "not substituting a word here" symbol */
 	double entropy=c->entropy;
 	range_encode_symbol(c,wordSubstitutionFlag,2,1);
-	if (0)
+#ifdef DEBUG
 	  printf("incurring non-substitution penalty = %f bits\n",
 		 c->entropy-entropy);
+#endif
       }
     } else {
-      if (0)
+#ifdef DEBUG
 	printf("  not a wordbreak @ %d, c1=%d(%c), c2=%d(%c)\n",
 	       o,c2,chars[c2],c3,chars[c3]);
+#endif
     }
     range_encode_symbol(c,char_freqs3[c1][c2],69,c3);    
     c1=c2; c2=c3;
