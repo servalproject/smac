@@ -198,9 +198,6 @@ int encodeCaseModel1(range_coder *c,unsigned char *line)
 	}
       }
     }
-    
-    /* fold all letters to lower case */
-    if (line[i]>='A'&&line[i]<='Z') line[i]|=0x20;
   }
   //  printf("\n");
 
