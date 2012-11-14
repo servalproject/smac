@@ -42,6 +42,10 @@ Documentation/paper-writing:
 
 - compare stats3 algorithm with SMAZ algorithm.
 - compare with 3GPP/GSMA algorithm.
+  - http://www.3gpp.org/ftp/Specs/html-info/0342.htm for links.
+  - uses huffman coding (less efficient than arithemtic coding)
+  - treatment of punctuation is not exact -- decompressed version may differ from original -- not a good thing.
+  - see RESULTS file to see that we clearly outperform the TS03.42, even on their cherry picked inputs.
 - compare with http://tools.ietf.org/html/rfc1978
 - compare with cm.zip mentioned here (but no long available) as a broadly similar approach: http://encode.ru/threads/449-Most-efficient-practical-compression-method-for-short-strings
 - compare with IBM "shortBWT": http://domino.watson.ibm.com/library/CyberDig.nsf/7d11afdf5c7cda94852566de006b4127/d098f3f0f8ca1fd785256c6a004f24f4?OpenDocument
@@ -65,6 +69,7 @@ eprint = {}
   - http://www.clevertexting.com/ - claims  30-40% reduction in size at present.
 - compare with PAQ (various papers describing it)
   - paq8l results in 5% larger output (629 versus 596 bytes) on average for the SMAZ mini-corpus due to overheads. Only the longer messages compress using PAQ.  example of challenge with short-message compression. PAQ is also VERY slow (~8kb/sec) and uses lots of memory, so disqualifies itself from this particular use case in several ways. see RESULTS file for compactness that PAQ can achieve when given the whole lot of messages at once, as an estimate of what level of performance we should aspire to.
+    - see http://cs.fit.edu/~mmahoney/compression/#paq for links to PAQ papers.
 - compare results with SMAZ (see RESULTS file).
 - compare results with bzip2 -9 / gzip -9 of combined corpus (see RESULTS file).
 

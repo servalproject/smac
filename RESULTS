@@ -90,3 +90,20 @@ Summary:
   nonalpha-encoding bits: 0
    SMAZ compressed bytes: 1297 (for comparison)
     SMAZ compressed size: 90.132036% (byte oriented; for comparison)
+
+GSM 03.42 performance on their three presumably cherry-picked examples (using their test vectors as the source of information):
+(files obtained from http://www.etsi.org/deliver/etsi_ts/101000_101099/101032/07.01.01_60/)
+(result shown is the minimum size from all of their 19 coding models)
+Serval-MBP-2:gsm gardners$ ./extract_compressed_size < MSSG_001.VEC | awk 'BEGIN { n=9999; } { if ($1<n) { n=$1; print n;} }' | tail -1
+146
+Serval-MBP-2:gsm gardners$ ./extract_compressed_size < MSSG_002.VEC | awk 'BEGIN { n=9999; } { if ($1<n) { n=$1; print n;} }' | tail -1
+249
+Serval-MBP-2:gsm gardners$ ./extract_compressed_size < MSSG_003.VEC | awk 'BEGIN { n=9999; } { if ($1<n) { n=$1; print n;} }' | tail -1
+380
+
+stats3 performance on the same 3 examples:
+MSSG_001 - 117 bytes
+MSSG_002 - 218 bytes
+MSSG_003 - 304 bytes
+
+again, we readily outperform on all.
