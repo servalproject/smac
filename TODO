@@ -26,8 +26,9 @@ more generally:
   well it performs compared with either the original smaz or stats3 methods.
 
 Documentation/paper-writing:
+- settle on whether to report % reduced or % remaining after compression (% reduced seems the norm)
 - introduction to short-message compression and challenges thereof.
-  - example of problems in practice: http://joelfillmore.com/compressed-utf-8-strings-in-sql-azure/
+  - example of description of problems in practice (primarily large minimum size for most compressors): http://joelfillmore.com/compressed-utf-8-strings-in-sql-azure/
   - example of problems in practice: 
 - explain arithmetic coding.
 - explain interpolative coding.
@@ -58,6 +59,12 @@ eprint = {}
 }
 - compare with solely packing schemes, such as described in http://journal.thobe.org/2011/02/better-support-for-short-strings-in.html
 - compare with this paper (unspecified compression scheme, ~21% reduction): http://www.cscjournals.org/csc/manuscript/Journals/IJCSS/volume3/Issue6/IJCSS-169.pdf
+- compare with commercial compressed SMS applications:
+  - http://smszipper.com/en/about/ - claims typical compression of 50%-55% reduction in size (similar to us)
+  - http://www.paninikeypad.com/index1.php - compresses unicode messages
+  - http://www.clevertexting.com/ - claims  30-40% reduction in size at present.
+- compare with PAQ (various papers describing it)
+  - paq8l results in 5% larger output (629 versus 596 bytes) on average for the SMAZ mini-corpus due to overheads. Only the longer messages compress using PAQ.  example of challenge with short-message compression. PAQ is also VERY slow (~8kb/sec) and uses lots of memory, so disqualifies itself from this particular use case in several ways. see RESULTS file for compactness that PAQ can achieve when given the whole lot of messages at once, as an estimate of what level of performance we should aspire to.
 - compare results with SMAZ (see RESULTS file).
 - compare results with bzip2 -9 / gzip -9 of combined corpus (see RESULTS file).
 

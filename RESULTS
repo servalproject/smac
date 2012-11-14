@@ -10,6 +10,10 @@ Serval-MBP-2:smaz gardners$ cat twitter_corpus?.txt | gzip -9 | wc
    24890  137209 5870254
 Serval-MBP-2:smaz gardners$ cat twitter_corpus?.txt | bzip2 -9 | wc
    19441  109087 4764030
+Serval-MBP-2:paq gardners$ ./paq8l all.txt
+Creating archive all.txt.paq8l with 1 file(s)...
+all.txt 11011615 -> 3560919     
+11011615 -> 3560949
 Serval-MBP-2:smaz gardners$ ./method_stats3 twitter_corpus{1,2,3}.txt
 Summary:
          compressed size: 45.118807% (bit oriented)
