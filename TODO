@@ -3,7 +3,7 @@ release the ruby script to build new specialized dictionaries
 play well against currupted input in verbatim 253/254 codes memcpy()
 play with some form of entropy coding like Huffman or range coding
 
-tweet_freq:
+method_stats3::
 - gather stats on all upper-case words and try encoding case that way
   (should be good for long strings of upper case characters as well)
 - gather stats on what fraction of words compress using 3rd-order symbol
@@ -13,3 +13,54 @@ tweet_freq:
   optimise selection of different models at different points, and determining
   the optimal cost for model-switching.
 - rle encoding option for long strings of same character?  
+- convert statistics to a tree representation with variable depth, so that
+  we model more common sequences very deeply, and rarer sequences only
+  shallowly.
+- when building stats from multiple corpora, filter out "words" that only 
+  appear in only a single or small fraction of corpora.  Probably very
+  important when priming from samples of tweets where temporal correlation
+  can result in spurious frequency of words.
+
+more generally:
+- look at pre-priming zlib with a static dictionary, and then seeing how
+  well it performs compared with either the original smaz or stats3 methods.
+
+Documentation/paper-writing:
+- introduction to short-message compression and challenges thereof.
+  - example of problems in practice: http://joelfillmore.com/compressed-utf-8-strings-in-sql-azure/
+  - example of problems in practice: 
+- explain arithmetic coding.
+- explain interpolative coding.
+- explain training corpus gathering (including Twitter's annoying prohibition
+  on making twitter corpora publicly available).
+- explain model selection coding scheme.
+- explain message length coding scheme.
+- explain upper-case coding scheme.
+- explain "binary character" coding scheme.
+- explain "text character" coding scheme.
+
+- compare stats3 algorithm with SMAZ algorithm.
+- compare with 3GPP/GSMA algorithm.
+- compare with http://tools.ietf.org/html/rfc1978
+- compare with cm.zip mentioned here (but no long available) as a broadly similar approach: http://encode.ru/threads/449-Most-efficient-practical-compression-method-for-short-strings
+- compare with IBM "shortBWT": http://domino.watson.ibm.com/library/CyberDig.nsf/7d11afdf5c7cda94852566de006b4127/d098f3f0f8ca1fd785256c6a004f24f4?OpenDocument
+  - published version of above is at: http://proceedings.spiedigitallibrary.org/proceeding.aspx?articleid=827316
+@article{doi:10.1117/12.507758,
+author = {Constantinescu, Cornel and Trelewicz, Jennifer Q. and Arps, Ronald B.},
+title = {Natural language insensitive short textual string compression},
+volume = {},
+number = {},
+pages = {1-10},
+year = {2004},
+doi = {10.1117/12.507758},
+URL = { + http://dx.doi.org/10.1117/12.507758},
+eprint = {}
+}
+- compare with solely packing schemes, such as described in http://journal.thobe.org/2011/02/better-support-for-short-strings-in.html
+- compare with this paper (unspecified compression scheme, ~21% reduction): http://www.cscjournals.org/csc/manuscript/Journals/IJCSS/volume3/Issue6/IJCSS-169.pdf
+- compare results with SMAZ (see RESULTS file).
+- compare results with bzip2 -9 / gzip -9 of combined corpus (see RESULTS file).
+
+- note unicode not currently handled well.  Consider using http://en.wikipedia.org/wiki/Standard_Compression_Scheme_for_Unicode and http://en.wikipedia.org/wiki/Binary_Ordered_Compression_for_Unicode (the later is patent encumbered by IBM).
+
+- draw conclusions.

@@ -1,0 +1,88 @@
+Simple summary of performance compared with "big string compressors" being
+fed all data at once, versus us compressing each string separately (but
+with the advantage of having trained on the messages first).  
+
+We outperform gzip -9, and get pretty close to bzip -9, which is not bad
+given that bzip -9 is a very strong compressor that needs 900K of text
+at a time in order to perform.
+
+Serval-MBP-2:smaz gardners$ cat twitter_corpus?.txt | gzip -9 | wc
+   24890  137209 5870254
+Serval-MBP-2:smaz gardners$ cat twitter_corpus?.txt | bzip2 -9 | wc
+   19441  109087 4764030
+Serval-MBP-2:smaz gardners$ ./method_stats3 twitter_corpus{1,2,3}.txt
+Summary:
+         compressed size: 45.118807% (bit oriented)
+         compressed size: 45.953101% (byte oriented)
+       uncompressed bits: 86463632
+        compressed bytes: 4966590      <<<< this is the line to read here.
+         compressed bits: 39011359
+    length-encoding bits: 1247023
+     model-encoding bits: 1018305
+      case-encoding bits: 2582384
+     alpha-encoding bits: 33586780
+  nonalpha-encoding bits: 0
+
+For comparison with SMAZ:
+1. basically we do MUCH better, even on SMAZ's mini-corpus
+   55% of SMAZ output size for twitter_corpus{1,2,3}.txt
+   78% of SMAZ output size for SMAZ mini-corpus
+
+Serval-MBP-2:smaz gardners$ ./method_stats3 smaz_corpus1.txt 
+Summary:
+         compressed size: 48.316062% (bit oriented)
+         compressed size: 49.740933% (byte oriented)
+       uncompressed bits: 4632
+        compressed bytes: 288
+         compressed bits: 2238
+    length-encoding bits: 108
+     model-encoding bits: 85
+      case-encoding bits: 69
+     alpha-encoding bits: 1927
+  nonalpha-encoding bits: 0
+   SMAZ compressed bytes: 371 (for comparison)
+    SMAZ compressed size: 64.075993% (byte oriented; for comparison)
+Serval-MBP-2:smaz gardners$ ./method_stats3 twitter_corpus1.txt 
+Summary:
+         compressed size: 47.787303% (bit oriented)
+         compressed size: 49.015758% (byte oriented)
+       uncompressed bits: 5789632
+        compressed bytes: 354729
+         compressed bits: 2766709
+    length-encoding bits: 117230
+     model-encoding bits: 102185
+      case-encoding bits: 194353
+     alpha-encoding bits: 2297058
+  nonalpha-encoding bits: 0
+   SMAZ compressed bytes: 634911 (for comparison)
+    SMAZ compressed size: 87.730757% (byte oriented; for comparison)
+Serval-MBP-2:smaz gardners$ ./method_stats3 twitter_corpus{1,2,3}.txt 
+Summary:
+         compressed size: 45.118807% (bit oriented)
+         compressed size: 45.953101% (byte oriented)
+       uncompressed bits: 86463632
+        compressed bytes: 4966590
+         compressed bits: 39011359
+    length-encoding bits: 1247023
+     model-encoding bits: 1018305
+      case-encoding bits: 2582384
+     alpha-encoding bits: 33586780
+  nonalpha-encoding bits: 0
+   SMAZ compressed bytes: 8856382 (for comparison)
+    SMAZ compressed size: 81.943187% (byte oriented; for comparison)
+
+Comparison with IJCSS-169 paper (they reduce to only ~78% using an unspecified algorithm):
+Serval-MBP-2:smaz gardners$ ./method_stats3 IJCSS-169.txt 
+Summary:
+         compressed size: 48.036831% (bit oriented)
+         compressed size: 48.366921% (byte oriented)
+       uncompressed bits: 11512
+        compressed bytes: 696
+         compressed bits: 5530
+    length-encoding bits: 140
+     model-encoding bits: 40
+      case-encoding bits: 303
+     alpha-encoding bits: 5024
+  nonalpha-encoding bits: 0
+   SMAZ compressed bytes: 1297 (for comparison)
+    SMAZ compressed size: 90.132036% (byte oriented; for comparison)
