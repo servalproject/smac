@@ -57,9 +57,9 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length);
 int decodePackedASCII(range_coder *c, char *m,int encodedLength);
 int encodePackedASCII(range_coder *c,char *m);
 
-unsigned int probPackedASCII=0.95*0xffffff;
+unsigned int probPackedASCII=0.05*0xffffff;
 
-int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
+int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out)
 {
   int i;
   *len_out=0;
@@ -127,7 +127,23 @@ int stats3_decompress(range_coder *c,unsigned char m[1025],int *len_out)
   return 0;
 }
 
-int stats3_compress(range_coder *c,unsigned char *m)
+int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outlen)
+{
+  range_coder *c=range_new_coder(inlen);
+  bcopy(in,c->bit_stream,inlen);
+  c->bit_stream_length=inlen*8;
+  c->bits_used=0;
+  c->low=0;
+  c->high=0xffffffff;
+  range_decode_prefetch(c);
+
+  stats3_decompress_bits(c,out,outlen);
+
+  range_coder_free(c);
+  return 0;
+}
+
+int stats3_compress_bits(range_coder *c,unsigned char *m)
 {
   unsigned char alpha[1024]; // message with all non alpha/spaces removed
   unsigned char lcalpha[1024]; // message with all alpha chars folded to lower-case
@@ -219,4 +235,14 @@ int stats3_compress(range_coder *c,unsigned char *m)
   return 0;
 }
 
-
+int stats3_compress(unsigned char *in,int inlen,unsigned char *out, int *outlen)
+{
+  range_coder *c=range_new_coder(inlen*2);
+  stats3_compress_bits(c,in);
+  range_conclude(c);
+  *outlen=c->bits_used>>3;
+  if (c->bits_used&7) (*outlen)++;
+  bcopy(c->bit_stream,out,*outlen);
+  range_coder_free(c);
+  return 0;
+}

@@ -5,6 +5,8 @@ DEFS=
 
 OBJS=	main.o \
 	\
+	smaz.o \
+	\
 	method_stats3.o \
 	\
 	case.o \

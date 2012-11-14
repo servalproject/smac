@@ -37,10 +37,29 @@ long long total_model_bits=0;
 long long total_length_bits=0;
 long long total_finalisation_bits=0;
 
+long long total_stats3_bytes=0;
+long long total_smaz_bytes=0;
+
 int main(int argc,char *argv[])
 {
   if (!argv[1]) {
-    fprintf(stderr,"Must provide message to compress.\n");
+    fprintf(stderr,"You didn't provide me any messages to test, so I'll make some up.\n");
+    range_coder *c=range_new_coder(2048);
+    while(1)
+      {
+	int i;
+	for(i=0;i<2048;i++) c->bit_stream[i]=random()&0xff;
+	c->bit_stream[0]|=0x80; // make sure it gets treated as a compressed message.
+	c->low=0; c->high=0xffffffff;
+	c->bit_stream_length=8192;
+	c->bits_used=0;
+	range_decode_prefetch(c);
+	char out[2048];
+	int lenout;
+	stats3_decompress_bits(c,out,&lenout);
+	printf("%s\n",out);
+      }
+
     exit(-1);
   }
   
@@ -60,15 +79,21 @@ int main(int argc,char *argv[])
   }
 
   printf("Summary:\n");
-  printf("         compressed size: %f%%\n",
+  printf("         compressed size: %f%% (bit oriented)\n",
 	 total_compressed_bits*100.0/total_uncompressed_bits);
+  printf("         compressed size: %f%% (byte oriented)\n",
+	 total_stats3_bytes*100.0/(total_uncompressed_bits/8.0));
   printf("       uncompressed bits: %lld\n",total_uncompressed_bits);
+  printf("        compressed bytes: %lld\n",total_stats3_bytes);
   printf("         compressed bits: %lld\n",total_compressed_bits);
   printf("    length-encoding bits: %lld\n",total_length_bits);
   printf("     model-encoding bits: %lld\n",total_model_bits);
   printf("      case-encoding bits: %lld\n",total_case_bits);
   printf("     alpha-encoding bits: %lld\n",total_alpha_bits);
   printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
+  printf("   SMAZ compressed bytes: %lld (for comparison)\n",total_smaz_bytes);
+  printf("    SMAZ compressed size: %f%% (byte oriented; for comparison)\n",
+	 total_smaz_bytes*100.0/(total_uncompressed_bits/8.0));
 
   return 0;
 }
@@ -84,10 +109,21 @@ int processFile(FILE *f)
     m[strlen(m)-1]=0;
 
     range_coder *c=range_new_coder(1024);
-    stats3_compress(c,(unsigned char *)m);
+    stats3_compress_bits(c,(unsigned char *)m);
 
     total_compressed_bits+=c->bits_used;
     total_uncompressed_bits+=strlen(m)*8;
+
+    /* Also count whole bytes for comparison with SMAZ etc */
+    total_stats3_bytes+=c->bits_used>>3;
+    if (c->bits_used&7) total_stats3_bytes++;
+
+    /* Compare with SMAZ original algorithm */
+    {
+      unsigned char out[2048];
+      int outlen=smaz_compress(m,strlen(m),out,2048);
+      total_smaz_bytes+=outlen;
+    }
 
     double percent=c->bits_used*100.0/(strlen(m)*8);
     if (percent<bestPercent) bestPercent=percent;
@@ -104,7 +140,7 @@ int processFile(FILE *f)
       
       range_decode_prefetch(d);
 
-      stats3_decompress(d,mout,&lenout);
+      stats3_decompress_bits(d,mout,&lenout);
 
       if (lenout!=strlen(m)) {	
 	printf("Verify error: length mismatch: decoded = %d, original = %d\n",lenout,(int)strlen(m));
