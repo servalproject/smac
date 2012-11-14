@@ -74,7 +74,7 @@ int encodeNonAlpha(range_coder *c,unsigned char *m)
      Encode count, then write the chars, then use interpolative encoding to
      encode their positions. */
 
-  char v[1024];
+  unsigned char v[1024];
   int pos[1024];
   int count=0;
   
