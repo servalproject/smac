@@ -36,8 +36,8 @@ arithmetic:	arithmetic.c arithmetic.h
 	# Build for running tests
 	gcc -g -Wall -DSTANDALONE -o arithmetic arithmetic.c
 
-gen_stats:	gen_stats.c
-	gcc -g -Wall -o gen_stats gen_stats.c
+gen_stats:	gen_stats.c arithmetic.o
+	gcc -g -Wall -o gen_stats gen_stats.c arithmetic.o
 
 message_stats.c:	gen_stats twitter_corpus*.txt
 	cat twitter_corpus*.txt |./gen_stats > message_stats.c

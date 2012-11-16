@@ -18,8 +18,10 @@
 #include <ctype.h>
 #include <math.h>
 
+#include "arithmetic.h"
+
 typedef struct node {
-  int leafP;
+  long long count;
   unsigned int counts[69];
   struct node *children[69];
 } node;
@@ -78,6 +80,7 @@ int countChars(unsigned char *s,int len)
       *n=calloc(sizeof(struct node),1);
       nodeCount++;
     }
+    (*n)->count++;
     (*n)->counts[c]++;
     n=&(*n)->children[c];
     j++;
@@ -85,7 +88,7 @@ int countChars(unsigned char *s,int len)
   return 0;
 }
 
-int scanChars(struct node *n,char *s)
+unsigned int scanChars(FILE *out,struct node *n,char *s)
 {
   char schild[128];
   int i;
@@ -93,17 +96,90 @@ int scanChars(struct node *n,char *s)
   long long totalCount=0;
 
   for(i=0;i<69;i++) totalCount+=n->counts[i];
-  printf("sequence '%s' occurs %lld times.\n",s,totalCount);
+  // printf("sequence '%s' occurs %lld times.\n",s,totalCount);
   /* Don't go any deeper if the sequence is too rare */
-  if (totalCount<10) return 0;
+  if (totalCount<100) return 0;
+
+  int children=0;
+  for(i=0;i<69;i++) 
+    if (n->children[i]) children++;
+      
+  range_coder *c=range_new_coder(1024);
+
+  range_encode_equiprobable(c,70,children);
+
+  int lastChild=0;
+
+  int childAddresses[69];
+
+  /* Encode children so that we know where they live */
+  for(i=0;i<69;i++)
+    if (n->children[i])
+      if (n->children[i]->count>=100) {
+	snprintf(schild,128,"%s%c",s,chars[i]);
+	childAddresses[i]=scanChars(out,n->children[i],schild);
+      }
+	
+  unsigned int highAddr=ftell(out);
+  unsigned int lowAddr=0;
 
   for(i=0;i<69;i++) {
     if (n->children[i]) {
-      snprintf(schild,128,"%s%c",s,chars[i]);
-      scanChars(n->children[i],schild);
+	range_encode_equiprobable(c,69-lastChild,i-lastChild);
+	lastChild=i;
+	range_encode_equiprobable(c,totalCount+1,n->children[i]->count);       
+
+	if (n->children[i]->count>=100) {
+	  range_encode_equiprobable(c,2,1);
+	  
+	  /* Encode address of child node compactly.
+	     For starters, we know that it must preceed us in the bit stream.
+	     We also know that we write them in order, so once we know the address
+	     of a previous one, we can narrow the range further. */
+	  range_encode_equiprobable(c,highAddr-lowAddr+1,childAddresses[i]-lowAddr);
+	  lowAddr=childAddresses[i];
+	} else 
+	  range_encode_equiprobable(c,2,0);
     }
+}  
+
+unsigned int addr = ftello(out);
+  int bytes=c->bits_used>>3;
+  if (c->bits_used&7) bytes++;
+  fwrite(c->bit_stream,bytes,1,out);
+  range_coder_free(c);
+  
+  return addr;
+}
+
+int dumpVariableOrderStats()
+{
+  FILE *out=fopen("stats.dat","w");
+  if (!out) {
+    fprintf(stderr,"Could not write to stats.dat");
+    return -1;
   }
 
+  /* Keep space for our header */
+  fprintf(out,"STA1XXXXYYYY");
+
+  unsigned int topNodeAddress=scanChars(out,nodeTree,"");
+
+  fseek(out,4,SEEK_SET);
+  fputc((topNodeAddress>>24)&0xff,out);
+  fputc((topNodeAddress>>16)&0xff,out);
+  fputc((topNodeAddress>> 8)&0xff,out);
+  fputc((topNodeAddress>> 0)&0xff,out);
+
+  unsigned int totalCount=0;
+  int i;
+  for(i=0;i<69;i++) totalCount+=nodeTree->counts[i];
+  fputc((totalCount>>24)&0xff,out);
+  fputc((totalCount>>16)&0xff,out);
+  fputc((totalCount>> 8)&0xff,out);
+  fputc((totalCount>> 0)&0xff,out);
+
+  fclose(out);
 }
 
 int sortWordList(int alphaP);
@@ -568,8 +644,7 @@ int main(int argc,char **argv)
   }
   fprintf(stderr,"Created %lld nodes.\n",nodeCount);
 
-  scanChars(nodeTree,"");
-  return 0;
+  dumpVariableOrderStats();
 
   fprintf(stderr,"\nWriting letter frequency statistics.\n");
 
