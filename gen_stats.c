@@ -18,6 +18,15 @@
 #include <ctype.h>
 #include <math.h>
 
+typedef struct node {
+  int leafP;
+  unsigned int counts[69];
+  struct node *children[69];
+} node;
+
+struct node *nodeTree=NULL;
+long long nodeCount=0;
+
 /* 3rd - 1st order frequency statistics for all characters */
 long long counts3[69][69][69];
 long long counts2[69][69];
@@ -38,8 +47,6 @@ long long wordBreaks=0;
 unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
 unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
 
-int sortWordList(int alphaP);
-
 int charIdx(unsigned char c)
 {
   int i;
@@ -57,6 +64,49 @@ int charInWord(unsigned c)
   for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
   return 0;
 }
+
+int countChars(unsigned char *s,int len)
+{
+  int j=len-5;
+  if (j<0) j=0;
+ 
+  struct node **n=&nodeTree;
+  while(j<=len) {
+    int c=charIdx(s[j]);
+    if (c<0) break;
+    if (!(*n)) {
+      *n=calloc(sizeof(struct node),1);
+      nodeCount++;
+    }
+    (*n)->counts[c]++;
+    n=&(*n)->children[c];
+    j++;
+  }
+  return 0;
+}
+
+int scanChars(struct node *n,char *s)
+{
+  char schild[128];
+  int i;
+
+  long long totalCount=0;
+
+  for(i=0;i<69;i++) totalCount+=n->counts[i];
+  printf("sequence '%s' occurs %lld times.\n",s,totalCount);
+  /* Don't go any deeper if the sequence is too rare */
+  if (totalCount<10) return 0;
+
+  for(i=0;i<69;i++) {
+    if (n->children[i]) {
+      snprintf(schild,128,"%s%c",s,chars[i]);
+      scanChars(n->children[i],schild);
+    }
+  }
+
+}
+
+int sortWordList(int alphaP);
 
 char **words;
 int *wordCounts;
@@ -423,7 +473,8 @@ int main(int argc,char **argv)
   int wordCount=0;
 
   fprintf(stderr,"Reading corpus [.=5k lines]: ");
-  while(line[0]) {
+  while(line[0]) {    
+
     int som=1;
     lineCount++;
     int c1=charIdx(' ');
@@ -438,6 +489,8 @@ int main(int argc,char **argv)
 
     for(i=0;i<strlen(line)-1;i++)
       {
+	countChars(line,i);
+
 	if (line[i]=='\\') {
 	  switch(line[i+1]) {
 	    
@@ -513,6 +566,11 @@ int main(int argc,char **argv)
       if (f) goto trynextfile;
     }
   }
+  fprintf(stderr,"Created %lld nodes.\n",nodeCount);
+
+  scanChars(nodeTree,"");
+  return 0;
+
   fprintf(stderr,"\nWriting letter frequency statistics.\n");
 
   printf("unsigned int char_freqs3[69][69][69]={\n");
