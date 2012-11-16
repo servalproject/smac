@@ -20,6 +20,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <unistd.h>
 #include <strings.h>
+#include<sys/types.h>
+#include<sys/time.h>
 
 #include "arithmetic.h"
 #include "method_stats3.h"
@@ -37,8 +39,15 @@ long long total_model_bits=0;
 long long total_length_bits=0;
 long long total_finalisation_bits=0;
 
+long long total_messages=0;
+
 long long total_stats3_bytes=0;
 long long total_smaz_bytes=0;
+
+long long stats3_compress_us=0;
+long long stats3_decompress_us=0;
+long long smaz_compress_us=0;
+long long smaz_decompress_us=0;
 
 int main(int argc,char *argv[])
 {
@@ -94,13 +103,30 @@ int main(int argc,char *argv[])
   printf("   SMAZ compressed bytes: %lld (for comparison)\n",total_smaz_bytes);
   printf("    SMAZ compressed size: %f%% (byte oriented; for comparison)\n",
 	 total_smaz_bytes*100.0/(total_uncompressed_bits/8.0));
+  printf("\n");
+  printf("stats3 compression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
+	 stats3_compress_us,1000000.0/(stats3_compress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_compress_us);
+  printf("stats3 decompression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
+	 stats3_decompress_us,1000000.0/(stats3_decompress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_decompress_us);
+  printf("SMAZ compression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
+	 smaz_compress_us,1000000.0/(smaz_compress_us*1.0/total_messages),total_uncompressed_bits*0.125/smaz_compress_us);
+  printf("SMAZ decompression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
+	 smaz_decompress_us,1000000.0/(smaz_decompress_us*1.0/total_messages),total_uncompressed_bits*0.125/smaz_decompress_us);
 
   return 0;
+}
+
+long long current_time_us()
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return tv.tv_usec+tv.tv_sec*1000000LL;
 }
 
 int processFile(FILE *f)
 {
   char m[1024]; // raw message, no pre-processing
+  long long now;
 
   m[0]=0; fgets(m,1024,f);
   
@@ -108,8 +134,12 @@ int processFile(FILE *f)
     /* chop newline */
     m[strlen(m)-1]=0;
 
+    total_messages++;
+
     range_coder *c=range_new_coder(1024);
+    now = current_time_us();
     stats3_compress_bits(c,(unsigned char *)m);
+    stats3_compress_us+=current_time_us()-now;
 
     total_compressed_bits+=c->bits_used;
     total_uncompressed_bits+=strlen(m)*8;
@@ -121,8 +151,16 @@ int processFile(FILE *f)
     /* Compare with SMAZ original algorithm */
     {
       unsigned char out[2048];
+      now=current_time_us();
       int outlen=smaz_compress(m,strlen(m),out,2048);
+      smaz_compress_us+=current_time_us()-now;   
       total_smaz_bytes+=outlen;
+
+      unsigned char out2[2048];
+      now=current_time_us();
+      outlen=smaz_decompress(out,outlen,out2,2048);
+      smaz_decompress_us+=current_time_us()-now;   
+      
     }
 
     double percent=c->bits_used*100.0/(strlen(m)*8);
@@ -138,9 +176,10 @@ int processFile(FILE *f)
       d->bits_used=0;
       d->low=0; d->high=0xffffffff;
       
+      now=current_time_us();
       range_decode_prefetch(d);
-
       stats3_decompress_bits(d,mout,&lenout);
+      stats3_decompress_us+=current_time_us()-now;
 
       if (lenout!=strlen(m)) {	
 	printf("Verify error: length mismatch: decoded = %d, original = %d\n",lenout,(int)strlen(m));
