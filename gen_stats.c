@@ -88,8 +88,10 @@ int countChars(unsigned char *s,int len)
   return 0;
 }
 
-unsigned int scanChars(FILE *out,struct node *n,char *s)
+int nodesWritten=0;
+unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
 {
+  nodesWritten++;
   char schild[128];
   int i;
 
@@ -98,7 +100,7 @@ unsigned int scanChars(FILE *out,struct node *n,char *s)
   for(i=0;i<69;i++) totalCount+=n->counts[i];
   // printf("sequence '%s' occurs %lld times.\n",s,totalCount);
   /* Don't go any deeper if the sequence is too rare */
-  if (totalCount<100) return 0;
+  if (totalCount<threshold) return 0;
 
   int children=0;
   for(i=0;i<69;i++) 
@@ -111,50 +113,79 @@ unsigned int scanChars(FILE *out,struct node *n,char *s)
   int lastChild=0;
 
   int childAddresses[69];
+  int childCount=0;
 
   /* Encode children so that we know where they live */
+  int lowChild=68;
+  int highChild=-1;
   for(i=0;i<69;i++)
-    if (n->children[i])
-      if (n->children[i]->count>=100) {
+    if (n->children[i]) {
+      if (n->children[i]->count>=threshold) {
 	snprintf(schild,128,"%s%c",s,chars[i]);
-	childAddresses[i]=scanChars(out,n->children[i],schild);
+	childAddresses[i]=writeNode(out,n->children[i],schild,threshold);
       }
-	
+      if (i<lowChild) lowChild=i;
+      if (i>highChild) highChild=i;
+      childCount++;
+    }
+  
+  range_encode_equiprobable(c,69+1,childCount);
+  if (childCount) range_encode_equiprobable(c,69,highChild);
+
   unsigned int highAddr=ftell(out);
   unsigned int lowAddr=0;
 
   for(i=0;i<69;i++) {
     if (n->children[i]) {
-	range_encode_equiprobable(c,69-lastChild,i-lastChild);
-	lastChild=i;
-	range_encode_equiprobable(c,totalCount+1,n->children[i]->count);       
-
-	if (n->children[i]->count>=100) {
-	  range_encode_equiprobable(c,2,1);
-	  
-	  /* Encode address of child node compactly.
-	     For starters, we know that it must preceed us in the bit stream.
-	     We also know that we write them in order, so once we know the address
-	     of a previous one, we can narrow the range further. */
-	  range_encode_equiprobable(c,highAddr-lowAddr+1,childAddresses[i]-lowAddr);
-	  lowAddr=childAddresses[i];
-	} else 
-	  range_encode_equiprobable(c,2,0);
+      if (childCount>1)
+	range_encode_equiprobable(c,highChild+1-lastChild,i-lastChild);
+      childCount--;
+      lastChild=i;
+      range_encode_equiprobable(c,totalCount+1,n->children[i]->count);       
+      
+      if (n->children[i]->count>=threshold) {
+	range_encode_equiprobable(c,2,1);
+	
+	/* Encode address of child node compactly.
+	   For starters, we know that it must preceed us in the bit stream.
+	   We also know that we write them in order, so once we know the address
+	   of a previous one, we can narrow the range further. */
+	range_encode_equiprobable(c,highAddr-lowAddr+1,childAddresses[i]-lowAddr);
+	lowAddr=childAddresses[i];
+      } else 
+	range_encode_equiprobable(c,2,0);
     }
-}  
-
-unsigned int addr = ftello(out);
+  }
+  
+  unsigned int addr = ftello(out);
   int bytes=c->bits_used>>3;
   if (c->bits_used&7) bytes++;
   fwrite(c->bit_stream,bytes,1,out);
+  // fprintf(stderr,"%s %f\n",s,c->entropy);
   range_coder_free(c);
   
   return addr;
 }
 
+struct node *extractNode(char *string,FILE *f)
+{
+  int i;
+
+  unsigned int rootNodeAddress=0;
+  unsigned int totalCount=0;
+
+  fseek(f,4,SEEK_SET);
+  for(i=0;i<4;i++) rootNodeAddress=(rootNodeAddress<<8)|(unsigned char)fgetc(f);
+  for(i=0;i<4;i++) totalCount=(totalCount<<8)|(unsigned char)fgetc(f);
+  fprintf(stderr,"root node is at 0x%08x, total count = %d\n",
+	  rootNodeAddress,totalCount);
+
+  return NULL;
+}
+
 int dumpVariableOrderStats()
 {
-  FILE *out=fopen("stats.dat","w");
+  FILE *out=fopen("stats.dat","w+");
   if (!out) {
     fprintf(stderr,"Could not write to stats.dat");
     return -1;
@@ -163,7 +194,8 @@ int dumpVariableOrderStats()
   /* Keep space for our header */
   fprintf(out,"STA1XXXXYYYY");
 
-  unsigned int topNodeAddress=scanChars(out,nodeTree,"");
+  unsigned int topNodeAddress=writeNode(out,nodeTree,"",
+					100 /* minimum frequency to count */);
 
   fseek(out,4,SEEK_SET);
   fputc((topNodeAddress>>24)&0xff,out);
@@ -179,7 +211,13 @@ int dumpVariableOrderStats()
   fputc((totalCount>> 8)&0xff,out);
   fputc((totalCount>> 0)&0xff,out);
 
+  fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
+
+  extractNode("http:",out);
+
   fclose(out);
+
+  return 0;
 }
 
 int sortWordList(int alphaP);
@@ -642,6 +680,8 @@ int main(int argc,char **argv)
       if (f) goto trynextfile;
     }
   }
+  fprintf(stderr,"\n");
+  
   fprintf(stderr,"Created %lld nodes.\n",nodeCount);
 
   dumpVariableOrderStats();
