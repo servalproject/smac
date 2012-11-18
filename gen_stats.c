@@ -108,8 +108,6 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
       
   range_coder *c=range_new_coder(1024);
 
-  range_encode_equiprobable(c,70,children);
-
   int lastChild=0;
 
   int childAddresses[69];
@@ -129,19 +127,21 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
       childCount++;
     }
   
-  range_encode_equiprobable(c,69+1,childCount);
-  if (childCount) range_encode_equiprobable(c,69,highChild);
+  range_encode_equiprobable(c,children+1,childCount);
+  if (childCount) range_encode_equiprobable(c,69+1,highChild);
 
   unsigned int highAddr=ftell(out);
   unsigned int lowAddr=0;
 
+  unsigned int remainingCount=totalCount;
   for(i=0;i<69;i++) {
     if (n->children[i]) {
       if (childCount>1)
 	range_encode_equiprobable(c,highChild+1-lastChild,i-lastChild);
       childCount--;
       lastChild=i;
-      range_encode_equiprobable(c,totalCount+1,n->children[i]->count);       
+      range_encode_equiprobable(c,remainingCount+1,n->children[i]->count);
+      remainingCount-=n->children[i]->count;
       
       if (n->children[i]->count>=threshold) {
 	range_encode_equiprobable(c,2,1);
@@ -167,6 +167,47 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   return addr;
 }
 
+struct node *extractNodeAt(unsigned int nodeAddress,int count,FILE *f)
+{
+  range_coder *c=range_new_coder(8192);
+  fread(c->bit_stream,8192,1,f);
+  c->bit_stream_length=8192*8;
+  c->bits_used=0;
+  c->low=0; c->high=0xffffffff;
+
+  int children=range_decode_equiprobable(c,70);
+  int storedChildren=range_decode_equiprobable(c,children+1);
+  int highChild=68;
+  int lastChild=0;
+  unsigned int progressiveCount=0;
+  unsigned int thisCount;
+
+  unsigned int highAddr=nodeAddress;
+  unsigned int lowAddr=0;
+  unsigned int childAddress;
+  int thisChild;
+  int i;
+
+  if (storedChildren) highChild=range_decode_equiprobable(c,69+1);
+  for(i=0;i<storedChildren;i++) {
+    if (storedChildren>1) 
+      thisChild=lastChild+range_decode_equiprobable(c,highChild+1-lastChild);
+    else 
+      thisChild=highChild;
+    lastChild=thisChild;
+    
+    thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
+    progressiveCount+=thisCount;
+
+    if (range_decode_equiprobable(c,2)) {
+      childAddress=range_decode_equiprobable(c,highAddr-lowAddr+1);
+      lowAddr=childAddress;
+    }        
+  }
+
+  return NULL;
+}
+
 struct node *extractNode(char *string,FILE *f)
 {
   int i;
@@ -179,6 +220,8 @@ struct node *extractNode(char *string,FILE *f)
   for(i=0;i<4;i++) totalCount=(totalCount<<8)|(unsigned char)fgetc(f);
   fprintf(stderr,"root node is at 0x%08x, total count = %d\n",
 	  rootNodeAddress,totalCount);
+
+  struct node *n=extractNodeAt(rootNodeAddress,totalCount,f);
 
   return NULL;
 }
