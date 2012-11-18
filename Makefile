@@ -14,6 +14,7 @@ OBJS=	main.o \
 	lowercasealpha.o \
 	nonalpha.o \
 	packedascii.o \
+	packed_stats.o \
 	\
 	charset.o \
 	entropyutil.o \
@@ -22,7 +23,7 @@ OBJS=	main.o \
 	arithmetic.o \
 	gsinterpolative.o
 
-HDRS=	charset.h arithmetic.h message_stats.h Makefile
+HDRS=	charset.h arithmetic.h message_stats.h packed_stats.h Makefile
 
 all: method_stats3 arithmetic gsinterpolative # smaz_test gen_stats tweet_stats.c
 
@@ -36,8 +37,8 @@ arithmetic:	arithmetic.c arithmetic.h
 	# Build for running tests
 	gcc -g -Wall -DSTANDALONE -o arithmetic arithmetic.c
 
-gen_stats:	gen_stats.c arithmetic.o
-	gcc -g -Wall -o gen_stats gen_stats.c arithmetic.o
+gen_stats:	gen_stats.c arithmetic.o packed_stats.o
+	gcc -g -Wall -o gen_stats gen_stats.c arithmetic.o packed_stats.o
 
 message_stats.c:	gen_stats twitter_corpus*.txt
 	cat twitter_corpus*.txt |./gen_stats

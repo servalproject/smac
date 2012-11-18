@@ -1,7 +1,7 @@
 /*
   (C) Paul Gardner-Stephen 2012.
 
-  Generate 3rd order statistics from a sample corpus.
+  Generate variable order statistics from a sample corpus.
   Designed to run over partly-escaped tweets as obtained from extract_tweets, 
   which should be run on the output from a run of:
 
@@ -9,8 +9,26 @@
 
   Twitter don't like people redistributing piles of tweets, so we will just
   include our summary statistics.
-
 */
+
+/*
+Copyright (C) 2012 Paul Gardner-Stephen
+ 
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+ 
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+ 
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
+
 
 #include <stdio.h>
 #include <strings.h>
@@ -19,6 +37,7 @@
 #include <math.h>
 
 #include "arithmetic.h"
+#include "packed_stats.h"
 
 /* Maximum order of statistics to calculate.
    Order 5 means we model each character on the previous 4.
@@ -26,12 +45,6 @@
 #define MAXIMUMORDER 5
 
 #define COUNTWORDS
-
-typedef struct node {
-  long long count;
-  unsigned int counts[69];
-  struct node *children[69];
-} node;
 
 struct node *nodeTree=NULL;
 long long nodeCount=0;
@@ -188,98 +201,6 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   // fprintf(stderr,"storedChildren=%d, highChild=%d\n",storedChildren,highChild);
 
   return addr;
-}
-
-struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
-{
-  range_coder *c=range_new_coder(8192);
-  fseek(f,nodeAddress,SEEK_SET);
-  fread(c->bit_stream,8192,1,f);
-  c->bit_stream_length=8192*8;
-  c->bits_used=0;
-  c->low=0; c->high=0xffffffff;
-  range_decode_prefetch(c);
-
-  int children=range_decode_equiprobable(c,69+1);
-  int storedChildren=range_decode_equiprobable(c,children+1);
-  int highChild=68;
-  int lastChild=0;
-  unsigned int progressiveCount=0;
-  unsigned int thisCount;
-
-  unsigned int highAddr=nodeAddress;
-  unsigned int lowAddr=0;
-  unsigned int childAddress;
-  int thisChild;
-  int i;
-
-  if (storedChildren) highChild=range_decode_equiprobable(c,69+1);
-  // fprintf(stderr,"children=%d, storedChildren=%d, highChild=%d\n",
-  // 	  children,storedChildren,highChild);
-
-  struct node *n=calloc(sizeof(struct node),1);
-
-  n->count=count;
-
-  for(i=0;i<children;i++) {
-    if (i<(children-1)) 
-      thisChild=lastChild+range_decode_equiprobable(c,highChild+1-lastChild);
-    else 
-      thisChild=highChild;
-    lastChild=thisChild;
-    
-    thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
-    progressiveCount+=thisCount;
-
-    n->counts[thisChild]=thisCount;
-
-    if (range_decode_equiprobable(c,2)) {
-      childAddress=lowAddr+range_decode_equiprobable(c,highAddr-lowAddr+1);
-      lowAddr=childAddress;
-      if (s[0]&&chars[thisChild]==s[0]) {
-	n->children[thisChild]=extractNodeAt(&s[1],childAddress,
-					     n->counts[thisChild],f);
-      }
-
-    } else childAddress=0;
-    if (0) 
-      if (chars[thisChild]==s[0])
-	fprintf(stderr,"%-5s : %d x '%c' @ 0x%x\n",s,
-		thisCount,chars[thisChild],childAddress);
-  }
-
-  return n;
-}
-
-struct node *extractNode(char *string,FILE *f)
-{
-  int i;
-
-  unsigned int rootNodeAddress=0;
-  unsigned int totalCount=0;
-
-  fseek(f,4,SEEK_SET);
-  for(i=0;i<4;i++) rootNodeAddress=(rootNodeAddress<<8)|(unsigned char)fgetc(f);
-  for(i=0;i<4;i++) totalCount=(totalCount<<8)|(unsigned char)fgetc(f);
-  if (0)
-    fprintf(stderr,"root node is at 0x%08x, total count = %d\n",
-	    rootNodeAddress,totalCount);
-
-  struct node *n=extractNodeAt(string,rootNodeAddress,totalCount,f);
-
-  struct node *n2=n;
-
-  for(i=0;i<strlen(string);i++) {
-    if (string[i+1]==0)
-      fprintf(stderr,"%c occurs %d/%lld (%.2f%%)\n",
-	      string[i],
-	      n2->counts[charIdx(string[i])],n2->count,
-	      n2->counts[charIdx(string[i])]*100.00/n2->count);
-    n2=n2->children[charIdx(string[i])];
-    if (!n2) break;
-  }
-
-  return NULL;
 }
 
 int rescaleCounts(struct node *n,double f)
@@ -913,7 +834,7 @@ int main(int argc,char **argv)
 
     for(i=0;i<strlen(line)-1;i++)
       {       
-	countChars(&line[i],strlen(&line[i]));
+	countChars((unsigned char *)&line[i],strlen(&line[i]));
 
 	if (line[i]=='\\') {
 	  switch(line[i+1]) {
