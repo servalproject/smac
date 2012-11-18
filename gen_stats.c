@@ -76,8 +76,8 @@ int charInWord(unsigned c)
 
 int countChars(unsigned char *s,int len)
 {
-  int j=len-MAXIMUMORDER;
-  if (j<0) j=0;
+  int j=0;
+  if (len>MAXIMUMORDER) len=MAXIMUMORDER;
  
   struct node **n=&nodeTree;
   while(j<=len) {
@@ -105,7 +105,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   long long totalCount=0;
 
   for(i=0;i<69;i++) totalCount+=n->counts[i];
-  // printf("sequence '%s' occurs %lld times.\n",s,totalCount);
+  if (0) fprintf(stderr,"sequence '%s' occurs %lld times.\n",s,totalCount);
   /* Don't go any deeper if the sequence is too rare */
   if (totalCount<threshold) return 0;
 
@@ -130,7 +130,9 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
       if (n->children[i]->count>=threshold) {
 	snprintf(schild,128,"%s%c",s,chars[i]);
 	childAddresses[i]=writeNode(out,n->children[i],schild,threshold);
-	fprintf(stderr, "'%s' @ 0x%x\n",schild,childAddresses[i]);
+	if (0) 
+	  fprintf(stderr, "'%s' x %lld @ 0x%x\n",
+		  schild,n->children[i]->count,childAddresses[i]);
 	storedChildren++;
       }
       if (i<lowChild) lowChild=i;
@@ -910,12 +912,8 @@ int main(int argc,char **argv)
     messagelengths[strlen(line)-1]++;
 
     for(i=0;i<strlen(line)-1;i++)
-      {
-	int k;
-	for(k=0;k<MAXIMUMORDER&&k<i;k++)
-	  {
-	    countChars((unsigned char *)&line[i-k],k+1);
-	  }
+      {       
+	countChars(&line[i],strlen(&line[i]));
 
 	if (line[i]=='\\') {
 	  switch(line[i+1]) {
