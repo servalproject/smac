@@ -291,6 +291,11 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 
 int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 {
+  if (alphabet_size>0xffffff) {
+    fprintf(stderr,"%s() passed alphabet_size>0xffffff\n",__FUNCTION__);
+    c->errors++;
+    exit(-1);
+  }
   unsigned int p_low=((symbol+0LL)<<SIGNIFICANTBITS)/alphabet_size;
   unsigned int p_high=((symbol+1LL)<<SIGNIFICANTBITS)/alphabet_size;
   if (symbol==alphabet_size-1) p_high=MAXVALUEPLUS1;
