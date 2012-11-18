@@ -20,6 +20,13 @@
 
 #include "arithmetic.h"
 
+/* Maximum order of statistics to calculate.
+   Order 5 means we model each character on the previous 4.
+*/
+#define MAXIMUMORDER 5
+
+#define COUNTWORDS
+
 typedef struct node {
   long long count;
   unsigned int counts[69];
@@ -69,7 +76,7 @@ int charInWord(unsigned c)
 
 int countChars(unsigned char *s,int len)
 {
-  int j=len-5;
+  int j=len-MAXIMUMORDER;
   if (j<0) j=0;
  
   struct node **n=&nodeTree;
@@ -117,17 +124,20 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   /* Encode children so that we know where they live */
   int lowChild=68;
   int highChild=-1;
-  for(i=0;i<69;i++)
+  for(i=0;i<69;i++) {
+    childAddresses[i]=0;
     if (n->children[i]) {
       if (n->children[i]->count>=threshold) {
 	snprintf(schild,128,"%s%c",s,chars[i]);
 	childAddresses[i]=writeNode(out,n->children[i],schild,threshold);
+	fprintf(stderr, "'%s' @ 0x%x\n",schild,childAddresses[i]);
 	storedChildren++;
       }
       if (i<lowChild) lowChild=i;
       if (i>highChild) highChild=i;
       childCount++;
     }
+  }
   
   /* Write number of children with counts */
   range_encode_equiprobable(c,69+1,childCount);
@@ -152,7 +162,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
       range_encode_equiprobable(c,remainingCount+1,n->children[i]->count);
       remainingCount-=n->children[i]->count;
       
-      if (n->children[i]->count>=threshold) {
+      if (childAddresses[i]) {
 	range_encode_equiprobable(c,2,1);
 	
 	/* Encode address of child node compactly.
@@ -173,12 +183,12 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   // fprintf(stderr,"%s %f\n",s,c->entropy);
   range_coder_free(c);
   
-  fprintf(stderr,"storedChildren=%d, highChild=%d\n",storedChildren,highChild);
+  // fprintf(stderr,"storedChildren=%d, highChild=%d\n",storedChildren,highChild);
 
   return addr;
 }
 
-struct node *extractNodeAt(unsigned int nodeAddress,int count,FILE *f)
+struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
 {
   range_coder *c=range_new_coder(8192);
   fseek(f,nodeAddress,SEEK_SET);
@@ -202,8 +212,8 @@ struct node *extractNodeAt(unsigned int nodeAddress,int count,FILE *f)
   int i;
 
   if (storedChildren) highChild=range_decode_equiprobable(c,69+1);
-  fprintf(stderr,"children=%d, storedChildren=%d, highChild=%d\n",
-	  children,storedChildren,highChild);
+  // fprintf(stderr,"children=%d, storedChildren=%d, highChild=%d\n",
+  // 	  children,storedChildren,highChild);
 
   struct node *n=calloc(sizeof(struct node),1);
 
@@ -224,11 +234,19 @@ struct node *extractNodeAt(unsigned int nodeAddress,int count,FILE *f)
     if (range_decode_equiprobable(c,2)) {
       childAddress=lowAddr+range_decode_equiprobable(c,highAddr-lowAddr+1);
       lowAddr=childAddress;
+      if (s[0]&&chars[thisChild]==s[0]) {
+	n->children[thisChild]=extractNodeAt(&s[1],childAddress,
+					     n->counts[thisChild],f);
+      }
+
     } else childAddress=0;
-    fprintf(stderr,"%d x '%c' @ 0x%x\n",thisCount,chars[thisChild],childAddress);
+    if (0) 
+      if (chars[thisChild]==s[0])
+	fprintf(stderr,"%-5s : %d x '%c' @ 0x%x\n",s,
+		thisCount,chars[thisChild],childAddress);
   }
 
-  return NULL;
+  return n;
 }
 
 struct node *extractNode(char *string,FILE *f)
@@ -241,12 +259,39 @@ struct node *extractNode(char *string,FILE *f)
   fseek(f,4,SEEK_SET);
   for(i=0;i<4;i++) rootNodeAddress=(rootNodeAddress<<8)|(unsigned char)fgetc(f);
   for(i=0;i<4;i++) totalCount=(totalCount<<8)|(unsigned char)fgetc(f);
-  fprintf(stderr,"root node is at 0x%08x, total count = %d\n",
-	  rootNodeAddress,totalCount);
+  if (0)
+    fprintf(stderr,"root node is at 0x%08x, total count = %d\n",
+	    rootNodeAddress,totalCount);
 
-  struct node *n=extractNodeAt(rootNodeAddress,totalCount,f);
+  struct node *n=extractNodeAt(string,rootNodeAddress,totalCount,f);
+
+  struct node *n2=n;
+
+  for(i=0;i<strlen(string);i++) {
+    if (string[i+1]==0)
+      fprintf(stderr,"%c occurs %d/%lld (%.2f%%)\n",
+	      string[i],
+	      n2->counts[charIdx(string[i])],n2->count,
+	      n2->counts[charIdx(string[i])]*100.00/n2->count);
+    n2=n2->children[charIdx(string[i])];
+    if (!n2) break;
+  }
 
   return NULL;
+}
+
+int rescaleCounts(struct node *n,double f)
+{
+  int i;
+  n->count/=f;
+  if (n->count>0xffffff) { fprintf(stderr,"Rescaling failed (1).\n"); exit(-1); }
+  for(i=0;i<69;i++) {
+    n->counts[i]/=f;
+    if (n->counts[i]>0xffffff)
+      { fprintf(stderr,"Rescaling failed (2).\n"); exit(-1); }  
+    if (n->children[i]) rescaleCounts(n->children[i],f);
+  }
+  return 0;
 }
 
 int dumpVariableOrderStats()
@@ -255,6 +300,13 @@ int dumpVariableOrderStats()
   if (!out) {
     fprintf(stderr,"Could not write to stats.dat");
     return -1;
+  }
+
+  /* Normalise counts if required */
+  if (nodeTree->count>0xffffff) {
+    double factor=nodeTree->count*1.0/0xffffff;
+    fprintf(stderr,"Dividing all counts by %.1f\n",factor);
+    rescaleCounts(nodeTree,factor);
   }
 
   /* Keep space for our header */
@@ -280,6 +332,11 @@ int dumpVariableOrderStats()
   fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
 
   extractNode("http:",out);
+  extractNode("kljas",out);
+  extractNode("ttp:",out);
+  extractNode("tp:",out);
+  extractNode("p:",out);
+  extractNode(":",out);
 
   fclose(out);
 
@@ -476,7 +533,7 @@ int sortWordList(int alphaP)
   return 0;
 }
 
-int filterWords()
+int filterWords(FILE *f)
 {
   /* Remove words from list that occur too rarely compared with their
      length, such that it is unlikely that they will be useful for compression.
@@ -567,9 +624,9 @@ int filterWords()
 	}
       }
       if (!culled) {
-	printf("\n/* %d substitutable words in a total of %lld word breaks. */\n",
+	fprintf(f,"\n/* %d substitutable words in a total of %lld word breaks. */\n",
 	       usefulOccurrences,wordBreaks);
-	printf("unsigned int wordSubstitutionFlag[1]={0x%x};\n",
+	fprintf(f,"unsigned int wordSubstitutionFlag[1]={0x%x};\n",
 	       (unsigned int)(usefulOccurrences*1.0/wordBreaks*0xffffff));
       } else {
 	fprintf(stderr,"%d+",culled); fflush(stderr); 
@@ -583,7 +640,7 @@ int filterWords()
   return 0;
 }
 
-int writeWords()
+int writeWords(FILE *f)
 {
   int i;
   unsigned int total=0;
@@ -596,24 +653,209 @@ int writeWords()
   for(i=0;i<10&&i<wordCount;i++) fprintf(stderr,"  %d %s\n",wordCounts[i],words[i]);
 
 
-  printf("\nint wordCount=%d;\n",wordCount);	 
-  printf("char *wordList[]={\n");
+  fprintf(f,"\nint wordCount=%d;\n",wordCount);	 
+  fprintf(f,"char *wordList[]={\n");
   for(i=0;i<wordCount;i++) { 
-    printf("\"%s\"",words[i]); 
-    if (i<(wordCount-1)) printf(",");
+    fprintf(f,"\"%s\"",words[i]); 
+    if (i<(wordCount-1)) fprintf(f,",");
     total+=wordCounts[i]; 
-    if (!(i&7)) printf("\n");
+    if (!(i&7)) fprintf(f,"\n");
   }
-  printf("};\n\n");
-  printf("unsigned int wordFrequencies[]={\n");
+  fprintf(f,"};\n\n");
+  fprintf(f,"unsigned int wordFrequencies[]={\n");
   for(i=0;i<(wordCount-1);i++) {
     tally+=wordCounts[i];   
-    printf("0x%x",(unsigned int)(tally*1.0*0xffffff/total));
-    if (i<(wordCount-2)) printf(",");
-    if (!(i&7)) printf("\n");
+    fprintf(f,"0x%x",(unsigned int)(tally*1.0*0xffffff/total));
+    if (i<(wordCount-2)) fprintf(f,",");
+    if (!(i&7)) fprintf(f,"\n");
   }
-  printf("};\n");
+  fprintf(f,"};\n");
   return 0;
+}
+
+int writeMessageStats()
+{
+  FILE *f=fopen("message_stats.c","w");
+
+  int i,j,k;
+
+  fprintf(f,"unsigned int char_freqs3[69][69][69]={\n");
+  for(i=0;i<69;i++) {
+    fprintf(f,"  {\n");
+    for(j=0;j<69;j++) {
+      int rowCount=0;
+      double total=0;
+      for(k=0;k<69;k++) { 
+	if (!counts3[i][j][k]) counts3[i][j][k]=1;
+	rowCount+=counts3[i][j][k];
+      }
+      fprintf(f,"      /* %c %c */ {",chars[i],chars[j]);
+      for(k=0;k<69;k++) {
+	total+=counts3[i][j][k]*1.0*0xffffff/rowCount;
+	fprintf(f,"0x%x",(unsigned int)total);
+	if (k<(69-1)) fprintf(f,",");
+      }
+      fprintf(f,"},\n");
+    }
+    fprintf(f,"   },\n");
+  }
+  fprintf(f,"};\n");
+  
+  fprintf(f,"\nunsigned int char_freqs2[69][69]={\n");
+  for(j=0;j<69;j++) {
+    int rowCount=0;
+    double total=0;
+    for(k=0;k<69;k++) { 
+      if (!counts2[j][k]) counts2[j][k]=1;
+      rowCount+=counts2[j][k];
+    }
+    fprintf(f,"      /* %c */ {",chars[j]);
+    for(k=0;k<69;k++) {
+      total+=counts2[j][k]*1.0*0xffffff/rowCount;
+      fprintf(f,"0x%x",(unsigned int)total);
+      if (k<(69-1)) fprintf(f,",");
+    }
+    fprintf(f,"},\n");
+  }
+  fprintf(f,"};\n");
+  
+  fprintf(f,"\nunsigned int char_freqs1[69]={\n");
+  {
+    int rowCount=0;
+    double total=0;
+    for(k=0;k<69;k++) { 
+      if (!counts1[k]) counts1[k]=1;
+      rowCount+=counts1[k];
+    }
+    for(k=0;k<69;k++) {
+      total+=counts1[k]*1.0/rowCount;
+      fprintf(f,"0x%x",(unsigned int)(total*0xffffff));
+      if (k<(69-1)) fprintf(f,",");
+    }
+    fprintf(f,"};\n");  
+  }
+
+  fprintf(f,"\nunsigned int casestartofmessage[1][1]={{");
+  {
+    int rowCount=0;
+    for(k=0;k<2;k++) {
+      if (!caseend[k]) casestartofmessage[k]=1;
+      rowCount+=casestartofmessage[k];
+    }
+    for(k=0;k<(2-1);k++) {
+      fprintf(f,"%.6f",casestartofmessage[k]*1.0*0xffffff/rowCount);
+      if (k<(2-1)) fprintf(f,",");
+    }
+    fprintf(f,"}};\n");  
+  }
+
+  fprintf(f,"\nunsigned int casestartofword2[2][1]={");
+  for(j=0;j<2;j++) {
+    int rowCount=0;
+    for(k=0;k<2;k++) {
+      if (!casestartofword2[j][k]) casestartofword2[j][k]=1;
+      rowCount+=casestartofword2[j][k];    
+    }
+    k=0;
+    fprintf(f,"{0x%x}",(unsigned int)(casestartofword2[j][k]*1.0*0xffffff/rowCount));
+    if (j<(2-1)) fprintf(f,",");
+    
+    fprintf(f,"\n");
+  }
+  fprintf(f,"};\n");
+
+  fprintf(f,"\nunsigned int casestartofword3[2][2][1]={");
+  for(i=0;i<2;i++) {
+    fprintf(f,"  {\n");
+    for(j=0;j<2;j++) {
+      int rowCount=0;
+      for(k=0;k<2;k++) {
+	if (!casestartofword3[i][j][k]) casestartofword3[i][j][k]=1;
+	rowCount+=casestartofword3[i][j][k];    
+      }
+      k=0;
+      fprintf(f,"    {0x%x}",(unsigned int)(casestartofword3[i][j][k]*1.0*0xffffff/rowCount));
+      if (j<(2-1)) fprintf(f,",");
+      
+      fprintf(f,"\n");
+    }
+    fprintf(f,"  },\n");
+  }
+  fprintf(f,"};\n");
+
+  fprintf(f,"\nunsigned int caseend1[1][1]={{");
+  {
+    int rowCount=0;
+    for(k=0;k<2;k++) {
+      if (!caseend[k]) caseend[k]=1;
+      rowCount+=caseend[k];
+    }
+    for(k=0;k<(2-1);k++) {
+      fprintf(f,"%.6f",caseend[k]*1.0*0xffffff/rowCount);
+      if (k<(2-1)) fprintf(f,",");
+    }
+    fprintf(f,"}};\n");  
+  }
+
+  fprintf(f,"\nunsigned int caseposn1[80][1]={\n");
+  for(j=0;j<80;j++) {
+    int rowCount=0;
+    for(k=0;k<2;k++) {
+      if (!caseposn1[j][k]) caseposn1[j][k]=1;
+      rowCount+=caseposn1[j][k];    
+    }
+    fprintf(f,"      /* %dth char of word */ {",j);
+    k=0;
+    fprintf(f,"0x%x}",(unsigned int)(caseposn1[j][k]*1.0*0xffffff/rowCount));
+    if (j<(80-1)) fprintf(f,",");
+    
+    fprintf(f,"\n");
+  }
+  fprintf(f,"};\n");
+  
+  fprintf(f,"\nunsigned int caseposn2[2][80][1]={\n");
+  for(i=0;i<2;i++) {
+    fprintf(f,"  {\n");
+    for(j=0;j<80;j++) {
+      int rowCount=0;
+      for(k=0;k<2;k++) {
+	if (!caseposn2[i][j][k]) caseposn2[i][j][k]=1;
+	rowCount+=caseposn2[i][j][k];    
+      }
+      fprintf(f,"      /* %dth char of word */ {",j);
+      k=0;
+      fprintf(f,"0x%x",(unsigned int)(caseposn2[i][j][k]*1.0*0xffffff/rowCount));
+      fprintf(f,"}");
+      if (j<(80-1)) fprintf(f,",");
+      
+      fprintf(f,"\n");
+    }
+    fprintf(f,"  },\n");
+  }
+  fprintf(f,"};\n");
+
+  fprintf(f,"\nunsigned int messagelengths[1024]={\n");
+  {
+    int rowCount=0;
+    double total=0;
+    for(k=0;k<1024;k++) { 
+      if (!messagelengths[k]) messagelengths[k]=1;
+      rowCount+=messagelengths[k];
+    }
+    for(k=0;k<1024;k++) {
+      total+=messagelengths[k]*1.0/rowCount;
+      fprintf(f,"   /* length = %d */ 0x%x",k,(unsigned int)(total*0xffffff));
+      if (k<(1024-1)) fprintf(f,",");
+      fprintf(f,"\n");
+    }
+    fprintf(f,"};\n");  
+  }
+
+  listAllWords();
+  filterWords(f);
+  writeWords(f);
+
+return 0;
 }
 
 int main(int argc,char **argv)
@@ -669,7 +911,11 @@ int main(int argc,char **argv)
 
     for(i=0;i<strlen(line)-1;i++)
       {
-	countChars(line,i);
+	int k;
+	for(k=0;k<MAXIMUMORDER&&k<i;k++)
+	  {
+	    countChars((unsigned char *)&line[i-k],k+1);
+	  }
 
 	if (line[i]=='\\') {
 	  switch(line[i+1]) {
@@ -691,7 +937,9 @@ int main(int argc,char **argv)
 	int wc=charInWord(line[i]);
 	if (!wc) {
 	  if (wordPosn>0) {
+#ifdef COUNTWORDS
 	    countWord(word,strlen(word));
+#endif
 	  }
 	  wordBreaks++;
 	  wordPosn=-1; lc=0;	 
@@ -754,181 +1002,7 @@ int main(int argc,char **argv)
 
   fprintf(stderr,"\nWriting letter frequency statistics.\n");
 
-  printf("unsigned int char_freqs3[69][69][69]={\n");
-  for(i=0;i<69;i++) {
-    printf("  {\n");
-    for(j=0;j<69;j++) {
-      int rowCount=0;
-      double total=0;
-      for(k=0;k<69;k++) { 
-	if (!counts3[i][j][k]) counts3[i][j][k]=1;
-	rowCount+=counts3[i][j][k];
-      }
-      printf("      /* %c %c */ {",chars[i],chars[j]);
-      for(k=0;k<69;k++) {
-	total+=counts3[i][j][k]*1.0*0xffffff/rowCount;
-	printf("0x%x",(unsigned int)total);
-	if (k<(69-1)) printf(",");
-      }
-      printf("},\n");
-    }
-    printf("   },\n");
-  }
-  printf("};\n");
-  
-  printf("\nunsigned int char_freqs2[69][69]={\n");
-  for(j=0;j<69;j++) {
-    int rowCount=0;
-    double total=0;
-    for(k=0;k<69;k++) { 
-      if (!counts2[j][k]) counts2[j][k]=1;
-      rowCount+=counts2[j][k];
-    }
-    printf("      /* %c */ {",chars[j]);
-    for(k=0;k<69;k++) {
-      total+=counts2[j][k]*1.0*0xffffff/rowCount;
-      printf("0x%x",(unsigned int)total);
-      if (k<(69-1)) printf(",");
-    }
-    printf("},\n");
-  }
-  printf("};\n");
-  
-  printf("\nunsigned int char_freqs1[69]={\n");
-  {
-    int rowCount=0;
-    double total=0;
-    for(k=0;k<69;k++) { 
-      if (!counts1[k]) counts1[k]=1;
-      rowCount+=counts1[k];
-    }
-    for(k=0;k<69;k++) {
-      total+=counts1[k]*1.0/rowCount;
-      printf("0x%x",(unsigned int)(total*0xffffff));
-      if (k<(69-1)) printf(",");
-    }
-    printf("};\n");  
-  }
-
-  printf("\nunsigned int casestartofmessage[1][1]={{");
-  {
-    int rowCount=0;
-    for(k=0;k<2;k++) {
-      if (!caseend[k]) casestartofmessage[k]=1;
-      rowCount+=casestartofmessage[k];
-    }
-    for(k=0;k<(2-1);k++) {
-      printf("%.6f",casestartofmessage[k]*1.0*0xffffff/rowCount);
-      if (k<(2-1)) printf(",");
-    }
-    printf("}};\n");  
-  }
-
-  printf("\nunsigned int casestartofword2[2][1]={");
-  for(j=0;j<2;j++) {
-    int rowCount=0;
-    for(k=0;k<2;k++) {
-      if (!casestartofword2[j][k]) casestartofword2[j][k]=1;
-      rowCount+=casestartofword2[j][k];    
-    }
-    k=0;
-    printf("{0x%x}",(unsigned int)(casestartofword2[j][k]*1.0*0xffffff/rowCount));
-    if (j<(2-1)) printf(",");
-    
-    printf("\n");
-  }
-  printf("};\n");
-
-  printf("\nunsigned int casestartofword3[2][2][1]={");
-  for(i=0;i<2;i++) {
-    printf("  {\n");
-    for(j=0;j<2;j++) {
-      int rowCount=0;
-      for(k=0;k<2;k++) {
-	if (!casestartofword3[i][j][k]) casestartofword3[i][j][k]=1;
-	rowCount+=casestartofword3[i][j][k];    
-      }
-      k=0;
-      printf("    {0x%x}",(unsigned int)(casestartofword3[i][j][k]*1.0*0xffffff/rowCount));
-      if (j<(2-1)) printf(",");
-      
-      printf("\n");
-    }
-    printf("  },\n");
-  }
-  printf("};\n");
-
-  printf("\nunsigned int caseend1[1][1]={{");
-  {
-    int rowCount=0;
-    for(k=0;k<2;k++) {
-      if (!caseend[k]) caseend[k]=1;
-      rowCount+=caseend[k];
-    }
-    for(k=0;k<(2-1);k++) {
-      printf("%.6f",caseend[k]*1.0*0xffffff/rowCount);
-      if (k<(2-1)) printf(",");
-    }
-    printf("}};\n");  
-  }
-
-  printf("\nunsigned int caseposn1[80][1]={\n");
-  for(j=0;j<80;j++) {
-    int rowCount=0;
-    for(k=0;k<2;k++) {
-      if (!caseposn1[j][k]) caseposn1[j][k]=1;
-      rowCount+=caseposn1[j][k];    
-    }
-    printf("      /* %dth char of word */ {",j);
-    k=0;
-    printf("0x%x}",(unsigned int)(caseposn1[j][k]*1.0*0xffffff/rowCount));
-    if (j<(80-1)) printf(",");
-    
-    printf("\n");
-  }
-  printf("};\n");
-  
-  printf("\nunsigned int caseposn2[2][80][1]={\n");
-  for(i=0;i<2;i++) {
-    printf("  {\n");
-    for(j=0;j<80;j++) {
-      int rowCount=0;
-      for(k=0;k<2;k++) {
-	if (!caseposn2[i][j][k]) caseposn2[i][j][k]=1;
-	rowCount+=caseposn2[i][j][k];    
-      }
-      printf("      /* %dth char of word */ {",j);
-      k=0;
-      printf("0x%x",(unsigned int)(caseposn2[i][j][k]*1.0*0xffffff/rowCount));
-      printf("}");
-      if (j<(80-1)) printf(",");
-      
-      printf("\n");
-    }
-    printf("  },\n");
-  }
-  printf("};\n");
-
-  printf("\nunsigned int messagelengths[1024]={\n");
-  {
-    int rowCount=0;
-    double total=0;
-    for(k=0;k<1024;k++) { 
-      if (!messagelengths[k]) messagelengths[k]=1;
-      rowCount+=messagelengths[k];
-    }
-    for(k=0;k<1024;k++) {
-      total+=messagelengths[k]*1.0/rowCount;
-      printf("   /* length = %d */ 0x%x",k,(unsigned int)(total*0xffffff));
-      if (k<(1024-1)) printf(",");
-      printf("\n");
-    }
-    printf("};\n");  
-  }
-
-  listAllWords();
-  filterWords();
-  writeWords();
+  writeMessageStats();
 
   return 0;
 }
