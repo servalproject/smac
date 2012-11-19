@@ -166,7 +166,6 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
      child number first, so that we can constrain the range and reduce
      entropy.  Probably interpolative coding would be better here. */
   if (childCount) {
-    fprintf(stderr,"Writing highChild=%d\n",highChild);
     range_encode_equiprobable(c,69+1,highChild);
   }
 
@@ -221,8 +220,6 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   int bytes=c->bits_used>>3;
   if (c->bits_used&7) bytes++;
   fwrite(c->bit_stream,bytes,1,out);
-  // fprintf(stderr,"%s %f\n",s,c->entropy);
-  range_coder_free(c);
 
   if (0)
     fprintf(stderr,"write: childCount=%d, storedChildren=%d, highChild=%d\n",
@@ -256,9 +253,14 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
       fprintf(stderr,"\n");
       exit(-1);
     }
+    if (!strcmp(s,"h")) {
+      fprintf(stderr,"%s 0x%x (%f bits)\n",s,addr,c->entropy);
+      dumpNode(v);
+    }
     free(v);
     fseek(out,fileOffset,SEEK_SET);
   }
+  range_coder_free(c);
 
   return addr;
 }

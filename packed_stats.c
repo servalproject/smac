@@ -53,9 +53,6 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
   // fprintf(stderr,"children=%d, storedChildren=%d, highChild=%d\n",
   // 	  children,storedChildren,highChild);
 
-  fprintf(stderr,"Extract '%s' @ 0x%x (children=%d, storedChildren=%d, highChild=%d)\n",
-	  s,nodeAddress,children,storedChildren,highChild);
-
   struct node *n=calloc(sizeof(struct node),1);
 
   n->count=count;
@@ -100,7 +97,31 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
 		thisCount,chars[thisChild],childAddress);
   }
 
+  if (s&&s[0])
+    fprintf(stderr,"Extract '%s' @ 0x%x (children=%d, storedChildren=%d, highChild=%d)\n",
+	    s,nodeAddress,children,storedChildren,highChild);
+  if (s&&s[0]) dumpNode(n);
+
   return n;
+}
+
+int dumpNode(struct node *n)
+{
+  fflush(stderr);
+  fflush(stdout);
+  int i;
+  int c=0;
+  for(i=0;i<69;i++) {
+    // 12 chars wide
+    fprintf(stderr," %c% 8d%c |",chars[i],n->counts[i],n->children[i]?'*':' ');
+    c++;
+    if (c>4) {
+      fprintf(stderr,"\n");
+      c=0;
+    }
+  }
+  fprintf(stderr,"\n");
+  fflush(stdout);
 }
 
 struct node *extractNode(char *string,int len,FILE *f)
@@ -125,7 +146,8 @@ struct node *extractNode(char *string,int len,FILE *f)
 
   for(i=0;i<=len;i++) {
     struct node *next=n2->children[charIdx(string[i])];
-
+    dumpNode(n2);
+    
     if (i<len)
       fprintf(stderr,"%c occurs %d/%lld (%.2f%%)\n",
 	      string[i],
@@ -137,7 +159,8 @@ struct node *extractNode(char *string,int len,FILE *f)
       }
     if (string[i+1]&&(i<len)&&((!next)||(next->counts[charIdx(string[i+1])]<1)))
       {
-	fprintf(stderr,"Next layer down doesn't have any counts for the next character.\n");
+	fprintf(stderr,"Next layer down doesn't have any counts for the next character ('%c').\n",string[i+1]);
+	dumpNode(next);
 	free(n2);
 	return NULL;
       }
