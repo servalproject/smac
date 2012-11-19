@@ -461,6 +461,7 @@ int range_check(range_coder *c,int line)
 
 int range_decode_equiprobable(range_coder *c,int alphabet_size)
 {
+  if (alphabet_size<1) return 0;
   unsigned int s;
   unsigned long long space=range_space(c);
   unsigned int v=c->value-c->low;
