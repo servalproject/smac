@@ -133,7 +133,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
       
   range_coder *c=range_new_coder(1024);
 
-  int lastChild=0;
+  int lastChild=-1;
 
   int childAddresses[69];
   int childCount=0;
@@ -165,7 +165,10 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   /* If we have more than one child, then write the maximum numbered
      child number first, so that we can constrain the range and reduce
      entropy.  Probably interpolative coding would be better here. */
-  if (childCount) range_encode_equiprobable(c,69+1,highChild);
+  if (childCount) {
+    fprintf(stderr,"Writing highChild=%d\n",highChild);
+    range_encode_equiprobable(c,69+1,highChild);
+  }
 
   unsigned int highAddr=ftell(out);
   unsigned int lowAddr=0;
@@ -176,13 +179,20 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
     if (n->counts[i]) {
       snprintf(schild,128,"%s%c",s,chars[i]);
       if (1) 
-	fprintf(stderr, "'%s' x %d @ 0x%x\n",
+	fprintf(stderr, "writing: '%s' x %d @ 0x%x\n",
 		schild,n->counts[i],childAddresses[i]);
-      if (childrenRemaining>1)
-	range_encode_equiprobable(c,highChild+1-lastChild,i-lastChild);
+      if (childrenRemaining>1) {
+	fprintf(stderr,"  encoding child #%d as %d-%d of %d\n",
+		i,i,lastChild,highChild+1-lastChild);
+	range_encode_equiprobable(c,highChild+1-(childrenRemaining-1)-(lastChild+1),
+				  i-(lastChild+1));
+      }
       childrenRemaining--;
       lastChild=i;
-      range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
+      if (childrenRemaining) {
+	fprintf(stderr,":  writing %d of %d count\n",n->counts[i],remainingCount+1);
+	range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
+      }
       remainingCount-=n->counts[i];
       
       if (childAddresses[i]) {
@@ -210,7 +220,40 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   // fprintf(stderr,"%s %f\n",s,c->entropy);
   range_coder_free(c);
   
-  // fprintf(stderr,"storedChildren=%d, highChild=%d\n",storedChildren,highChild);
+  fprintf(stderr,"write: childCount=%d, storedChildren=%d, highChild=%d\n",
+	  childCount,storedChildren,highChild);
+
+  /* Verify */
+  {
+    off_t fileOffset=ftello(out);
+    unsigned char data[8192];
+    fseek(out,addr,SEEK_SET);
+    int bytes=fread(data,1,8192,out);
+    struct node *v=extractNodeAt("",addr,n->count,out);
+    int i;
+    int error=0;
+    for(i=0;i<69;i++)
+      {
+	if (v->counts[i]!=n->counts[i]) {
+	  if (!error) {
+	    fprintf(stderr,"Verify error writing node for '%s'\n",s);
+	    fprintf(stderr,"  n->count=%lld, totalCount=%lld\n",
+		    n->count,totalCount);
+	  }
+	  fprintf(stderr,"  '%c' (%d) : %d versus %d written.\n",
+		  chars[i],i,v->counts[i],n->counts[i]);
+	  error++;
+	}
+      }
+    if (error) {
+      fprintf(stderr,"Bit stream (%d bytes):",bytes);
+      for(i=0;i<bytes;i++) fprintf(stderr," %02x",data[i]);
+      fprintf(stderr,"\n");
+      exit(-1);
+    }
+    free(v);
+    fseek(out,fileOffset,SEEK_SET);
+  }
 
   return addr;
 }

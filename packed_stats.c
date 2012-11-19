@@ -39,7 +39,7 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
   int children=range_decode_equiprobable(c,69+1);
   int storedChildren=range_decode_equiprobable(c,children+1);
   int highChild=68;
-  int lastChild=0;
+  int lastChild=-1;
   unsigned int progressiveCount=0;
   unsigned int thisCount;
 
@@ -49,22 +49,38 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
   int thisChild;
   int i;
 
-  if (storedChildren) highChild=range_decode_equiprobable(c,69+1);
+  if (children) highChild=range_decode_equiprobable(c,69+1);
   // fprintf(stderr,"children=%d, storedChildren=%d, highChild=%d\n",
   // 	  children,storedChildren,highChild);
+
+  fprintf(stderr,"Extract '%s' @ 0x%x (children=%d, storedChildren=%d, highChild=%d)\n",
+	  s,nodeAddress,children,storedChildren,highChild);
 
   struct node *n=calloc(sizeof(struct node),1);
 
   n->count=count;
 
+  int childrenRemaining=children;
   for(i=0;i<children;i++) {
-    if (i<(children-1)) 
-      thisChild=lastChild+range_decode_equiprobable(c,highChild+1-lastChild);
-    else 
+    if (i<(children-1)) {
+      thisChild=lastChild+1
+	+range_decode_equiprobable(c,highChild+1
+				   -(childrenRemaining-1)-(lastChild+1));
+      fprintf(stderr,"decoded thisChild=%d\n",thisChild);
+    }
+    else {
       thisChild=highChild;
+      fprintf(stderr,"inferred thisChild=%d\n",thisChild);
+    }
     lastChild=thisChild;
-    
-    thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
+    childrenRemaining--;
+
+    if (childrenRemaining) 
+      thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
+    else
+      thisCount=count-progressiveCount;
+    fprintf(stderr,"  decoded %d of %d\n",thisCount,
+	    (count-progressiveCount)+1);
     progressiveCount+=thisCount;
 
     n->counts[thisChild]=thisCount;
@@ -78,8 +94,7 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
       }
 
     } else childAddress=0;
-    if (0) 
-      if (chars[thisChild]==s[0])
+    if (1) 
 	fprintf(stderr,"%-5s : %d x '%c' @ 0x%x\n",s,
 		thisCount,chars[thisChild],childAddress);
   }
