@@ -1,6 +1,6 @@
 CC=gcc
-COPT=-g -Wall
-CFLAGS=-g -Wall
+COPT=-g -Wall -O3
+CFLAGS=-g -Wall -O3
 DEFS=
 
 OBJS=	main.o \
@@ -34,7 +34,7 @@ clean:
 	rm -rf smaz_test *.o gen_stats method_stats3
 
 arithmetic:	arithmetic.c arithmetic.h
-	# Build for running tests
+# Build for running tests
 	gcc -g -Wall -DSTANDALONE -o arithmetic arithmetic.c
 
 gen_stats:	gen_stats.c arithmetic.o packed_stats.o

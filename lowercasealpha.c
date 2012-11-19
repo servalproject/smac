@@ -33,6 +33,7 @@ double entropy3(int c1,int c2, char *string);
 
 int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
 {
+  FILE *stats_file=fopen("stats.dat","r");
   int c1=charIdx(' ');
   int c2=charIdx(' ');
   int c3;
@@ -70,7 +71,11 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
 	}
 	continue;
       } else {
-      c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
+      unsigned int v[69];
+      s[o]=0;
+      extractVector(s,o,stats_file,v);
+      c3 =range_decode_symbol(c,v,69);
+      // c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];
 #ifdef DEBUG
       printf("  decode alpha char %d = %c\n",c3,s[o]);
@@ -78,6 +83,7 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
     }
     c1=c2; c2=c3;
   }
+  fclose(stats_file);
   return 0;
 }
 
@@ -86,6 +92,8 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
   int c1=charIdx(' ');
   int c2=charIdx(' ');
   int o;
+  FILE *stats_file=fopen("stats.dat","r");
+
   for(o=0;s[o];o++) {
     int c3=charIdx(s[o]);
     
@@ -210,8 +218,13 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	       o,c2,chars[c2],c3,chars[c3]);
 #endif
     }
-    range_encode_symbol(c,char_freqs3[c1][c2],69,c3);    
+    unsigned int v[69];
+    s[o]=0;
+    extractVector(s,o,stats_file,v);
+    range_encode_symbol(c,v,69,c3);    
+    //range_encode_symbol(c,char_freqs3[c1][c2],69,c3);    
     c1=c2; c2=c3;
   }
+  fclose(stats_file);
   return 0;
 }

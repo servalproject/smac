@@ -93,7 +93,7 @@ int countChars(unsigned char *s,int len)
   if (len>MAXIMUMORDER) len=MAXIMUMORDER;
  
   struct node **n=&nodeTree;
-  while(j<=len) {
+  while(j<len) {
     int c=charIdx(s[j]);
     if (c<0) break;
     if (!(*n)) {
@@ -118,6 +118,11 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   long long totalCount=0;
 
   for(i=0;i<69;i++) totalCount+=n->counts[i];
+  if (totalCount!=n->count) {
+    fprintf(stderr,"Sequence '%s' counts don't add up: %lld vs %lld\n",
+	    s,totalCount,n->count);
+  }
+
   if (0) fprintf(stderr,"sequence '%s' occurs %lld times.\n",s,totalCount);
   /* Don't go any deeper if the sequence is too rare */
   if (totalCount<threshold) return 0;
@@ -139,14 +144,13 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   int highChild=-1;
   for(i=0;i<69;i++) {
     childAddresses[i]=0;
-    if (n->children[i]) {
-      if (n->children[i]->count>=threshold) {
+    if (n->counts[i]) {
+      if (n->counts[i]>=threshold) {
 	snprintf(schild,128,"%s%c",s,chars[i]);
-	childAddresses[i]=writeNode(out,n->children[i],schild,threshold);
-	if (0) 
-	  fprintf(stderr, "'%s' x %lld @ 0x%x\n",
-		  schild,n->children[i]->count,childAddresses[i]);
-	storedChildren++;
+	if (n->children[i]) {
+	  childAddresses[i]=writeNode(out,n->children[i],schild,threshold);
+	  storedChildren++;
+	}
       }
       if (i<lowChild) lowChild=i;
       if (i>highChild) highChild=i;
@@ -169,13 +173,17 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   unsigned int remainingCount=totalCount;
   int childrenRemaining=childCount;
   for(i=0;i<69;i++) {
-    if (n->children[i]) {
+    if (n->counts[i]) {
+      snprintf(schild,128,"%s%c",s,chars[i]);
+      if (1) 
+	fprintf(stderr, "'%s' x %d @ 0x%x\n",
+		schild,n->counts[i],childAddresses[i]);
       if (childrenRemaining>1)
 	range_encode_equiprobable(c,highChild+1-lastChild,i-lastChild);
       childrenRemaining--;
       lastChild=i;
-      range_encode_equiprobable(c,remainingCount+1,n->children[i]->count);
-      remainingCount-=n->children[i]->count;
+      range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
+      remainingCount-=n->counts[i];
       
       if (childAddresses[i]) {
 	range_encode_equiprobable(c,2,1);
@@ -189,6 +197,10 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
       } else 
 	range_encode_equiprobable(c,2,0);
     }
+  }
+  if (remainingCount) {
+    fprintf(stderr,"'%s' Count incomplete: %d of %lld not accounted for.\n",
+	    s,remainingCount,totalCount);
   }
   
   unsigned int addr = ftello(out);
@@ -255,8 +267,10 @@ int dumpVariableOrderStats()
   fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
 
   unsigned int v[69];
-  extractVector("http",out,v);
-  extractVector("kljadfasdf",out,v);
+  extractVector("http",strlen("http"),out,v);
+  extractVector("kljadfasdf",strlen("kljadfasdf"),out,v);
+  extractVector("/",strlen("/"),out,v);
+  extractVector("",strlen(""),out,v);
 
   fclose(out);
 

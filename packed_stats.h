@@ -22,6 +22,6 @@ typedef struct node {
   struct node *children[69];
 } node;
 
-struct node *extractNode(char *string,FILE *f);
+struct node *extractNode(char *string,int len,FILE *f);
 struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f);
-int extractVector(char *string,FILE *f,unsigned int v[69]);
+int extractVector(char *string,int len,FILE *f,unsigned int v[69]);
