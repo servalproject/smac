@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "message_stats.h"
 #include "charset.h"
+#include "packed_stats.h"
 
 #undef DEBUG
 
@@ -73,7 +74,7 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
       } else {
       unsigned int v[69];
       s[o]=0;
-      extractVector(s,o,stats_file,v);
+      extractVector(s,o-1,stats_file,v);
       c3 =range_decode_symbol(c,v,69);
       // c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];
@@ -219,8 +220,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 #endif
     }
     unsigned int v[69];
-    s[o]=0;
-    extractVector(s,o,stats_file,v);
+    extractVector(s,o-1,stats_file,v);
     range_encode_symbol(c,v,69,c3);    
     //range_encode_symbol(c,char_freqs3[c1][c2],69,c3);    
     c1=c2; c2=c3;

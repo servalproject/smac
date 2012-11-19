@@ -174,12 +174,16 @@ struct node *extractNode(char *string,int len,FILE *f)
     n2=next;
     if (!n2) break;
   }
-
-  return NULL;
+  
+  /* If all else fails, return 0-order stats */
+  return extractNodeAt(string,rootNodeAddress,totalCount,f);
 }
 
 int extractVector(char *string,int len,FILE *f,unsigned int v[69])
 {
+  if (0)
+    printf("extractVector('%s',%d,...)\n",
+	   string,len);
   /* Limit match length to maximum depth of statistics */
   if (len>6) {
     string=&string[len-6];
@@ -187,28 +191,29 @@ int extractVector(char *string,int len,FILE *f,unsigned int v[69])
   }
 
   int ofs=0;
-  if (1) fprintf(stderr,"extractVector(%d,%s)\n",len-ofs,&string[ofs]);
+  if (0) fprintf(stderr,"extractVector(%d,%s)\n",len-ofs,&string[ofs]);
   struct node *n=extractNode(&string[ofs],len-ofs,f);
-  if (1) fprintf(stderr,"  n=%p\n",n);
+  if (0) fprintf(stderr,"  n=%p\n",n);
   while(!n) {
     ofs++;
     if (ofs>=len) break;
     n=extractNode(&string[ofs],len-ofs,f);
-    if (1) {
+    if (0) {
       fprintf(stderr,"extractVector(%d,%s)\n",len-ofs,&string[ofs]);
       fprintf(stderr,"  n=%p\n",n);
     }
   }
   if (!n) {
     fprintf(stderr,"Could not obtain any statistics (including zero-order frequencies). Broken stats data file?\n");
+    fprintf(stderr,"  ofs=%d, len=%d\n",ofs,len);
     exit(-1);
   }
 
   int i;
 
-  fprintf(stderr,"probability of characters following '");
-  for(i=ofs;i<len;i++) fprintf(stderr,"%c",string[i]);
-  fprintf(stderr,"' (offset=%d):\n",ofs);
+  // fprintf(stderr,"probability of characters following '");
+  //  for(i=ofs;i<len;i++) fprintf(stderr,"%c",string[i]);
+  //  fprintf(stderr,"' (offset=%d):\n",ofs);
 
   int scale=0xffffff/(n->count+69);
   int cumulative=0;
@@ -218,7 +223,7 @@ int extractVector(char *string,int len,FILE *f,unsigned int v[69])
     v[i]=cumulative+(n->counts[i]+1)*scale;
     cumulative=v[i];
     sum+=n->counts[i]+1;
-    if (1) 
+    if (0) 
       fprintf(stderr,"  '%c' %d : 0x%06x (%d/%lld) %d\n",
 	      chars[i],i,v[i],
 	      n->counts[i]+1,n->count+69,sum);
