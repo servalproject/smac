@@ -90,11 +90,13 @@ int charInWord(unsigned c)
 int countChars(unsigned char *s,int len)
 {
   int j=0;
-  if (len>MAXIMUMORDER) len=MAXIMUMORDER;
- 
+  if (len>MAXIMUMORDER) len=MAXIMUMORDER;  
+
   struct node **n=&nodeTree;
+  // fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
   while(j<len) {
     int c=charIdx(s[j]);
+    // fprintf(stderr,"  %d (%c)\n",c,s[j]);
     if (c<0) break;
     if (!(*n)) {
       *n=calloc(sizeof(struct node),1);
@@ -109,7 +111,11 @@ int countChars(unsigned char *s,int len)
 }
 
 int nodesWritten=0;
-unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
+unsigned int writeNode(FILE *out,struct node *n,char *s,
+		       /* Terminations don't get counted internally in a node,
+			  but are used when encoding and decoding the node,
+			  so we have to pass it in here. */
+		       int totalCountIncludingTerminations,int threshold)
 {
   nodesWritten++;
   char schild[128];
@@ -148,7 +154,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
       if (n->counts[i]>=threshold) {
 	snprintf(schild,128,"%s%c",s,chars[i]);
 	if (n->children[i]) {
-	  childAddresses[i]=writeNode(out,n->children[i],schild,threshold);
+	  childAddresses[i]=writeNode(out,n->children[i],schild,totalCount,threshold);
 	  storedChildren++;
 	}
       }
@@ -172,9 +178,16 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   unsigned int highAddr=ftell(out);
   unsigned int lowAddr=0;
 
-  unsigned int remainingCount=totalCount;
+  unsigned int remainingCount=totalCountIncludingTerminations;
   int childrenRemaining=childCount;
   for(i=0;i<69;i++) {
+    if (n->children[i])
+      if (0)
+	if (n->counts[i]!=n->children[i]->count) {
+	  fprintf(stderr,"n->counts[%d](%d) != n->children[%d]->count(%lld)\n",
+		  i,n->counts[i],i,n->children[i]->count);
+	  exit(-1);
+      }
     if (n->counts[i]) {
       snprintf(schild,128,"%s%c",s,chars[i]);
       if (0) 
@@ -189,11 +202,10 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
       }
       childrenRemaining--;
       lastChild=i;
-      if (childrenRemaining) {
-	if (0) fprintf(stderr,":  writing %d of %d count\n",
-		       n->counts[i],remainingCount+1);
-	range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
-      }
+      if (0) fprintf(stderr,":  writing %d of %d count\n",
+		     n->counts[i],remainingCount+1);
+      range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
+      
       remainingCount-=n->counts[i];
       
       if (childAddresses[i]) {
@@ -211,10 +223,13 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   }
   range_conclude(c);
 
-  if (remainingCount) {
-    fprintf(stderr,"'%s' Count incomplete: %d of %lld not accounted for.\n",
-	    s,remainingCount,totalCount);
-  }
+  /* Unaccounted for observations are observations that terminate at this point.
+     They are totall normal and expected. */
+  if (0)
+    if (remainingCount) {    
+      fprintf(stderr,"'%s' Count incomplete: %d of %lld not accounted for.\n",
+	      s,remainingCount,totalCount);
+    }
   
   unsigned int addr = ftello(out);
   int bytes=c->bits_used>>3;
@@ -231,7 +246,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
     unsigned char data[8192];
     fseek(out,addr,SEEK_SET);
     int bytes=fread(data,1,8192,out);
-    struct node *v=extractNodeAt("",addr,n->count,out);
+    struct node *v=extractNodeAt("",addr,totalCountIncludingTerminations,out);
     int i;
     int error=0;
     for(i=0;i<69;i++)
@@ -298,6 +313,7 @@ int dumpVariableOrderStats()
   fprintf(out,"STA1XXXXYYYY");
 
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
+					nodeTree->count,
 					100 /* minimum frequency to count */);
 
   fseek(out,4,SEEK_SET);
@@ -895,6 +911,9 @@ int main(int argc,char **argv)
 
     for(i=0;i<strlen(line)-1;i++)
       {       
+	/* Chop CR/LF from end of line */
+	line[strlen(line)-1]=0;
+
 	countChars((unsigned char *)&line[i],strlen(&line[i]));
 
 	if (line[i]=='\\') {
@@ -903,7 +922,8 @@ int main(int argc,char **argv)
 	  case 'r': i++; line[i]='\r'; break;
 	  case 'n': i++; line[i]='\n'; break;
 	  case '\\': i++; line[i]='\\'; break;
-
+	  case 0: /* \ at end of line -- nothing to do */
+	    
 	    /* ignore ones we don't de-escape */
 	  case 'u':
 	    break;

@@ -72,10 +72,7 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
     lastChild=thisChild;
     childrenRemaining--;
 
-    if (childrenRemaining) 
-      thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
-    else
-      thisCount=count-progressiveCount;
+    thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
     if (0)
       fprintf(stderr,"  decoded %d of %d\n",thisCount,
 	      (count-progressiveCount)+1);
@@ -107,10 +104,13 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
 
 int dumpNode(struct node *n)
 {
+  if (!n) return 0;
   fflush(stderr);
   fflush(stdout);
   int i;
   int c=0;
+  int sum=0;
+  fprintf(stderr,"Node count=%lld\n",n->count);
   for(i=0;i<69;i++) {
     // 12 chars wide
     fprintf(stderr," %c% 8d%c |",chars[i],n->counts[i],n->children[i]?'*':' ');
@@ -119,8 +119,10 @@ int dumpNode(struct node *n)
       fprintf(stderr,"\n");
       c=0;
     }
+    sum+=n->counts[i];
   }
-  fprintf(stderr,"\n");
+  fprintf(stderr,"\n%d counted occurrences\n",sum);
+  
   fflush(stdout);
 }
 
