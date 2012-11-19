@@ -875,14 +875,16 @@ int test_verify(range_coder *c)
   int length;
 
   int test,i;
+  int testCount=102400;
 
   fflush(stderr);
   fflush(stdout);
-  printf("Testing encoding/decoding: 1024 sequences with seq(0,1023,1) symbol alphabets.\n");
+  printf("Testing encoding/decoding: %d sequences with seq(0,1023,1) symbol alphabets.\n",testCount);
 
   srandom(0);
-  for(test=0;test<1024;test++)
+  for(test=0;test<testCount;test++)
     {
+      if ((test%1024)==1023) fprintf(stderr,"  running test %d\n",test);
       /* Pick a random alphabet size */
       // alphabet_size=1+random()%1023;
       alphabet_size=1+test%1024;
