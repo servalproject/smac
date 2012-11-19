@@ -178,19 +178,21 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   for(i=0;i<69;i++) {
     if (n->counts[i]) {
       snprintf(schild,128,"%s%c",s,chars[i]);
-      if (1) 
+      if (0) 
 	fprintf(stderr, "writing: '%s' x %d @ 0x%x\n",
 		schild,n->counts[i],childAddresses[i]);
       if (childrenRemaining>1) {
-	fprintf(stderr,"  encoding child #%d as %d-%d of %d\n",
-		i,i,lastChild,highChild+1-lastChild);
+	if (0)
+	  fprintf(stderr,"  encoding child #%d as %d-%d of %d\n",
+		  i,i,lastChild,highChild+1-lastChild);
 	range_encode_equiprobable(c,highChild+1-(childrenRemaining-1)-(lastChild+1),
 				  i-(lastChild+1));
       }
       childrenRemaining--;
       lastChild=i;
       if (childrenRemaining) {
-	fprintf(stderr,":  writing %d of %d count\n",n->counts[i],remainingCount+1);
+	if (0) fprintf(stderr,":  writing %d of %d count\n",
+		       n->counts[i],remainingCount+1);
 	range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
       }
       remainingCount-=n->counts[i];
@@ -208,6 +210,8 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
 	range_encode_equiprobable(c,2,0);
     }
   }
+  range_conclude(c);
+
   if (remainingCount) {
     fprintf(stderr,"'%s' Count incomplete: %d of %lld not accounted for.\n",
 	    s,remainingCount,totalCount);
@@ -219,9 +223,10 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,int threshold)
   fwrite(c->bit_stream,bytes,1,out);
   // fprintf(stderr,"%s %f\n",s,c->entropy);
   range_coder_free(c);
-  
-  fprintf(stderr,"write: childCount=%d, storedChildren=%d, highChild=%d\n",
-	  childCount,storedChildren,highChild);
+
+  if (0)
+    fprintf(stderr,"write: childCount=%d, storedChildren=%d, highChild=%d\n",
+	    childCount,storedChildren,highChild);
 
   /* Verify */
   {

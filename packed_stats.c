@@ -66,11 +66,11 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
       thisChild=lastChild+1
 	+range_decode_equiprobable(c,highChild+1
 				   -(childrenRemaining-1)-(lastChild+1));
-      fprintf(stderr,"decoded thisChild=%d\n",thisChild);
+      if (0) fprintf(stderr,"decoded thisChild=%d\n",thisChild);
     }
     else {
       thisChild=highChild;
-      fprintf(stderr,"inferred thisChild=%d\n",thisChild);
+      if (0) fprintf(stderr,"inferred thisChild=%d\n",thisChild);
     }
     lastChild=thisChild;
     childrenRemaining--;
@@ -79,8 +79,9 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
       thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
     else
       thisCount=count-progressiveCount;
-    fprintf(stderr,"  decoded %d of %d\n",thisCount,
-	    (count-progressiveCount)+1);
+    if (0)
+      fprintf(stderr,"  decoded %d of %d\n",thisCount,
+	      (count-progressiveCount)+1);
     progressiveCount+=thisCount;
 
     n->counts[thisChild]=thisCount;
@@ -94,7 +95,7 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
       }
 
     } else childAddress=0;
-    if (1) 
+    if (0) 
 	fprintf(stderr,"%-5s : %d x '%c' @ 0x%x\n",s,
 		thisCount,chars[thisChild],childAddress);
   }
