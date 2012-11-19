@@ -114,7 +114,10 @@ struct node *extractNode(char *string,FILE *f)
 		n2->counts[charIdx(string[i])]*100.00/n2->count);
 	return n2;
       }
-    n2=n2->children[charIdx(string[i])];
+    /* Free higher-level nodes when done with them */
+    struct node *next=n2->children[charIdx(string[i])];
+    free(n2); 
+    n2=next;
     if (!n2) break;
   }
 
@@ -154,8 +157,7 @@ int extractVector(char *string,FILE *f,unsigned int v[69])
 	    n->counts[i]+1,n->count+69);
   }
   
-  /* XXX Free allocated nodes */
-
-
+  /* Higher level nodes have already been freed, so just free this one */
+  free(n);
   return 0;
 }
