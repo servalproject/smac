@@ -254,12 +254,9 @@ int dumpVariableOrderStats()
 
   fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
 
-  extractNode("http:",out);
-  extractNode("kljas",out);
-  extractNode("ttp:",out);
-  extractNode("tp:",out);
-  extractNode("p:",out);
-  extractNode(":",out);
+  unsigned int v[69];
+  extractVector("http",out,v);
+  extractVector("kljadfasdf",out,v);
 
   fclose(out);
 

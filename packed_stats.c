@@ -105,15 +105,57 @@ struct node *extractNode(char *string,FILE *f)
 
   struct node *n2=n;
 
-  for(i=0;i<strlen(string);i++) {
-    if (string[i+1]==0)
-      fprintf(stderr,"%c occurs %d/%lld (%.2f%%)\n",
-	      string[i],
-	      n2->counts[charIdx(string[i])],n2->count,
-	      n2->counts[charIdx(string[i])]*100.00/n2->count);
+  for(i=0;i<=strlen(string);i++) {
+    if (string[i]==0)
+      {
+	fprintf(stderr,"%c occurs %d/%lld (%.2f%%)\n",
+		string[i],
+		n2->counts[charIdx(string[i])],n2->count,
+		n2->counts[charIdx(string[i])]*100.00/n2->count);
+	return n2;
+      }
     n2=n2->children[charIdx(string[i])];
     if (!n2) break;
   }
 
   return NULL;
+}
+
+int extractVector(char *string,FILE *f,unsigned int v[69])
+{
+  int ofs=0;
+  fprintf(stderr,"extractVector(%s)\n",&string[ofs]);
+  struct node *n=extractNode(&string[ofs],f);
+  fprintf(stderr,"  n=%p\n",n);
+  while(!n) {
+    ofs++;
+    if (!string[ofs]) break;
+    n=extractNode(&string[ofs],f);
+    fprintf(stderr,"extractVector(%s)\n",&string[ofs]);
+    fprintf(stderr,"  n=%p\n",n);
+  }
+  if (!n) {
+    fprintf(stderr,"Could not obtain any statistics (including zero-order frequencies). Broken stats data file?\n");
+    exit(-1);
+  }
+
+  fprintf(stderr,"probability of characters following '%s' (offset=%d):\n",
+	  &string[ofs],ofs);
+
+  int i;
+  int scale=0xffffff/(n->count+69);
+  int cumulative=0;
+
+  for(i=0;i<69;i++) {
+    v[i]=cumulative+(n->counts[i]+1)*scale;
+    cumulative+=(v[i]-cumulative);
+    fprintf(stderr,"  %d : 0x%06x (%d/%lld)\n",
+	    i,v[i],
+	    n->counts[i]+1,n->count+69);
+  }
+  
+  /* XXX Free allocated nodes */
+
+
+  return 0;
 }
