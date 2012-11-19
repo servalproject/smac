@@ -129,7 +129,8 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 	    s,totalCount,n->count);
   }
 
-  if (0) fprintf(stderr,"sequence '%s' occurs %lld times.\n",s,totalCount);
+  if (0) fprintf(stderr,"sequence '%s' occurs %lld times (%d inc. terminals).\n",
+		 s,totalCount,totalCountIncludingTerminations);
   /* Don't go any deeper if the sequence is too rare */
   if (totalCount<threshold) return 0;
 
@@ -154,7 +155,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       if (n->counts[i]>=threshold) {
 	snprintf(schild,128,"%s%c",s,chars[i]);
 	if (n->children[i]) {
-	  childAddresses[i]=writeNode(out,n->children[i],schild,totalCount,threshold);
+	  childAddresses[i]=writeNode(out,n->children[i],schild,n->counts[i],threshold);
 	  storedChildren++;
 	}
       }
@@ -269,7 +270,8 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       exit(-1);
     }
     if (!strcmp(s,"h")) {
-      fprintf(stderr,"%s 0x%x (%f bits)\n",s,addr,c->entropy);
+      fprintf(stderr,"%s 0x%x (%f bits) totalCountIncTerms=%d\n",
+	      s,addr,c->entropy,totalCountIncludingTerminations);
       dumpNode(v);
     }
     free(v);
