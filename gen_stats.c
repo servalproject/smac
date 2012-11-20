@@ -147,7 +147,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 	    s,totalCount,n->count);
   }
 
-  if (1) fprintf(stderr,"sequence '%s' occurs %lld times (%d inc. terminals).\n",
+  if (0) fprintf(stderr,"sequence '%s' occurs %lld times (%d inc. terminals).\n",
 		 s,totalCount,totalCountIncludingTerminations);
   /* Don't go any deeper if the sequence is too rare */
   if (totalCount<threshold) return 0;
@@ -196,7 +196,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 
   unsigned int highAddr=ftell(out);
   unsigned int lowAddr=0;
-  if (1) fprintf(stderr,"  lowAddr=0x%x, highAddr=0x%x\n",lowAddr,highAddr);
+  if (0) fprintf(stderr,"  lowAddr=0x%x, highAddr=0x%x\n",lowAddr,highAddr);
 
   unsigned int remainingCount=totalCountIncludingTerminations;
   int childrenRemaining=childCount;
@@ -214,7 +214,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 	fprintf(stderr, "writing: '%s' x %d @ 0x%x\n",
 		schild,n->counts[i],childAddresses[i]);
       if (childrenRemaining>1) {
-	if (1)
+	if (0)
 	  fprintf(stderr,"  encoding child #%d as (%d - %d) of %d\n",
 		  i,i,lastChild+1,highChild+1-(childrenRemaining-1)-(lastChild+1));
 	range_encode_equiprobable(c,highChild+1-(childrenRemaining-1)-(lastChild+1),
@@ -222,7 +222,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       }
       childrenRemaining--;
       lastChild=i;
-      if (1) fprintf(stderr,":  writing %d of %d count for '%c'\n",
+      if (0) fprintf(stderr,":  writing %d of %d count for '%c'\n",
 		     n->counts[i],remainingCount+1,chars[i]);
       range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
       
@@ -230,19 +230,19 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       
       if (childAddresses[i]) {
 	range_encode_equiprobable(c,2,1);
-	if (1) fprintf(stderr,":    writing 1 (address attached)\n");
+	if (0) fprintf(stderr,":    writing 1 (address attached)\n");
 	
 	/* Encode address of child node compactly.
 	   For starters, we know that it must preceed us in the bit stream.
 	   We also know that we write them in order, so once we know the address
 	   of a previous one, we can narrow the range further. */
 	range_encode_equiprobable(c,highAddr-lowAddr+1,childAddresses[i]-lowAddr);
-	if (1) fprintf(stderr,":    writing addr = %d of %d\n",
+	if (0) fprintf(stderr,":    writing addr = %d of %d\n",
 		       childAddresses[i]-lowAddr,highAddr-lowAddr+1);
 	lowAddr=childAddresses[i];
       } else {
 	range_encode_equiprobable(c,2,0);
-	if (1) fprintf(stderr,":    writing 0 (no address attached)\n");
+	if (0) fprintf(stderr,":    writing 0 (no address attached)\n");
       }
     }
   }
@@ -261,7 +261,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   if (c->bits_used&7) bytes++;
   fwrite(c->bit_stream,bytes,1,out);
 
-  if (1)
+  if (0)
     fprintf(stderr,"wrote: childCount=%d, storedChildren=%d, highChild=%d\n",
 	    childCount,storedChildren,highChild);
 
@@ -271,8 +271,9 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     /* Make pretend stats handle to extract from */
     stats_handle h;
     h.file=(FILE*)0xdeadbeef;
-    h.mmap=&c->bit_stream[-addr];
-    h.fileLength=bytes;
+    h.mmap=c->bit_stream;
+    h.dummyOffset=addr;
+    h.fileLength=addr+bytes;
     struct node *v=extractNodeAt("",addr,totalCountIncludingTerminations,&h);
 
     int i;
@@ -368,11 +369,11 @@ int dumpVariableOrderStats()
   /* some simple tests */
   unsigned int v[69];
   extractVector("http",strlen("http"),h,v);
-  vectorReport("http",(int *)v,charIdx(':'));
+  vectorReport("http",v,charIdx(':'));
   extractVector("ease",strlen("ease"),h,v);
-  vectorReport("ease",(int *)v,charIdx(' '));
+  vectorReport("ease",v,charIdx(' '));
   extractVector("lease",strlen("lease"),h,v);
-  vectorReport("lease",(int *)v,charIdx(' '));
+  vectorReport("lease",v,charIdx(' '));
   extractVector("kljadfasdf",strlen("kljadfasdf"),h,v);
   extractVector("/",strlen("/"),h,v);
   extractVector("",strlen(""),h,v);

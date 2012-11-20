@@ -26,6 +26,7 @@ typedef struct compressed_stats_handle {
   FILE *file;
   unsigned char *mmap;
   int fileLength;
+  int dummyOffset;
   unsigned char *buffer;
   unsigned char *bufferBitmap;  
 

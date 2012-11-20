@@ -83,11 +83,11 @@ unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
     count=h->fileLength-start;
 
   /* If file is memory mapped, just return the address to the piece in question */
-  if (h->mmap) return &h->mmap[start];
+  if (h->mmap) return &h->mmap[start-h->dummyOffset];
   
   /* not memory mapped, so pull in the appropriate part of the file as required */
   int i;
-  for(i=(start>>10);i<=((start+count)>>10);i++)
+  for(i=((start)>>10);i<=((start+count)>>10);i++)
     {
       if (!h->bufferBitmap[i]) {
 	fread(&h->buffer[i<<10],1024,1,h->file);
@@ -121,7 +121,7 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,
   int i;
 
   if (children) highChild=range_decode_equiprobable(c,69+1);
-  if (1)
+  if (0)
     fprintf(stderr,"children=%d, storedChildren=%d, highChild=%d\n",
 	    children,storedChildren,highChild);
 
@@ -135,19 +135,19 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,
       thisChild=lastChild+1
 	+range_decode_equiprobable(c,highChild+1
 				   -(childrenRemaining-1)-(lastChild+1));
-      if (1) fprintf(stderr,"decoded thisChild=%d (as %d of %d)\n",
+      if (0) fprintf(stderr,"decoded thisChild=%d (as %d of %d)\n",
 		     thisChild,thisChild-(lastChild+1),
 		     highChild+1-(childrenRemaining-1)-(lastChild+1));
     }
     else {
       thisChild=highChild;
-      if (1) fprintf(stderr,"inferred thisChild=%d\n",thisChild);
+      if (0) fprintf(stderr,"inferred thisChild=%d\n",thisChild);
     }
     lastChild=thisChild;
     childrenRemaining--;
 
     thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
-    if (1)
+    if (0)
       fprintf(stderr,"  decoded %d of %d for '%c'\n",thisCount,
 	      (count-progressiveCount)+1,chars[thisChild]);
     progressiveCount+=thisCount;
@@ -156,15 +156,19 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,
 
     int addrP=range_decode_equiprobable(c,2);
 
-    if (1) fprintf(stderr,"    decoded addrP=%d\n",addrP);
+    if (0) fprintf(stderr,"    decoded addrP=%d\n",addrP);
     if (addrP) {
       childAddress=lowAddr+range_decode_equiprobable(c,highAddr-lowAddr+1);
-      if (1) fprintf(stderr,"    decoded addr=%d of %d\n",
+      if (0) fprintf(stderr,"    decoded addr=%d of %d\n",
 		     childAddress-lowAddr,highAddr-lowAddr+1);
       lowAddr=childAddress;
       if (s[0]&&chars[thisChild]==s[0]) {
-	n->children[thisChild]=extractNodeAt(&s[1],childAddress,
-					     n->counts[thisChild],h);
+	/* Only extract children if not in dummy mode, as in dummy mode
+	   the rest of the file is unlikely to be present, and so extracting
+	   children will most likely result in segfault. */
+	if (!h->dummyOffset)
+	  n->children[thisChild]=extractNodeAt(&s[1],childAddress,
+					       n->counts[thisChild],h);
       }
 
     } else childAddress=0;
