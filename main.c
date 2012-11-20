@@ -24,9 +24,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include<sys/time.h>
 
 #include "arithmetic.h"
+#include "packed_stats.h"
 #include "method_stats3.h"
 
-int processFile(FILE *f);
+int processFile(FILE *f,stats_handle *h);
 
 int lines=0;
 double worstPercent=0,bestPercent=100;
@@ -51,6 +52,12 @@ long long smaz_decompress_us=0;
 
 int main(int argc,char *argv[])
 {
+  stats_handle *h=stats_new_handle("stats.dat");
+  if (!h) {
+    fprintf(stderr,"Could not read stats.dat.\n");
+    exit(-1);
+  }
+
   if (!argv[1]) {
     fprintf(stderr,"You didn't provide me any messages to test, so I'll make some up.\n");
     range_coder *c=range_new_coder(2048);
@@ -65,7 +72,7 @@ int main(int argc,char *argv[])
 	range_decode_prefetch(c);
 	char out[2048];
 	int lenout;
-	stats3_decompress_bits(c,(unsigned char *)out,&lenout);
+	stats3_decompress_bits(c,(unsigned char *)out,&lenout,h);
 	printf("%s\n",out);
       }
 
@@ -82,7 +89,7 @@ int main(int argc,char *argv[])
       fprintf(stderr,"Failed to open `%s' for input.\n",argv[1]);
       exit(-1);
     } else {
-      processFile(f);
+      processFile(f,h);
       fclose(f);
     }
   }
@@ -123,7 +130,7 @@ long long current_time_us()
   return tv.tv_usec+tv.tv_sec*1000000LL;
 }
 
-int processFile(FILE *f)
+int processFile(FILE *f,stats_handle *h)
 {
   char m[1024]; // raw message, no pre-processing
   long long now;
@@ -138,7 +145,7 @@ int processFile(FILE *f)
 
     range_coder *c=range_new_coder(1024);
     now = current_time_us();
-    stats3_compress_bits(c,(unsigned char *)m);
+    stats3_compress_bits(c,(unsigned char *)m,h);
     stats3_compress_us+=current_time_us()-now;
 
     total_compressed_bits+=c->bits_used;
@@ -178,7 +185,7 @@ int processFile(FILE *f)
       
       now=current_time_us();
       range_decode_prefetch(d);
-      stats3_decompress_bits(d,(unsigned char *)mout,&lenout);
+      stats3_decompress_bits(d,(unsigned char *)mout,&lenout,h);
       stats3_decompress_us+=current_time_us()-now;
 
       if (lenout!=strlen(m)) {	

@@ -32,7 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 double entropy3(int c1,int c2, char *string);
 
-int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
+int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *h)
 {
   FILE *stats_file=fopen("stats.dat","r");
   int c1=charIdx(' ');
@@ -74,7 +74,7 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
       } else {
       unsigned int v[69];
       s[o]=0;
-      extractVector((unsigned char *)s,o,stats_file,v);
+      extractVector(s,o,h,v);
       c3 =range_decode_symbol(c,v,69);      
       // c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];
@@ -88,12 +88,11 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
   return 0;
 }
 
-int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
+int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 {
   int c1=charIdx(' ');
   int c2=charIdx(' ');
   int o;
-  FILE *stats_file=fopen("stats.dat","r");
 
   for(o=0;s[o];o++) {
     int c3=charIdx(s[o]);
@@ -228,7 +227,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 	fprintf(stderr,"'\n");
       }
     int t=s[o]; s[o]=0;
-    extractVector(s,o,stats_file,v);
+    extractVector(s,o,h,v);
     s[o]=t;
     range_encode_symbol(c,v,69,c3);
     if (0) vectorReport("var",v,c3);    
@@ -236,6 +235,5 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
     if (0) vectorReport("o3",char_freqs3[c1][c2],c3);
     c1=c2; c2=c3;
   }
-  fclose(stats_file);
   return 0;
 }

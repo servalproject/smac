@@ -147,7 +147,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 	    s,totalCount,n->count);
   }
 
-  if (0) fprintf(stderr,"sequence '%s' occurs %lld times (%d inc. terminals).\n",
+  if (1) fprintf(stderr,"sequence '%s' occurs %lld times (%d inc. terminals).\n",
 		 s,totalCount,totalCountIncludingTerminations);
   /* Don't go any deeper if the sequence is too rare */
   if (totalCount<threshold) return 0;
@@ -196,6 +196,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 
   unsigned int highAddr=ftell(out);
   unsigned int lowAddr=0;
+  if (1) fprintf(stderr,"  lowAddr=0x%x, highAddr=0x%x\n",lowAddr,highAddr);
 
   unsigned int remainingCount=totalCountIncludingTerminations;
   int childrenRemaining=childCount;
@@ -213,31 +214,36 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 	fprintf(stderr, "writing: '%s' x %d @ 0x%x\n",
 		schild,n->counts[i],childAddresses[i]);
       if (childrenRemaining>1) {
-	if (0)
-	  fprintf(stderr,"  encoding child #%d as %d-%d of %d\n",
-		  i,i,lastChild,highChild+1-lastChild);
+	if (1)
+	  fprintf(stderr,"  encoding child #%d as (%d - %d) of %d\n",
+		  i,i,lastChild+1,highChild+1-(childrenRemaining-1)-(lastChild+1));
 	range_encode_equiprobable(c,highChild+1-(childrenRemaining-1)-(lastChild+1),
 				  i-(lastChild+1));
       }
       childrenRemaining--;
       lastChild=i;
-      if (0) fprintf(stderr,":  writing %d of %d count\n",
-		     n->counts[i],remainingCount+1);
+      if (1) fprintf(stderr,":  writing %d of %d count for '%c'\n",
+		     n->counts[i],remainingCount+1,chars[i]);
       range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
       
       remainingCount-=n->counts[i];
       
       if (childAddresses[i]) {
 	range_encode_equiprobable(c,2,1);
+	if (1) fprintf(stderr,":    writing 1 (address attached)\n");
 	
 	/* Encode address of child node compactly.
 	   For starters, we know that it must preceed us in the bit stream.
 	   We also know that we write them in order, so once we know the address
 	   of a previous one, we can narrow the range further. */
 	range_encode_equiprobable(c,highAddr-lowAddr+1,childAddresses[i]-lowAddr);
+	if (1) fprintf(stderr,":    writing addr = %d of %d\n",
+		       childAddresses[i]-lowAddr,highAddr-lowAddr+1);
 	lowAddr=childAddresses[i];
-      } else 
+      } else {
 	range_encode_equiprobable(c,2,0);
+	if (1) fprintf(stderr,":    writing 0 (no address attached)\n");
+      }
     }
   }
   range_conclude(c);
@@ -255,8 +261,8 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   if (c->bits_used&7) bytes++;
   fwrite(c->bit_stream,bytes,1,out);
 
-  if (0)
-    fprintf(stderr,"write: childCount=%d, storedChildren=%d, highChild=%d\n",
+  if (1)
+    fprintf(stderr,"wrote: childCount=%d, storedChildren=%d, highChild=%d\n",
 	    childCount,storedChildren,highChild);
 
 
@@ -264,10 +270,10 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   {
     /* Make pretend stats handle to extract from */
     stats_handle h;
-    h.file=0xdeadbeef;
-    h.mmap=c->bit_stream;
-    h.fileLength=1024;
-    struct node *v=extractNodeAt("",0,totalCountIncludingTerminations,&h);
+    h.file=(FILE*)0xdeadbeef;
+    h.mmap=&c->bit_stream[-addr];
+    h.fileLength=bytes;
+    struct node *v=extractNodeAt("",addr,totalCountIncludingTerminations,&h);
 
     int i;
     int error=0;

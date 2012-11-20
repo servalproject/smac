@@ -121,8 +121,9 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,
   int i;
 
   if (children) highChild=range_decode_equiprobable(c,69+1);
-  // fprintf(stderr,"children=%d, storedChildren=%d, highChild=%d\n",
-  // 	  children,storedChildren,highChild);
+  if (1)
+    fprintf(stderr,"children=%d, storedChildren=%d, highChild=%d\n",
+	    children,storedChildren,highChild);
 
   struct node *n=calloc(sizeof(struct node),1);
 
@@ -134,25 +135,32 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,
       thisChild=lastChild+1
 	+range_decode_equiprobable(c,highChild+1
 				   -(childrenRemaining-1)-(lastChild+1));
-      if (0) fprintf(stderr,"decoded thisChild=%d\n",thisChild);
+      if (1) fprintf(stderr,"decoded thisChild=%d (as %d of %d)\n",
+		     thisChild,thisChild-(lastChild+1),
+		     highChild+1-(childrenRemaining-1)-(lastChild+1));
     }
     else {
       thisChild=highChild;
-      if (0) fprintf(stderr,"inferred thisChild=%d\n",thisChild);
+      if (1) fprintf(stderr,"inferred thisChild=%d\n",thisChild);
     }
     lastChild=thisChild;
     childrenRemaining--;
 
     thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
-    if (0)
+    if (1)
       fprintf(stderr,"  decoded %d of %d for '%c'\n",thisCount,
 	      (count-progressiveCount)+1,chars[thisChild]);
     progressiveCount+=thisCount;
 
     n->counts[thisChild]=thisCount;
 
-    if (range_decode_equiprobable(c,2)) {
+    int addrP=range_decode_equiprobable(c,2);
+
+    if (1) fprintf(stderr,"    decoded addrP=%d\n",addrP);
+    if (addrP) {
       childAddress=lowAddr+range_decode_equiprobable(c,highAddr-lowAddr+1);
+      if (1) fprintf(stderr,"    decoded addr=%d of %d\n",
+		     childAddress-lowAddr,highAddr-lowAddr+1);
       lowAddr=childAddress;
       if (s[0]&&chars[thisChild]==s[0]) {
 	n->children[thisChild]=extractNodeAt(&s[1],childAddress,
@@ -311,7 +319,7 @@ int extractVector(char *string,int len,stats_handle *h,unsigned int v[69])
 }
 
 
-int vectorReport(char *name,int v[69],int s)
+int vectorReport(char *name,unsigned int v[69],int s)
 {
   int high=0x1000000;
   int low=0;

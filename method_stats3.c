@@ -37,11 +37,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ctype.h>
 
 #include "arithmetic.h"
+#include "packed_stats.h"
 #include "message_stats.h"
 #include "charset.h"
 #include "method_stats3.h"
 
-int encodeLCAlphaSpace(range_coder *c,unsigned char *s);
+int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h);
 int encodeNonAlpha(range_coder *c,unsigned char *s);
 int encodeLength(range_coder *c,int length);
 int decodeLength(range_coder *c);
@@ -53,13 +54,14 @@ int encodeCaseModel1(range_coder *c,unsigned char *line);
 int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
 		   unsigned char nonAlphaValues[],int *nonAlphaCount,int messageLength);
 int decodeCaseModel1(range_coder *c,unsigned char *line);
-int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length);
+int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *h);
 int decodePackedASCII(range_coder *c, char *m,int encodedLength);
 int encodePackedASCII(range_coder *c,char *m);
 
 unsigned int probPackedASCII=0.05*0xffffff;
 
-int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out)
+int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
+			   stats_handle *h)
 {
   int i;
   *len_out=0;
@@ -104,7 +106,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out)
 
   unsigned char lowerCaseAlphaChars[1025];
 
-  decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount);
+  decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount,h);
   lowerCaseAlphaChars[alphaCount]=0;
 
   decodeCaseModel1(c,lowerCaseAlphaChars);
@@ -127,7 +129,8 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out)
   return 0;
 }
 
-int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outlen)
+int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outlen,
+		      stats_handle *h)
 {
   range_coder *c=range_new_coder(inlen);
   bcopy(in,c->bit_stream,inlen);
@@ -137,13 +140,13 @@ int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outle
   c->high=0xffffffff;
   range_decode_prefetch(c);
 
-  stats3_decompress_bits(c,out,outlen);
+  stats3_decompress_bits(c,out,outlen,h);
 
   range_coder_free(c);
   return 0;
 }
 
-int stats3_compress_bits(range_coder *c,unsigned char *m)
+int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
 {
   unsigned char alpha[1024]; // message with all non alpha/spaces removed
   unsigned char lcalpha[1024]; // message with all alpha chars folded to lower-case
@@ -175,7 +178,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m)
 
   /* compress lower-caseified version of message */
   stripCase(alpha,lcalpha);
-  encodeLCAlphaSpace(c,lcalpha);
+  encodeLCAlphaSpace(c,lcalpha,h);
 
   // printf("%f bits (%d emitted) to encode chars\n",c->entropy-lastEntropy,c->bits_used);
   total_alpha_bits+=c->entropy-lastEntropy;
@@ -235,10 +238,10 @@ int stats3_compress_bits(range_coder *c,unsigned char *m)
   return 0;
 }
 
-int stats3_compress(unsigned char *in,int inlen,unsigned char *out, int *outlen)
+int stats3_compress(unsigned char *in,int inlen,unsigned char *out, int *outlen,stats_handle *h)
 {
   range_coder *c=range_new_coder(inlen*2);
-  stats3_compress_bits(c,in);
+  stats3_compress_bits(c,in,h);
   range_conclude(c);
   *outlen=c->bits_used>>3;
   if (c->bits_used&7) (*outlen)++;
