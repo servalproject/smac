@@ -166,7 +166,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m)
   /* encode any non-ASCII characters */
   encodeNonAlpha(c,m);
   stripNonAlpha(m,alpha);
-  int nonAlphaChars=strlen(m)-strlen(alpha);
+  int nonAlphaChars=strlen((char *)m)-strlen((char *)alpha);
 
   //  printf("%f bits (%d emitted) to encode non-alpha\n",c->entropy-lastEntropy,c->bits_used);
   total_nonalpha_bits+=c->entropy-lastEntropy;

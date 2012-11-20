@@ -21,17 +21,88 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
+#include <sys/mman.h>
 
 #include "arithmetic.h"
 #include "packed_stats.h"
 #include "charset.h"
 
-struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
+void stats_handle_free(stats_handle *h)
 {
-  range_coder *c=range_new_coder(8192);
-  fseek(f,nodeAddress,SEEK_SET);
-  fread(c->bit_stream,8192,1,f);
-  c->bit_stream_length=8192*8;
+  if (h->mmap) munmap(h->mmap,h->fileLength);
+  if (h->buffer) free(h->buffer);
+  if (h->bufferBitmap) free(h->bufferBitmap);
+  free(h);
+  return;
+}
+
+stats_handle *stats_new_handle(char *file)
+{
+  int i;
+  stats_handle *h=calloc(sizeof(stats_handle),1);
+  h->file=fopen(file,"r");
+  if(!h->file) {
+    free(h);
+    return NULL;
+  }
+  
+  /* Get size of file */
+  fseek(h->file,0,SEEK_END);
+  h->fileLength=ftello(h->file);
+
+  fseek(h->file,4,SEEK_SET);
+  for(i=0;i<4;i++) h->rootNodeAddress=(h->rootNodeAddress<<8)
+		     |(unsigned char)fgetc(h->file);
+  for(i=0;i<4;i++) h->totalCount=(h->totalCount<<8)
+		     |(unsigned char)fgetc(h->file);
+  fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d\n",
+	  h->rootNodeAddress,h->totalCount);
+
+  /* Try to mmap() */
+  h->mmap=mmap(NULL, h->fileLength, PROT_READ, MAP_SHARED, fileno(h->file), 0);
+  if (h->mmap!=MAP_FAILED) return h;
+  
+  /* mmap failed, so create buffer and bitmap for keeping track of which parts have 
+     been loaded. */
+  h->mmap=NULL;
+
+  h->buffer=malloc(h->fileLength);
+  h->bufferBitmap=calloc((h->fileLength+1)>>10,1);
+  return h;
+}
+
+unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
+{
+  if (!h) { fprintf(stderr,"failed test at line #%d\n",__LINE__); return NULL; }
+  if (!h->file) 
+    { fprintf(stderr,"failed test at line #%d\n",__LINE__); return NULL; }
+  if (start<0||start>=h->fileLength) 
+    { fprintf(stderr,"failed test at line #%d\n",__LINE__); return NULL; }
+
+  if ((start+count)>h->fileLength) 
+    count=h->fileLength-start;
+
+  /* If file is memory mapped, just return the address to the piece in question */
+  if (h->mmap) return &h->mmap[start];
+  
+  /* not memory mapped, so pull in the appropriate part of the file as required */
+  int i;
+  for(i=(start>>10);i<=((start+count)>>10);i++)
+    {
+      if (!h->bufferBitmap[i]) {
+	fread(&h->buffer[i<<10],1024,1,h->file);
+	h->bufferBitmap[i]=1;
+      }
+    }
+  return &h->buffer[start];
+}
+
+struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,
+			   stats_handle *h)
+{
+  range_coder *c=range_new_coder(0);
+  c->bit_stream=getCompressedBytes(h,nodeAddress,1024);
+  c->bit_stream_length=1024*8;
   c->bits_used=0;
   c->low=0; c->high=0xffffffff;
   range_decode_prefetch(c);
@@ -85,7 +156,7 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
       lowAddr=childAddress;
       if (s[0]&&chars[thisChild]==s[0]) {
 	n->children[thisChild]=extractNodeAt(&s[1],childAddress,
-					     n->counts[thisChild],f);
+					     n->counts[thisChild],h);
       }
 
     } else childAddress=0;
@@ -99,6 +170,10 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
 	    s,nodeAddress,children,storedChildren,highChild);
     dumpNode(n);
   }
+  /* c->bit_stream is provided locally, so we must free the range coder manually,
+     instead of using range_coder_free() */
+  c->bit_stream=NULL;
+  free(c);
 
   return n;
 }
@@ -128,21 +203,14 @@ int dumpNode(struct node *n)
   return 0;
 }
 
-struct node *extractNode(char *string,int len,FILE *f)
+struct node *extractNode(char *string,int len,stats_handle *h)
 {
   int i;
 
-  unsigned int rootNodeAddress=0;
-  unsigned int totalCount=0;
+  unsigned int rootNodeAddress=h->rootNodeAddress;
+  unsigned int totalCount=h->totalCount;
 
-  fseek(f,4,SEEK_SET);
-  for(i=0;i<4;i++) rootNodeAddress=(rootNodeAddress<<8)|(unsigned char)fgetc(f);
-  for(i=0;i<4;i++) totalCount=(totalCount<<8)|(unsigned char)fgetc(f);
-  if (0)
-    fprintf(stderr,"root node is at 0x%08x, total count = %d\n",
-	    rootNodeAddress,totalCount);
-
-  struct node *n=extractNodeAt(string,rootNodeAddress,totalCount,f);
+  struct node *n=extractNodeAt(string,rootNodeAddress,totalCount,h);
   if (0) {
     fprintf(stderr,"n=%p\n",n);
     fflush(stderr);
@@ -185,7 +253,7 @@ struct node *extractNode(char *string,int len,FILE *f)
   return NULL;
 }
 
-int extractVector(char *string,int len,FILE *f,unsigned int v[69])
+int extractVector(char *string,int len,stats_handle *h,unsigned int v[69])
 {
   if (0)
     printf("extractVector('%s',%d,...)\n",
@@ -198,12 +266,12 @@ int extractVector(char *string,int len,FILE *f,unsigned int v[69])
 
   int ofs=0;
   if (0) fprintf(stderr,"extractVector(%d,%s)\n",len-ofs,&string[ofs]);
-  struct node *n=extractNode(&string[ofs],len-ofs,f);
+  struct node *n=extractNode(&string[ofs],len-ofs,h);
   if (0) fprintf(stderr,"  n=%p\n",n);
   while(!n) {
     ofs++;
     if (ofs>len) break;
-    n=extractNode(&string[ofs],len-ofs,f);
+    n=extractNode(&string[ofs],len-ofs,h);
     if (0) {
       fprintf(stderr,"extractVector(%d,%s)\n",len-ofs,&string[ofs]);
       fprintf(stderr,"  n=%p\n",n);

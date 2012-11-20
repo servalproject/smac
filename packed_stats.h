@@ -22,8 +22,22 @@ typedef struct node {
   struct node *children[69];
 } node;
 
-struct node *extractNode(char *string,int len,FILE *f);
-struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f);
-int extractVector(char *string,int len,FILE *f,unsigned int v[69]);
+typedef struct compressed_stats_handle {
+  FILE *file;
+  unsigned char *mmap;
+  int fileLength;
+  unsigned char *buffer;
+  unsigned char *bufferBitmap;  
+
+  unsigned int rootNodeAddress;
+  unsigned int totalCount;
+} stats_handle;
+
+struct node *extractNode(char *string,int len,stats_handle *h);
+struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,stats_handle *h);
+int extractVector(char *string,int len,stats_handle *h,unsigned int v[69]);
 int vectorReport(char *name,int v[69],int s);
 
+void stats_handle_free(stats_handle *h);
+stats_handle *stats_new_handle(char *file);
+unsigned char *getCompressedBytes(stats_handle *h,int start,int count);

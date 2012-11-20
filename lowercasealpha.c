@@ -74,7 +74,7 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
       } else {
       unsigned int v[69];
       s[o]=0;
-      extractVector(s,o,stats_file,v);
+      extractVector((unsigned char *)s,o,stats_file,v);
       c3 =range_decode_symbol(c,v,69);      
       // c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];

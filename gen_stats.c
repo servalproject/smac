@@ -259,13 +259,16 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     fprintf(stderr,"write: childCount=%d, storedChildren=%d, highChild=%d\n",
 	    childCount,storedChildren,highChild);
 
+
   /* Verify */
   {
-    off_t fileOffset=ftello(out);
-    unsigned char data[8192];
-    fseek(out,addr,SEEK_SET);
-    int bytes=fread(data,1,8192,out);
-    struct node *v=extractNodeAt("",addr,totalCountIncludingTerminations,out);
+    /* Make pretend stats handle to extract from */
+    stats_handle h;
+    h.file=0xdeadbeef;
+    h.mmap=c->bit_stream;
+    h.fileLength=1024;
+    struct node *v=extractNodeAt("",0,totalCountIncludingTerminations,&h);
+
     int i;
     int error=0;
     for(i=0;i<69;i++)
@@ -283,7 +286,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       }
     if (error) {
       fprintf(stderr,"Bit stream (%d bytes):",bytes);
-      for(i=0;i<bytes;i++) fprintf(stderr," %02x",data[i]);
+      for(i=0;i<bytes;i++) fprintf(stderr," %02x",c->bit_stream[i]);
       fprintf(stderr,"\n");
       exit(-1);
     }
@@ -294,7 +297,6 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 	dumpNode(v);
       }
     free(v);
-    fseek(out,fileOffset,SEEK_SET);
   }
   range_coder_free(c);
 
@@ -351,20 +353,23 @@ int dumpVariableOrderStats()
   fputc((totalCount>> 8)&0xff,out);
   fputc((totalCount>> 0)&0xff,out);
 
+  fclose(out);
+
   fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
 
-  int v[69];
-  extractVector("http",strlen("http"),out,v);
-  vectorReport("http",v,charIdx(':'));
-  extractVector("ease",strlen("ease"),out,v);
-  vectorReport("ease",v,charIdx(' '));
-  extractVector("lease",strlen("lease"),out,v);
-  vectorReport("lease",v,charIdx(' '));
-  extractVector("kljadfasdf",strlen("kljadfasdf"),out,v);
-  extractVector("/",strlen("/"),out,v);
-  extractVector("",strlen(""),out,v);
+  stats_handle *h=stats_new_handle("stats.dat");
 
-  fclose(out);
+  /* some simple tests */
+  unsigned int v[69];
+  extractVector("http",strlen("http"),h,v);
+  vectorReport("http",(int *)v,charIdx(':'));
+  extractVector("ease",strlen("ease"),h,v);
+  vectorReport("ease",(int *)v,charIdx(' '));
+  extractVector("lease",strlen("lease"),h,v);
+  vectorReport("lease",(int *)v,charIdx(' '));
+  extractVector("kljadfasdf",strlen("kljadfasdf"),h,v);
+  extractVector("/",strlen("/"),h,v);
+  extractVector("",strlen(""),h,v);
 
   return 0;
 }

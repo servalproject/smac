@@ -65,7 +65,7 @@ int main(int argc,char *argv[])
 	range_decode_prefetch(c);
 	char out[2048];
 	int lenout;
-	stats3_decompress_bits(c,out,&lenout);
+	stats3_decompress_bits(c,(unsigned char *)out,&lenout);
 	printf("%s\n",out);
       }
 
@@ -134,8 +134,6 @@ int processFile(FILE *f)
     /* chop newline */
     m[strlen(m)-1]=0;
 
-    fprintf(stderr,"."); fflush(stderr);
-
     total_messages++;
 
     range_coder *c=range_new_coder(1024);
@@ -180,7 +178,7 @@ int processFile(FILE *f)
       
       now=current_time_us();
       range_decode_prefetch(d);
-      stats3_decompress_bits(d,mout,&lenout);
+      stats3_decompress_bits(d,(unsigned char *)mout,&lenout);
       stats3_decompress_us+=current_time_us()-now;
 
       if (lenout!=strlen(m)) {	
