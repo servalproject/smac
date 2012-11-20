@@ -91,6 +91,7 @@ int charInWord(unsigned c)
 
 int dumpTree(struct node *n,int indent)
 {
+  if (indent==0) fprintf(stderr,"dumpTree:\n");
   int i;
   for(i=0;i<69;i++) {
     if (n->counts[i]) {
@@ -105,12 +106,36 @@ int dumpTree(struct node *n,int indent)
 
 int countChars(unsigned char *s,int len)
 {
-  int j=0;
-  if (len>MAXIMUMORDER) len=MAXIMUMORDER;
+  int j;
 
   struct node **n=&nodeTree;
   if (0) fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
-  while(j<len) {
+
+  /*
+    Originally, we inserted strings in a forward direction, e.g., inserting
+    "lease" would have nodes root->l->e->a->s->e.  
+    But we also had to insert the partial strings root->e->a->s->e, root->a->s->e,
+    root->s->e and root->e.
+    This is necessary because there may not be enough occurrences of "lease" to 
+    have the full depth stored in the compressed file.  Also, when querying on,
+    e.g., "amylase" or even just a misspelling of lease, a full depth entry may
+    not exist.  Also, at the beginning of a message there are not enough characters
+    to provide a full-depth context. 
+
+    So for all these reasons, we not only had to store all the partial strings, but
+    also query the partial strings if a full depth match does not exist when using
+    the compressed statistics file.  This contributed to very slow compression and
+    decompression performance.
+
+    If we instead insert the strings backwards, it seems that things should be
+    substantially better. Now, we would insert "lease" as root->e->s->a->e->l.
+    Querying any length string with any length of match will return the deepest
+    statistics possible in just one query.  We also don't need to store the partial
+    strings, which should reduce the size of the compressed file somewhat.
+  */
+  j=len-1;
+  if (j>MAXIMUMORDER) j=MAXIMUMORDER;
+  for(j=len-1;j>=0;j--) {
     int c=charIdx(s[j]);
     if (0) fprintf(stderr,"  %d (%c)\n",c,s[j]);
     if (c<0) break;
@@ -122,9 +147,7 @@ int countChars(unsigned char *s,int len)
     (*n)->count++;
     (*n)->counts[c]++;
     n=&(*n)->children[c];
-    j++;
   }
-  // dumpTree(nodeTree,0);
   return 0;
 }
 
@@ -950,10 +973,14 @@ int main(int argc,char **argv)
     /* Chop CR/LF from end of line */
     line[strlen(line)-1]=0;
 
+    /* Insert each string suffix into the tree.
+       We provide full length to the counter, because we don't know
+       it's maximum order/depth of recording. */
+    for(i=strlen(line);i>=0;i--) countChars(line,i);
+    dumpTree(nodeTree,0);
+
     for(i=0;i<strlen(line)-1;i++)
       {       
-
-	countChars((unsigned char *)&line[i],strlen(&line[i]));
 
 	if (line[i]=='\\') {
 	  switch(line[i+1]) {
