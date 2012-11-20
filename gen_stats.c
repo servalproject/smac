@@ -44,7 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 #define MAXIMUMORDER 5
 /* minimum frequency to count */
-#define OBSERVATIONTHRESHOLD 0
+#define OBSERVATIONTHRESHOLD 100
 
 #define COUNTWORDS
 
@@ -109,13 +109,13 @@ int countChars(unsigned char *s,int len)
   if (len>MAXIMUMORDER) len=MAXIMUMORDER;
 
   struct node **n=&nodeTree;
-  fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
+  if (0) fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
   while(j<len) {
     int c=charIdx(s[j]);
-    fprintf(stderr,"  %d (%c)\n",c,s[j]);
+    if (0) fprintf(stderr,"  %d (%c)\n",c,s[j]);
     if (c<0) break;
     if (!(*n)) {
-      fprintf(stderr,"    -- create node\n");
+      if (0) fprintf(stderr,"    -- create node\n");
       *n=calloc(sizeof(struct node),1);
       nodeCount++;
     }
