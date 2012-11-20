@@ -217,9 +217,11 @@ int extractVector(char *string,int len,FILE *f,unsigned int v[69])
 
   int i;
 
-  fprintf(stderr,"probability of characters following '");
-  for(i=ofs;i<len;i++) fprintf(stderr,"%c",string[i]);
-  fprintf(stderr,"' (offset=%d):\n",ofs);
+  if (0) {
+    fprintf(stderr,"probability of characters following '");
+    for(i=ofs;i<len;i++) fprintf(stderr,"%c",string[i]);
+    fprintf(stderr,"' (offset=%d):\n",ofs);
+  }
 
   int scale=0xffffff/(n->count+69);
   int cumulative=0;

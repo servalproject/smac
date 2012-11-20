@@ -134,6 +134,8 @@ int processFile(FILE *f)
     /* chop newline */
     m[strlen(m)-1]=0;
 
+    fprintf(stderr,"."); fflush(stderr);
+
     total_messages++;
 
     range_coder *c=range_new_coder(1024);

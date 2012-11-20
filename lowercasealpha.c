@@ -72,18 +72,10 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length)
 	}
 	continue;
       } else {
-      if (o<7)
-	{
-	  int i;
-	  fprintf(stderr,"After '");
-	  for(i=0;i<o;i++) fprintf(stderr,"%c",s[i]);
-	  fprintf(stderr,"'\n");
-	}     
       unsigned int v[69];
       s[o]=0;
       extractVector(s,o,stats_file,v);
       c3 =range_decode_symbol(c,v,69);      
-      if (o<7) vectorReport(s,v,c3);
       // c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];
 #ifdef DEBUG
@@ -228,7 +220,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
 #endif
     }
     unsigned int v[69];
-    if (o<7)
+    if (0)
       {
 	int i;
 	fprintf(stderr,"After '");
@@ -239,9 +231,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s)
     extractVector(s,o,stats_file,v);
     s[o]=t;
     range_encode_symbol(c,v,69,c3);
-    if (o<7) vectorReport("var",v,c3);    
+    if (0) vectorReport("var",v,c3);    
     //range_encode_symbol(c,char_freqs3[c1][c2],69,c3);
-    if (o<7) vectorReport("o3",char_freqs3[c1][c2],c3);
+    if (0) vectorReport("o3",char_freqs3[c1][c2],c3);
     c1=c2; c2=c3;
   }
   fclose(stats_file);
