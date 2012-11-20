@@ -74,8 +74,8 @@ struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f)
 
     thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
     if (0)
-      fprintf(stderr,"  decoded %d of %d\n",thisCount,
-	      (count-progressiveCount)+1);
+      fprintf(stderr,"  decoded %d of %d for '%c'\n",thisCount,
+	      (count-progressiveCount)+1,chars[thisChild]);
     progressiveCount+=thisCount;
 
     n->counts[thisChild]=thisCount;
@@ -143,8 +143,13 @@ struct node *extractNode(char *string,int len,FILE *f)
 	    rootNodeAddress,totalCount);
 
   struct node *n=extractNodeAt(string,rootNodeAddress,totalCount,f);
-  fprintf(stderr,"n=%p\n",n);
-  fflush(stderr);
+  if (0) {
+    fprintf(stderr,"n=%p\n",n);
+    fflush(stderr);
+  }
+
+  /* Return zero-order stats if no string provided. */
+  if (!len) return n;
 
   struct node *n2=n;
 
@@ -153,17 +158,19 @@ struct node *extractNode(char *string,int len,FILE *f)
     // dumpNode(n2);
     
     if (i<len)
-      fprintf(stderr,"%c occurs %d/%lld (%.2f%%)\n",
-	      string[i],
-	      n2->counts[charIdx(string[i])],n2->count,
-	      n2->counts[charIdx(string[i])]*100.00/n2->count);
+      if (0)
+	fprintf(stderr,"%c occurs %d/%lld (%.2f%%)\n",
+		string[i],
+		n2->counts[charIdx(string[i])],n2->count,
+		n2->counts[charIdx(string[i])]*100.00/n2->count);
     if (i==len)
       {
 	return n2;
       }
     if (string[i+1]&&(i<len)&&((!next)||(next->counts[charIdx(string[i+1])]<1)))
       {
-	fprintf(stderr,"Next layer down doesn't have any counts for the next character ('%c').\n",string[i+1]);
+	if (0)
+	  fprintf(stderr,"Next layer down doesn't have any counts for the next character ('%c').\n",string[i+1]);
 	// dumpNode(next);
 	free(n2);
 	return NULL;
@@ -175,8 +182,7 @@ struct node *extractNode(char *string,int len,FILE *f)
     if (!n2) break;
   }
   
-  /* If all else fails, return 0-order stats */
-  return extractNodeAt(string,rootNodeAddress,totalCount,f);
+  return NULL;
 }
 
 int extractVector(char *string,int len,FILE *f,unsigned int v[69])
@@ -196,7 +202,7 @@ int extractVector(char *string,int len,FILE *f,unsigned int v[69])
   if (0) fprintf(stderr,"  n=%p\n",n);
   while(!n) {
     ofs++;
-    if (ofs>=len) break;
+    if (ofs>len) break;
     n=extractNode(&string[ofs],len-ofs,f);
     if (0) {
       fprintf(stderr,"extractVector(%d,%s)\n",len-ofs,&string[ofs]);
@@ -207,13 +213,13 @@ int extractVector(char *string,int len,FILE *f,unsigned int v[69])
     fprintf(stderr,"Could not obtain any statistics (including zero-order frequencies). Broken stats data file?\n");
     fprintf(stderr,"  ofs=%d, len=%d\n",ofs,len);
     exit(-1);
-  }
+  } 
 
   int i;
 
-  // fprintf(stderr,"probability of characters following '");
-  //  for(i=ofs;i<len;i++) fprintf(stderr,"%c",string[i]);
-  //  fprintf(stderr,"' (offset=%d):\n",ofs);
+  fprintf(stderr,"probability of characters following '");
+  for(i=ofs;i<len;i++) fprintf(stderr,"%c",string[i]);
+  fprintf(stderr,"' (offset=%d):\n",ofs);
 
   int scale=0xffffff/(n->count+69);
   int cumulative=0;
@@ -231,5 +237,29 @@ int extractVector(char *string,int len,FILE *f,unsigned int v[69])
   
   /* Higher level nodes have already been freed, so just free this one */
   free(n);
+  return 0;
+}
+
+
+int vectorReport(char *name,int v[69],int s)
+{
+  int high=0x1000000;
+  int low=0;
+  if (s) low=v[s-1];
+  if (s<68) high=v[s];
+  double percent=(high-low)*100.00/0x1000000;
+  fprintf(stderr,"P[%s](%c) = %.2f%%\n",name,chars[s],percent);
+  int i;
+  low=0;
+  for(i=0;i<68;i++) {
+    if (i<68) high=v[i]; else high=0x1000000;
+    double p=(high-low)*100.00/0x1000000;
+
+    fprintf(stderr," '%c' %.2f%% |",chars[i],p);
+    if (i%5==4) fprintf(stderr,"\n");
+
+    low=high;
+  }
+  fprintf(stderr,"\n");
   return 0;
 }

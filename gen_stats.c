@@ -43,6 +43,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
    Order 5 means we model each character on the previous 4.
 */
 #define MAXIMUMORDER 5
+/* minimum frequency to count */
+#define OBSERVATIONTHRESHOLD 0
 
 #define COUNTWORDS
 
@@ -87,18 +89,33 @@ int charInWord(unsigned c)
   return 0;
 }
 
+int dumpTree(struct node *n,int indent)
+{
+  int i;
+  for(i=0;i<69;i++) {
+    if (n->counts[i]) {
+      fprintf(stderr,"%s'%c' x%d\n",
+	      &"                                        "[40-indent],
+	      chars[i],n->counts[i]);
+      if (n->children[i]) dumpTree(n->children[i],indent+2);
+    }
+  }
+  return 0;
+}
+
 int countChars(unsigned char *s,int len)
 {
   int j=0;
-  if (len>MAXIMUMORDER) len=MAXIMUMORDER;  
+  if (len>MAXIMUMORDER) len=MAXIMUMORDER;
 
   struct node **n=&nodeTree;
-  // fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
+  fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
   while(j<len) {
     int c=charIdx(s[j]);
-    // fprintf(stderr,"  %d (%c)\n",c,s[j]);
+    fprintf(stderr,"  %d (%c)\n",c,s[j]);
     if (c<0) break;
     if (!(*n)) {
+      fprintf(stderr,"    -- create node\n");
       *n=calloc(sizeof(struct node),1);
       nodeCount++;
     }
@@ -107,6 +124,7 @@ int countChars(unsigned char *s,int len)
     n=&(*n)->children[c];
     j++;
   }
+  // dumpTree(nodeTree,0);
   return 0;
 }
 
@@ -269,11 +287,12 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       fprintf(stderr,"\n");
       exit(-1);
     }
-    if (!strcmp(s,"h")) {
-      fprintf(stderr,"%s 0x%x (%f bits) totalCountIncTerms=%d\n",
-	      s,addr,c->entropy,totalCountIncludingTerminations);
-      dumpNode(v);
-    }
+    if ((!strcmp(s,"ease"))||(!strcmp(s,"lease")))
+      {
+	fprintf(stderr,"%s 0x%x (%f bits) totalCountIncTerms=%d\n",
+		s,addr,c->entropy,totalCountIncludingTerminations);
+	dumpNode(v);
+      }
     free(v);
     fseek(out,fileOffset,SEEK_SET);
   }
@@ -316,7 +335,7 @@ int dumpVariableOrderStats()
 
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
-					100 /* minimum frequency to count */);
+					OBSERVATIONTHRESHOLD);
 
   fseek(out,4,SEEK_SET);
   fputc((topNodeAddress>>24)&0xff,out);
@@ -334,8 +353,13 @@ int dumpVariableOrderStats()
 
   fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
 
-  unsigned int v[69];
+  int v[69];
   extractVector("http",strlen("http"),out,v);
+  vectorReport("http",v,charIdx(':'));
+  extractVector("ease",strlen("ease"),out,v);
+  vectorReport("ease",v,charIdx(' '));
+  extractVector("lease",strlen("lease"),out,v);
+  vectorReport("lease",v,charIdx(' '));
   extractVector("kljadfasdf",strlen("kljadfasdf"),out,v);
   extractVector("/",strlen("/"),out,v);
   extractVector("",strlen(""),out,v);
@@ -911,10 +935,11 @@ int main(int argc,char **argv)
        (minus one for the LF at end of line that we chop) */
     messagelengths[strlen(line)-1]++;
 
+    /* Chop CR/LF from end of line */
+    line[strlen(line)-1]=0;
+
     for(i=0;i<strlen(line)-1;i++)
       {       
-	/* Chop CR/LF from end of line */
-	line[strlen(line)-1]=0;
 
 	countChars((unsigned char *)&line[i],strlen(&line[i]));
 

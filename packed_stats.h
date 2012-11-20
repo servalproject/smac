@@ -25,3 +25,5 @@ typedef struct node {
 struct node *extractNode(char *string,int len,FILE *f);
 struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,FILE *f);
 int extractVector(char *string,int len,FILE *f,unsigned int v[69]);
+int vectorReport(char *name,int v[69],int s);
+
