@@ -133,8 +133,7 @@ int countChars(unsigned char *s,int len)
     statistics possible in just one query.  We also don't need to store the partial
     strings, which should reduce the size of the compressed file somewhat.
   */
-  j=len-1;
-  if (j>MAXIMUMORDER) j=MAXIMUMORDER;
+  int order=0;
   for(j=len-1;j>=0;j--) {
     int c=charIdx(s[j]);
     if (0) fprintf(stderr,"  %d (%c)\n",c,s[j]);
@@ -147,6 +146,8 @@ int countChars(unsigned char *s,int len)
     (*n)->count++;
     (*n)->counts[c]++;
     n=&(*n)->children[c];
+    order++;
+    if (order>=MAXIMUMORDER) break;
   }
   return 0;
 }
@@ -977,7 +978,7 @@ int main(int argc,char **argv)
        We provide full length to the counter, because we don't know
        it's maximum order/depth of recording. */
     for(i=strlen(line);i>=0;i--) countChars(line,i);
-    dumpTree(nodeTree,0);
+    // dumpTree(nodeTree,0);
 
     for(i=0;i<strlen(line)-1;i++)
       {       
