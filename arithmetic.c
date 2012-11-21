@@ -750,8 +750,50 @@ int main() {
 
   //  test_rescale(c);
   //  test_rescale2(c);
+  test_fineslices(c);
   test_equiprobable(c);
   test_verify(c);
+
+  return 0;
+}
+
+int test_fineslices(range_coder *c)
+{
+  int i;
+  
+  fprintf(stderr,"Testing performance with hair-width probabilities.\n");
+
+  range_coder_reset(c);
+  c->debug=NULL;
+  
+  unsigned int frequencies[2]={0x7fffff,0x800000};
+  
+  srandom(0);
+  for(i=0;i<100;i++)
+    {
+      int symbol=random()%3;
+      range_encode_symbol(c,frequencies,3,symbol);
+    }
+  range_conclude(c);
+
+  range_coder *vc=range_coder_dup(c);
+  vc->bit_stream_length=vc->bits_used;
+  vc->bits_used=0;
+  range_decode_prefetch(vc);
+
+  srandom(0);
+  for(i=0;i<100;i++)
+    {
+      int symbol=random()%3;
+      int decodeSymbol=range_decode_symbol(vc,frequencies,3);
+      if (symbol!=decodeSymbol) {
+	fprintf(stderr,"Verify error after symbol #%d: wrote %d, read %d\n",
+		i,symbol,decodeSymbol);
+	exit(-1);
+      }
+    }
+  range_coder_free(vc);
+  fprintf(stderr,"  -- passed.\n");
 
   return 0;
 }
@@ -809,6 +851,7 @@ int test_equiprobable(range_coder *c)
 
       range_coder_free(vc);
     }
+  fprintf(stderr,"  -- passed.\n");
   return 0;
 }
 
