@@ -307,6 +307,13 @@ int range_equiprobable_range(range_coder *c,int alphabet_size,int symbol,unsigne
 int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 {
   if (alphabet_size>=0x400000) {
+    /* For bigger alphabet sizes, split it */
+    range_encode_equiprobable(c,1+(alphabet_size/0x10000),symbol/0x10000);
+    range_encode_equiprobable(c,0x10000,symbol&0xffff);
+    return 0;
+  }
+
+  if (alphabet_size>=0x400000) {
     fprintf(stderr,"%s() passed alphabet_size>0x400000\n",__FUNCTION__);
     c->errors++;
     exit(-1);
@@ -324,6 +331,12 @@ int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 
 int range_decode_equiprobable(range_coder *c,int alphabet_size)
 {
+  if (alphabet_size>=0x400000) {
+    unsigned int high=range_decode_equiprobable(c,1+(alphabet_size/0x10000));
+    unsigned int low=range_decode_equiprobable(c,0x10000);
+    return low|(high<<16);
+  }
+
   if (alphabet_size<1) return 0;
   unsigned long long space=range_space(c);
   unsigned long long v=c->value-c->low;
@@ -753,7 +766,7 @@ int test_equiprobable(range_coder *c)
   c->debug=NULL;
   for(i=0;i<1000000;i++)
     {
-      int alphabet_size=random()%0x400000;
+      int alphabet_size=random();
       if (!alphabet_size) alphabet_size=1;
       int symbol=random()%alphabet_size;
       range_coder_reset(c);
@@ -771,8 +784,8 @@ int test_equiprobable(range_coder *c)
       int symbol1=range_decode_equiprobable(vc,alphabet_size);
       int symbol2=range_decode_equiprobable(vc,alphabet_size);
       if (symbol!=symbol1||symbol!=symbol2) {
-	fprintf(stderr,"test #%d failed: range_encode_equiprobable(alphabet_size=%d, symbol=%d) x2 verified as symbol={%d,%d}\n",
-		i,alphabet_size,symbol,symbol1,symbol2);
+	fprintf(stderr,"test #%d failed: range_encode_equiprobable(alphabet_size=%d, symbol=%d(0x%x)) x2 verified as symbol={%d(0x%x),%d(0x%x)}\n",
+		i,alphabet_size,symbol,symbol,symbol1,symbol1,symbol2,symbol2);
 
 	range_coder_reset(c);
 	c->debug="encode";
