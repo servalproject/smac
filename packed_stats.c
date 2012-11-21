@@ -111,21 +111,20 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 
   int children=range_decode_equiprobable(c,69+1);
   int storedChildren=range_decode_equiprobable(c,children+1);
-  int highChild=68;
-  int lastChild=-1;
   unsigned int progressiveCount=0;
   unsigned int thisCount;
 
   unsigned int highAddr=nodeAddress;
   unsigned int lowAddr=0;
   unsigned int childAddress;
-  int thisChild;
   int i;
 
-  if (children) highChild=range_decode_equiprobable(c,69+1);
+  unsigned int hasCount=(69-children)*0xffffff/69;
+  unsigned int isStored=(69-storedChildren)*0xffffff/69;
+
   if (debug)
-    fprintf(stderr,"children=%d, storedChildren=%d, highChild=%d\n",
-	    children,storedChildren,highChild);
+    fprintf(stderr,"children=%d, storedChildren=%d\n",
+	    children,storedChildren);
 
   struct node *n=calloc(sizeof(struct node),1);
 
@@ -133,64 +132,49 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 
   n->count=count;
 
-  int childrenRemaining=children;
-  for(i=0;i<children;i++) {
-    if (i<(children-1)) {
-      thisChild=lastChild+1
-	+range_decode_equiprobable(c,highChild+1
-				   -(childrenRemaining-1)-(lastChild+1));
-      if (debug) fprintf(stderr,"decoded thisChild=%d (as %d of %d)\n",
-		     thisChild,thisChild-(lastChild+1),
-		     highChild+1-(childrenRemaining-1)-(lastChild+1));
+  for(i=0;i<69;i++) {
+    hasCount=(69-i-children)*0xffffff/(69-i);
+    isStored=(69-i-storedChildren)*0xffffff/(69-i);
+
+    int countPresent=range_decode_symbol(c,&hasCount,2);
+    if (countPresent) {
+      thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
+      if (debug)
+	fprintf(stderr,"  decoded %d of %d for '%c'\n",thisCount,
+		(count-progressiveCount)+1,chars[i]);
+      progressiveCount+=thisCount;
+      children--;
+      n->counts[i]=thisCount;
     }
-    else {
-      thisChild=highChild;
-      if (debug) fprintf(stderr,"inferred thisChild=%d\n",thisChild);
-    }
-    lastChild=thisChild;
-    childrenRemaining--;
-
-    thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
-    if (debug)
-      fprintf(stderr,"  decoded %d of %d for '%c'\n",thisCount,
-	      (count-progressiveCount)+1,chars[thisChild]);
-    progressiveCount+=thisCount;
-
-    n->counts[thisChild]=thisCount;
-
-    int addrP=range_decode_equiprobable(c,2);
-
-    if (debug) fprintf(stderr,"    decoded addrP=%d\n",addrP);
+    
+    int addrP=range_decode_symbol(c,&isStored,2);
     if (addrP) {
       childAddress=lowAddr+range_decode_equiprobable(c,highAddr-lowAddr+1);      
       if (debug) fprintf(stderr,"    decoded addr=%d of %d (lowAddr=%d)\n",
 			 childAddress-lowAddr,highAddr-lowAddr+1,lowAddr);
       lowAddr=childAddress;
-      if (len>0&&chars[thisChild]==s[len]) {
+      if (len>0&&chars[i]==s[len]) {
 	/* Only extract children if not in dummy mode, as in dummy mode
 	   the rest of the file is unlikely to be present, and so extracting
 	   children will most likely result in segfault. */
 	if (!h->dummyOffset) {
-	  n->children[thisChild]=extractNodeAt(s,len-1,childAddress,
-					       n->counts[thisChild],h,debug);
-	  if (n->children[thisChild])
+	  n->children[i]=extractNodeAt(s,len-1,childAddress,
+					       n->counts[i],h,debug);
+	  if (n->children[i])
 	    {
 	      fprintf(stderr,"Found deeper stats for string offset %d\n",len-1);
-	      ret=n->children[thisChild];
+	      ret=n->children[i];
 	      dumpNode(ret);
 	    }
 	}
       }
-
+      storedChildren--;
     } else childAddress=0;
-    if (debug) 
-	fprintf(stderr,"%-5s : %d x '%c' @ 0x%x\n",s,
-		thisCount,chars[thisChild],childAddress);
   }
 
   if (debug) {
-    fprintf(stderr,"Extract '%s' @ 0x%x (children=%d, storedChildren=%d, highChild=%d)\n",
-	    s,nodeAddress,children,storedChildren,highChild);
+    fprintf(stderr,"Extract '%s' @ 0x%x (children=%d, storedChildren=%d)\n",
+	    s,nodeAddress,children,storedChildren);
     dumpNode(n);
   }
   /* c->bit_stream is provided locally, so we must free the range coder manually,

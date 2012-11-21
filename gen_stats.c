@@ -238,21 +238,32 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   unsigned int lowAddr=0;
   if (debug) fprintf(stderr,"  lowAddr=0x%x, highAddr=0x%x\n",lowAddr,highAddr);
 
+  if (debug)
+    fprintf(stderr,"wrote: childCount=%d, storedChildren=%d\n",
+	    childCount,storedChildren);
+
   unsigned int remainingCount=totalCountIncludingTerminations;
+  // XXX - we can improve on these probabilities by adjusting them
+  // according to the remaining number of children and stored children.
   unsigned int hasCount=(69-childCount)*0xffffff/69;
   unsigned int isStored=(69-storedChildren)*0xffffff/69;
   for(i=0;i<69;i++) {
-    if (debug) fprintf(stderr,"remainingCount=%d\n",remainingCount);
+    hasCount=(69-i-childCount)*0xffffff/(69-i);
+    isStored=(69-i-storedChildren)*0xffffff/(69-i);
+
     if (n->counts[i]) {
       snprintf(schild,128,"%s%c",s,chars[i]);
       if (debug) 
 	fprintf(stderr, "writing: '%s' x %d\n",
 		schild,n->counts[i]);
-      range_encode_symbol(c,&hasCount,2,1);
       if (debug) fprintf(stderr,":  writing %d of %d count for '%c'\n",
 			 n->counts[i],remainingCount+1,chars[i]);
+
+      range_encode_symbol(c,&hasCount,2,1);
       range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
+
       remainingCount-=n->counts[i];
+      childCount--;
     } else {
       range_encode_symbol(c,&hasCount,2,0);
     }
@@ -269,9 +280,9 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       if (debug) fprintf(stderr,":    writing addr = %d of %d (lowAddr=%d)\n",
 			 childAddresses[i]-lowAddr,highAddr-lowAddr+1,lowAddr);
       lowAddr=childAddresses[i];
+      storedChildren--;
     } else {
       range_encode_symbol(c,&isStored,2,0);
-      if (debug) fprintf(stderr,":    not writing %d (no address attached)\n",i);
     }  
   }
   range_conclude(c);
@@ -288,11 +299,6 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   int bytes=c->bits_used>>3;
   if (c->bits_used&7) bytes++;
   fwrite(c->bit_stream,bytes,1,out);
-
-  if (debug)
-    fprintf(stderr,"wrote: childCount=%d, storedChildren=%d\n",
-	    childCount,storedChildren);
-
 
   /* Verify */
   {
