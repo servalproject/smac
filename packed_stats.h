@@ -35,7 +35,7 @@ typedef struct compressed_stats_handle {
 } stats_handle;
 
 struct node *extractNode(char *string,int len,stats_handle *h);
-struct node *extractNodeAt(char *s,unsigned int nodeAddress,int count,stats_handle *h);
+struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,stats_handle *h,int debugP);
 int extractVector(char *string,int len,stats_handle *h,unsigned int v[69]);
 int vectorReport(char *name,unsigned int v[69],int s);
 int dumpNode(struct node *n);
