@@ -110,7 +110,7 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
   range_decode_prefetch(c);
 
   int children=range_decode_equiprobable(c,69+1);
-  int storedChildren=range_decode_equiprobable(c,children+1);
+  int storedChildren=range_decode_equiprobable(c,69+1);
   unsigned int progressiveCount=0;
   unsigned int thisCount;
 
