@@ -296,26 +296,56 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
   return 0;
 }
 
+int range_equiprobable_range(range_coder *c,int alphabet_size,int symbol,unsigned int *p_low,unsigned int *p_high)
+{
+  *p_low=(((unsigned long long)symbol)*0xffffff)/(unsigned long long)alphabet_size;
+  *p_high=(((1LL+(unsigned long long)symbol)*0xffffff)/(unsigned long long)alphabet_size)-1LL;
+  if (symbol==alphabet_size-1) p_high=0xffffff;
+  return 0;
+}
+
 int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 {
-  if (alphabet_size>0xffffff) {
-    fprintf(stderr,"%s() passed alphabet_size>0xffffff\n",__FUNCTION__);
+  if (alphabet_size>=0x400000) {
+    fprintf(stderr,"%s() passed alphabet_size>0x400000\n",__FUNCTION__);
     c->errors++;
     exit(-1);
   }
   if (alphabet_size<1) return 0;
 
-  unsigned long long space=range_space(c);
-  int step=(space/alphabet_size)>>SHIFTUPBITS;
-
-  unsigned int p_low=symbol*step;
-  unsigned int p_high=(symbol+1)*step;
+  unsigned int p_low,p_high;
+  range_equiprobable_range(c,alphabet_size,symbol,&p_low,&p_high);
   if (c->debug)
-    fprintf(stderr,"Symbol %d/%d : p_low=0x%x, p_high=0x%x, step=%d\n",
-	    symbol,alphabet_size,p_low,p_high,step);
-  if (symbol==alphabet_size-1) p_high=MAXVALUEPLUS1;
+    fprintf(stderr,"Encoding %d/%d: p_low=0x%x, p_high=0x%x\n",
+	    symbol,alphabet_size,p_low,p_high);
+
   return range_encode(c,p_low,p_high);
 }
+
+int range_decode_equiprobable(range_coder *c,int alphabet_size)
+{
+  if (alphabet_size<1) return 0;
+  unsigned long long space=range_space(c);
+  unsigned long long v=c->value-c->low;
+  unsigned long long p=0xffffff*v/space;
+  unsigned int s=v*alphabet_size/space;
+  
+  if (c->debug)
+    fprintf(stderr,"Estimating s=%d (0x%x)\n",s,s);
+
+  int symbol;
+
+  for(symbol=s?s-1:0;symbol<s+2&&symbol<alphabet_size;symbol++)
+    {
+      unsigned int p_low,p_high;
+      range_equiprobable_range(c,alphabet_size,symbol,&p_low,&p_high);
+      if (!range_decode_common(c,p_low,p_high,symbol)) return symbol;     
+    }
+
+  fprintf(stderr,"Internal error in range_decode_equiprobable().\n");
+  exit(-1);
+}
+
 
 char bitstring2[8193];
 char *range_coder_lastbits(range_coder *c,int count)
@@ -491,72 +521,6 @@ int range_check(range_coder *c,int line)
   return 0;
 }
 
-int range_decode_equiprobable(range_coder *c,int alphabet_size)
-{
-  if (alphabet_size<1) return 0;
-  unsigned int s;
-  unsigned long long space=range_space(c);
-  unsigned int v=c->value-c->low;
-  // unsigned int step=space/alphabet_size;
-  int allow_refine=1;
-  // s=v/step;
-  
-  unsigned int p=((v*1LL)<<SIGNIFICANTBITS)/space;
-  unsigned int step=(space/alphabet_size);
-  
-  v=v>>SHIFTUPBITS;
-  step=step>>SHIFTUPBITS;
-
-  s=v/step;
-
-  /* Deal with rounding issues. Spare code space is given to
-     last item in the alphabet, as a result some codes are more
-     equiprobable than others. */
-  if (s>=alphabet_size) s=alphabet_size-1;
-
-  if (c->debug)
-    fprintf(stderr,"  v=0x%x(%u), step=0x%x(%d)\n",v,v,step,step);
-
-  unsigned int p_low=s*step;
-  unsigned int p_high=(s+1)*step;
-  if (s==alphabet_size-1) p_high=MAXVALUEPLUS1;
-
-  if (c->debug) {
-    printf("%s(): space=0x%08llx, low=0x%08x, value=0x%08x, high=0x%08x, v=0x%08x, step=0x%08x, s=%d\n",
-	   __FUNCTION__,space,c->low,c->value,c->high,v,step,s);
-    printf("  p_low=0x%x, p_high=0x%x\n",p_low,p_high);
-  }
-  
-  if (c->debug) printf("  low=0x%08x, value=0x%08x, high=0x%08x\n",c->low,c->value,c->high);
-
-  /* Sometimes rounding errors cause problems due to not-quite-symmetrical math, so try adding one
-     to s, and see if it resolves the problem. */
-  if (range_decode_common(c,p_low,p_high,s))
-    {
-      if (c->debug) printf("  low=0x%08x, value=0x%08x, high=0x%08x (b)\n",c->low,c->value,c->high);
-
-      s++;
-      p_low=s*step;
-      p_high=(s+1)*step;
-      if (s==alphabet_size) p_high=MAXVALUEPLUS1;
-
-      if (c->debug) {
-	printf("REVISED: space=0x%08llx, low=0x%08x, value=0x%08x, high=0x%08x, v=0x%08x, step=0x%08x, s=%d\n",
-	       space,c->low,c->value,c->high,v,step,s);
-	printf("  p_low=0x%x, p_high=0x%x\n",p_low,p_high);
-      }
-
-
-      if (range_decode_common(c,p_low,p_high,s))
-	{
-	  fprintf(stderr,"range_decode_common() failed -- probably an out of bounds problem.\n");
-	  exit(-1);
-	}
-    }
-
-  return s;
-}
-
 int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_size)
 {
   c->decodingP=1;
@@ -619,9 +583,25 @@ int range_calc_new_range(range_coder *c,
     return -1;
   }
 
+  if (c->debug) {
+    fprintf(stderr,"%s(): space=0x%llx, c->low=0x%x, c->high=0x%x, p_low=0x%x, p_high=0x%x\n",
+	    __FUNCTION__,space,c->low,c->high,p_low,p_high);
+  }
+  if(c->debug) fprintf(stderr,"(0x%x * 0x%llx)>>24 = 0x%llx\n",p_low,space,(p_low*space)>>24LL);
   *new_low=c->low+((p_low*space)>>(32LL-SHIFTUPBITS));
   *new_high=c->low+(((p_high)*space)>>(32LL-SHIFTUPBITS))-1;
   if (p_high>=MAXVALUEPLUS1) *new_high=c->high;
+
+  if (c->decodingP)
+    if (*new_low>c->value||*new_high<c->value) {
+      if (c->debug) {
+	fprintf(stderr,"%s(): new range would be invalid: space=0x%llx, c->low=0x%x, c->high=0x%x, p_low=0x%x, p_high=0x%x\n",
+		__FUNCTION__,space,c->low,c->high,p_low,p_high);
+	fprintf(stderr,"  new_low=0x%x, new_high=0x%x, c->value=0x%x\n",
+		*new_low,*new_high,c->value);
+      }
+      return -1;
+    }
 
   return 0;
 }
@@ -635,8 +615,10 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
     return -1;
   }
 
-  if (range_calc_new_range(c,p_low,p_high,&new_low,&new_high))
+  if (range_calc_new_range(c,p_low,p_high,&new_low,&new_high)) {
+    if (c->debug) fprintf(stderr,"range calc new range failed at %s:%d\n",__FILE__,__LINE__);
     return -1;
+  }
 
   if (new_high>0xffffffff) {
     printf("new_high=0x%08x\n",new_high);
@@ -658,7 +640,11 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
   if (new_low>c->value||new_high<c->value) {
     if (c->debug) {
       fprintf(stderr,"c->value would be out of bounds at %s:%d\n",__FILE__,__LINE__);
-      fprintf(stderr,"new_low=0x%08x, c->value=0x%08x, new_high=0x%08x\n",new_low,c->value,new_high);
+      fprintf(stderr,"  new_low=0x%08x, c->value=0x%08x, new_high=0x%08x\n",new_low,c->value,new_high);
+      fprintf(stderr,"  low=0x%08x, value=0x%08x, high=0x%08x\n",c->low,c->value,c->high);
+      fprintf(stderr,"  p_low=0x%08x, p_high=0x%08x, space=%08llx, s=%d\n",
+	      p_low,p_high,range_space(c),s);
+      fprintf(stderr,"  c->low=0x%x, c->high=0x%x\n",c->low,c->high);
     
     }
     return -1;
@@ -767,11 +753,12 @@ int test_equiprobable(range_coder *c)
   c->debug=NULL;
   for(i=0;i<1000000;i++)
     {
-      int alphabet_size=random()%0xffffff;
+      int alphabet_size=random()%0x400000;
       if (!alphabet_size) alphabet_size=1;
       int symbol=random()%alphabet_size;
       range_coder_reset(c);
       c->debug=NULL;
+      range_encode_equiprobable(c,alphabet_size,symbol);
       range_encode_equiprobable(c,alphabet_size,symbol);
       // fprintf(stderr,"c->low=0x%x, c->high=0x%x\n",c->low,c->high);
       // range_status(c,0);
@@ -781,14 +768,18 @@ int test_equiprobable(range_coder *c)
       vc->bit_stream_length=vc->bits_used;
       vc->bits_used=0;
       range_decode_prefetch(vc);
-      int symbolv=range_decode_equiprobable(vc,alphabet_size);
-      if (symbol!=symbolv) {
-	fprintf(stderr,"test #%d failed: range_encode_equiprobable(alphabet_size=%d, symbol=%d) verified as symbol=%d\n",
-		i,alphabet_size,symbol,symbolv);
+      int symbol1=range_decode_equiprobable(vc,alphabet_size);
+      int symbol2=range_decode_equiprobable(vc,alphabet_size);
+      if (symbol!=symbol1||symbol!=symbol2) {
+	fprintf(stderr,"test #%d failed: range_encode_equiprobable(alphabet_size=%d, symbol=%d) x2 verified as symbol={%d,%d}\n",
+		i,alphabet_size,symbol,symbol1,symbol2);
 
 	range_coder_reset(c);
 	c->debug="encode";
 	range_encode_equiprobable(c,alphabet_size,symbol);
+	fprintf(stderr,"\n");
+	range_encode_equiprobable(c,alphabet_size,symbol);
+	fprintf(stderr,"\n");
 	range_conclude(c);
 	c->debug=NULL;
 	vc->bits_used=0;
@@ -796,6 +787,9 @@ int test_equiprobable(range_coder *c)
 	range_decode_prefetch(vc);
 	vc->debug="decode";
 	range_decode_equiprobable(vc,alphabet_size);
+	fprintf(stderr,"\n");
+	range_decode_equiprobable(vc,alphabet_size);
+	fprintf(stderr,"\n");
 
 	exit(-1);
       }
@@ -829,7 +823,7 @@ int test_rescale(range_coder *c)
       unsigned int high_flattened=range_unrescale_value(c->high,c->underflow);
       unsigned int low_diff=low_before^low_flattened;
       unsigned int high_diff=high_before^high_flattened;
-      if (low_diff||high_diff) {
+      if (low_diff ||high_diff) {
 	printf(">>> Range-coder rescaling test #%d failed:\n",i);
 	printf("low: before=0x%08x, after=0x%08x, reflattened=0x%08x, diff=0x%08x  underflows=%d\n",
 	       low_before,c->low,low_flattened,low_diff,c->underflow);
