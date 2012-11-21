@@ -310,8 +310,9 @@ int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 
   unsigned int p_low=symbol*step;
   unsigned int p_high=(symbol+1)*step;
-  fprintf(stderr,"Symbol %d/%d : p_low=0x%x, p_high=0x%x, step=%d\n",
-	  symbol,alphabet_size,p_low,p_high,step);
+  if (c->debug)
+    fprintf(stderr,"Symbol %d/%d : p_low=0x%x, p_high=0x%x, step=%d\n",
+	    symbol,alphabet_size,p_low,p_high,step);
   if (symbol==alphabet_size-1) p_high=MAXVALUEPLUS1;
   return range_encode(c,p_low,p_high);
 }
@@ -380,9 +381,11 @@ int range_conclude(range_coder *c)
   /* shift out msb */
   c->low=(c->low<<1)&0x7fffffff;
   c->high=(c->high<<1)|0x80000001;
-  fprintf(stderr,"after shifting out msb and underflow bits: low=0x%x, high=0x%x\n",
-	  c->low,c->high);
-  range_status(c,0);
+  if (c->debug) {
+    fprintf(stderr,"after shifting out msb and underflow bits: low=0x%x, high=0x%x\n",
+	    c->low,c->high);
+    range_status(c,0);
+  }
 
   /* work out new mean */
   mean=((c->high-c->low)/2)+c->low;
@@ -426,7 +429,7 @@ int range_conclude(range_coder *c)
     if (range_emitbit(c,b)) return -1;
   }
   //  printf(" (of %s)\n",asbits(mean));
-  range_status(c,0);
+  // range_status(c,0);
   return 0;
 }
 
@@ -505,13 +508,20 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
   step=step>>SHIFTUPBITS;
 
   s=v/step;
-  fprintf(stderr,"  v=0x%x(%u), step=0x%x(%d)\n",v,v,step,step);
+
+  /* Deal with rounding issues. Spare code space is given to
+     last item in the alphabet, as a result some codes are more
+     equiprobable than others. */
+  if (s>=alphabet_size) s=alphabet_size-1;
+
+  if (c->debug)
+    fprintf(stderr,"  v=0x%x(%u), step=0x%x(%d)\n",v,v,step,step);
 
   unsigned int p_low=s*step;
   unsigned int p_high=(s+1)*step;
-  if (s==alphabet_size) p_high=MAXVALUEPLUS1;
+  if (s==alphabet_size-1) p_high=MAXVALUEPLUS1;
 
-  if (1) {
+  if (c->debug) {
     printf("%s(): space=0x%08llx, low=0x%08x, value=0x%08x, high=0x%08x, v=0x%08x, step=0x%08x, s=%d\n",
 	   __FUNCTION__,space,c->low,c->value,c->high,v,step,s);
     printf("  p_low=0x%x, p_high=0x%x\n",p_low,p_high);
@@ -528,8 +538,9 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
       s++;
       p_low=s*step;
       p_high=(s+1)*step;
+      if (s==alphabet_size) p_high=MAXVALUEPLUS1;
 
-      if (1) {
+      if (c->debug) {
 	printf("REVISED: space=0x%08llx, low=0x%08x, value=0x%08x, high=0x%08x, v=0x%08x, step=0x%08x, s=%d\n",
 	       space,c->low,c->value,c->high,v,step,s);
 	printf("  p_low=0x%x, p_high=0x%x\n",p_low,p_high);
@@ -632,7 +643,7 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
     new_high=0xffffffff;
   }
 
-  if (1) {
+  if (0) {
     printf("rdc: low=0x%08x, value=0x%08x, high=0x%08x\n",c->low,c->value,c->high);
     printf("rdc: p_low=0x%08x, p_high=0x%08x, space=%08llx, s=%d\n",
 	   p_low,p_high,range_space(c),s);  
@@ -645,7 +656,11 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
   }
 
   if (new_low>c->value||new_high<c->value) {
-    if (c->debug) fprintf(stderr,"c->value would be out of bounds at %s:%d\n",__FILE__,__LINE__);
+    if (c->debug) {
+      fprintf(stderr,"c->value would be out of bounds at %s:%d\n",__FILE__,__LINE__);
+      fprintf(stderr,"new_low=0x%08x, c->value=0x%08x, new_high=0x%08x\n",new_low,c->value,new_high);
+    
+    }
     return -1;
   }
 
@@ -753,12 +768,13 @@ int test_equiprobable(range_coder *c)
   for(i=0;i<1000000;i++)
     {
       int alphabet_size=random()%0xffffff;
+      if (!alphabet_size) alphabet_size=1;
       int symbol=random()%alphabet_size;
       range_coder_reset(c);
-      c->debug="encode";
+      c->debug=NULL;
       range_encode_equiprobable(c,alphabet_size,symbol);
-      fprintf(stderr,"c->low=0x%x, c->high=0x%x\n",c->low,c->high);
-      range_status(c,0);
+      // fprintf(stderr,"c->low=0x%x, c->high=0x%x\n",c->low,c->high);
+      // range_status(c,0);
       range_conclude(c);
       
       range_coder *vc=range_coder_dup(c);
