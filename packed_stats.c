@@ -283,9 +283,12 @@ struct node *extractNode(char *string,int len,stats_handle *h)
   return n;
 }
 
-int extractVector(char *string,int len,stats_handle *h,unsigned int **v,
-		  struct vector_cache **cache)
+struct probability_vector *extractVector(char *string,int len,stats_handle *h)
 {
+
+  struct vector_cache **cache=&h->cache;
+  struct probability_vector *v=&h->vector;
+  
   if (0)
     fprintf(stderr,"extractVector('%s',%d,...)\n",
 	   string,len);
@@ -296,7 +299,7 @@ int extractVector(char *string,int len,stats_handle *h,unsigned int **v,
   }
 
   /* Try to find in cache first */
-  if (cache) {
+  if (h->use_cache) {
     struct vector_cache **n=cache;
     char *compareString=string;
     int compareLen=len;
@@ -304,25 +307,25 @@ int extractVector(char *string,int len,stats_handle *h,unsigned int **v,
       compareString+=(compareLen-h->maximumOrder);
       compareLen=h->maximumOrder;
     }
-    while (!(*n)) {
+    while (*n) {
       int c=strcmp((*n)->string,compareString);
       if (c<0) n=&(*n)->left;
       else if (c>0) n=&(*n)->right;
       else break;
     }
     if (*n) {
-      *v=(*n)->v;
-      return 0;
+      fprintf(stderr,"Using cached vector for '%s'\n",compareString);
+      return &(*n)->v;
     } else {
       /* This is where it should go in the tree */
       (*n)=calloc(sizeof(struct vector_cache),1);
-      *v=(*n)->v;
+      v=&(*n)->v;
       (*n)->string=strdup(compareString);
       fprintf(stderr,"Caching vector for '%s'\n",compareString);
     }
   } else {
-    if (!(*v)) {
-      fprintf(stderr,"%s() called with cache==NULL and (*v)==NULL.\n",
+    if (!(v)) {
+      fprintf(stderr,"%s() could not work out where to put extracted vector.\n",
 	      __FUNCTION__);
       exit(-1);
     }
@@ -349,33 +352,35 @@ int extractVector(char *string,int len,stats_handle *h,unsigned int **v,
   int sum=0;
 
   for(i=0;i<69;i++) {
-    (*v)[i]=cumulative+(n->counts[i]+1)*scale;
-    cumulative=(*v)[i];
+    v->v[i]=cumulative+(n->counts[i]+1)*scale;
+    cumulative=v->v[i];
     sum+=n->counts[i]+1;
     if (0) 
-      fprintf(stderr,"  '%c' %d : 0x%06x (%d/%lld) %d\n",
-	      chars[i],i,(*v)[i],
-	      n->counts[i]+1,n->count+69,sum);
+      fprintf(stderr,"  '%c' %d : 0x%06x (%d/%lld) %d (*v)[i]=%p\n",
+	      chars[i],i,v->v[i],
+	      n->counts[i]+1,n->count+69,sum,
+	      &v->v[i]);
   }
 
   /* Higher level nodes have already been freed, so just free this one */
   node_free(n);
-  return 0;
+  // vectorReport("extracted",v,26);
+  return v;
 }
 
 
-int vectorReport(char *name,unsigned int v[69],int s)
+int vectorReport(char *name,struct probability_vector *v,int s)
 {
   int high=0x1000000;
   int low=0;
-  if (s) low=v[s-1];
-  if (s<68) high=v[s];
+  if (s) low=v->v[s-1];
+  if (s<68) high=v->v[s];
   double percent=(high-low)*100.00/0x1000000;
   fprintf(stderr,"P[%s](%c) = %.2f%%\n",name,chars[s],percent);
   int i;
   low=0;
   for(i=0;i<68;i++) {
-    if (i<68) high=v[i]; else high=0x1000000;
+    if (i<68) high=v->v[i]; else high=0x1000000;
     double p=(high-low)*100.00/0x1000000;
 
     fprintf(stderr," '%c' %.2f%% |",chars[i],p);

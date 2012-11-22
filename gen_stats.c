@@ -318,6 +318,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     h.mmap=c->bit_stream;
     h.dummyOffset=addr;
     h.fileLength=addr+bytes;
+    h.use_cache=0;
     if (0) fprintf(stderr,"verifying node @ 0x%x\n",addr);
     struct node *v=extractNodeAt("",0,addr,totalCountIncludingTerminations,&h,debug);
 
@@ -417,19 +418,19 @@ int dumpVariableOrderStats()
   fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
 
   stats_handle *h=stats_new_handle("stats.dat");
+  h->use_cache=1;
 
   /* some simple tests */
-  unsigned int v[69];
-  unsigned int *v_addr=&v[0];
-  extractVector("http",strlen("http"),h,&v_addr,NULL);
+  struct probability_vector *v;
+  v=extractVector("http",strlen("http"),h);
   vectorReport("http",v,charIdx(':'));
-  extractVector("ease",strlen("ease"),h,&v_addr,NULL);
+  v=extractVector("ease",strlen("ease"),h);
   vectorReport("ease",v,charIdx(' '));
-  extractVector("lease",strlen("lease"),h,&v_addr,NULL);
+  v=extractVector("lease",strlen("lease"),h);
   vectorReport("lease",v,charIdx(' '));
-  extractVector("kljadfasdf",strlen("kljadfasdf"),h,&v_addr,NULL);
-  extractVector("/",strlen("/"),h,&v_addr,NULL);
-  extractVector("",strlen(""),h,&v_addr,NULL);
+  v=extractVector("kljadfasdf",strlen("kljadfasdf"),h);
+  v=extractVector("/",strlen("/"),h);
+  v=extractVector("",strlen(""),h);
 
   return 0;
 }

@@ -72,11 +72,9 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *
 	}
 	continue;
       } else {
-      unsigned int v[69];
       s[o]=0;
-      unsigned int *v_addr=&v[0];
-      extractVector((char *)s,o,h,&v_addr,h->cache);
-      c3 =range_decode_symbol(c,v,69);      
+      struct probability_vector *v=extractVector((char *)s,o,h);
+      c3=range_decode_symbol(c,v->v,69);      
       // c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];
 #ifdef DEBUG
@@ -224,7 +222,6 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 	       o,c2,chars[c2],c3,chars[c3]);
 #endif
     }
-    unsigned int v[69];
     if (0)
       {
 	int i;
@@ -234,13 +231,12 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
       }
     int t=s[o]; 
     s[o]=0;
-    unsigned int *v_addr=&v[0];
-    extractVector((char *)s,o,h,&v_addr,h->cache);
+    struct probability_vector *v=extractVector((char *)s,o,h);
     s[o]=t;
-    range_encode_symbol(c,v,69,c3);
+    range_encode_symbol(c,v->v,69,c3);
     if (0) vectorReport("var",v,c3);    
     //range_encode_symbol(c,char_freqs3[c1][c2],69,c3);
-    if (0) vectorReport("o3",char_freqs3[c1][c2],c3);
+    // if (0) vectorReport("o3",char_freqs3[c1][c2],c3);
     c1=c2; c2=c3;
   }
   return 0;

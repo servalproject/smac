@@ -57,6 +57,7 @@ int main(int argc,char *argv[])
     fprintf(stderr,"Could not read stats.dat.\n");
     exit(-1);
   }
+  h->cache=calloc(sizeof(struct vector_cache *),1);
 
   if (!argv[1]) {
     fprintf(stderr,"You didn't provide me any messages to test, so I'll make some up.\n");
