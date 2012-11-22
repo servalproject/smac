@@ -44,7 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 #define MAXIMUMORDER 5
 /* minimum frequency to count */
-#define OBSERVATIONTHRESHOLD 0
+#define OBSERVATIONTHRESHOLD 100
 
 #define COUNTWORDS
 
@@ -145,7 +145,8 @@ int countChars(unsigned char *s,int len)
     and the counts.
   */
   int order=0;
-  int symbol=charIdx(s[len-1]);
+  int symbol=charIdx(tolower(s[len-1]));
+  if (symbol<0) return 0;
   for(j=len-2;j>=0;j--) {
     int c=charIdx(s[j]);
     if (0) fprintf(stderr,"  %d (%c)\n",c,s[j]);
@@ -157,7 +158,9 @@ int countChars(unsigned char *s,int len)
     }
     (*n)->count++;
     (*n)->counts[symbol]++;
-    if (0) fprintf(stderr,"   incrementing count of %d (%c) *n=%p\n",symbol,chars[symbol],*n);
+    if (0) 
+      fprintf(stderr,"   incrementing count of %d (0x%02x = '%c') @ offset=%d *n=%p (now %d)\n",
+	      symbol,s[len-1],s[len-1],j,*n,(*n)->counts[symbol]);
     n=&(*n)->children[c];
     if (order>MAXIMUMORDER) 
       {
@@ -338,7 +341,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       fprintf(stderr,"\n");
       exit(-1);
     }
-    if ((!strcmp(s,"ease"))||(!strcmp(s,"lease")))
+    if ((!strcmp(s,"esae"))||(!strcmp(s,"esael")))
       {
 	fprintf(stderr,"%s 0x%x (%f bits) totalCountIncTerms=%d\n",
 		s,addr,c->entropy,totalCountIncludingTerminations);
@@ -354,10 +357,14 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 int rescaleCounts(struct node *n,double f)
 {
   int i;
-  n->count/=f;
+  n->count=0;
   if (n->count>0xffffff) { fprintf(stderr,"Rescaling failed (1).\n"); exit(-1); }
   for(i=0;i<69;i++) {
-    n->counts[i]/=f;
+    if (n->counts[i]) {
+      n->counts[i]/=f;
+      if (n->counts[i]==0) n->counts[i]=1;
+    }
+    n->count+=n->counts[i];
     if (n->counts[i]>0xffffff)
       { fprintf(stderr,"Rescaling failed (2).\n"); exit(-1); }  
     if (n->children[i]) rescaleCounts(n->children[i],f);
@@ -376,7 +383,8 @@ int dumpVariableOrderStats()
   /* Normalise counts if required */
   if (nodeTree->count>0xffffff) {
     double factor=nodeTree->count*1.0/0xffffff;
-    fprintf(stderr,"Dividing all counts by %.1f\n",factor);
+    fprintf(stderr,"Dividing all counts by %.1f (saw 0x%llx = %lld observations)\n",
+	    factor,nodeTree->count,nodeTree->count);
     rescaleCounts(nodeTree,factor);
   }
 
