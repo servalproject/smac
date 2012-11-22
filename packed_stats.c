@@ -100,8 +100,10 @@ unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
 struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 			   stats_handle *h,int debug)
 {
-  if (s[len]) fprintf(stderr,"Extracting node '%c' @ 0x%x\n",s[len],nodeAddress);
-  else fprintf(stderr,"Extracting root node @ 0x%x?\n",nodeAddress);
+  if (0) {
+    if (s[len]) fprintf(stderr,"Extracting node '%c' @ 0x%x\n",s[len],nodeAddress);
+    else fprintf(stderr,"Extracting root node @ 0x%x?\n",nodeAddress);
+  }
  
   range_coder *c=range_new_coder(0);
   c->bit_stream=getCompressedBytes(h,nodeAddress,1024);
@@ -177,9 +179,11 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 				       progressiveCount,h,debug);
 	  if (n->children[i])
 	    {
-	      fprintf(stderr,"Found deeper stats for string offset %d\n",len-1);
+	      if (0) 
+		fprintf(stderr,"Found deeper stats for string offset %d\n",len-1);
 	      ret=n->children[i];
-	      dumpNode(ret);
+	      free(n);
+	      if (0) dumpNode(ret);
 	    }
 	}
       }
@@ -235,7 +239,7 @@ struct node *extractNode(char *string,int len,stats_handle *h)
   unsigned int rootNodeAddress=h->rootNodeAddress;
   unsigned int totalCount=h->totalCount;
 
-  struct node *n=extractNodeAt(string,len,rootNodeAddress,totalCount,h,1);
+  struct node *n=extractNodeAt(string,len,rootNodeAddress,totalCount,h,0);
   if (0) {
     fprintf(stderr,"n=%p\n",n);
     fflush(stderr);
@@ -244,38 +248,25 @@ struct node *extractNode(char *string,int len,stats_handle *h)
   /* Return zero-order stats if no string provided. */
   if (!len) return n;
 
-  struct node *n2=n;
-  
-  for(i=0;i<=len;i++) {
-    struct node *next=n2->children[charIdx(string[i])];
-    // dumpNode(n2);
-    
-    if (i<len)
-      if (1)
-	fprintf(stderr,"%c occurs %d/%lld (%.2f%%)\n",
-		string[i],
-		n2->counts[charIdx(string[i])],n2->count,
-		n2->counts[charIdx(string[i])]*100.00/n2->count);
-    if (i==len)
-      {
-	return n2;
-      }
-    if (string[i+1]&&(i<len)&&((!next)||(next->counts[charIdx(string[i+1])]<1)))
-      {
-	if (1)
-	  fprintf(stderr,"Next layer down doesn't have any counts for the next character ('%c').\n",string[i+1]);
-	// dumpNode(next);
-	free(n2);
-	return NULL;
-      }
-
-    /* Free higher-level nodes when done with them */
-    free(n2); 
-    n2=next;
-    if (!n2) break;
+  if (0) {
+    fprintf(stderr,"stats for what follows '%s' @ 0x%p\n",
+	    &string[len-i],n);
+    dumpNode(n);
   }
-  
-  return NULL;
+    
+  if (n==NULL)
+    {
+      if (1) {
+	fprintf(stderr,"No statistics for what comes after '");
+	int j;
+	for(j=0;j<=i;j++) fprintf(stderr,"%c",string[len-j-1]);
+	fprintf(stderr,"'\n");
+      }
+      
+      return NULL;
+    } 
+
+  return n;
 }
 
 int extractVector(char *string,int len,stats_handle *h,unsigned int v[69])

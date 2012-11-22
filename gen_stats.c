@@ -117,7 +117,7 @@ int countChars(unsigned char *s,int len)
   
   if (!*n) *n=calloc(sizeof(struct node),1);
 
-  if (1) fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
+  if (0) fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
 
   /*
     Originally, we inserted strings in a forward direction, e.g., inserting
@@ -148,16 +148,16 @@ int countChars(unsigned char *s,int len)
   int symbol=charIdx(s[len-1]);
   for(j=len-2;j>=0;j--) {
     int c=charIdx(s[j]);
-    if (1) fprintf(stderr,"  %d (%c)\n",c,s[j]);
+    if (0) fprintf(stderr,"  %d (%c)\n",c,s[j]);
     if (c<0) break;
     if (!(*n)) {
       *n=calloc(sizeof(struct node),1);
-      if (1) fprintf(stderr,"    -- create node %p\n",*n);
+      if (0) fprintf(stderr,"    -- create node %p\n",*n);
       nodeCount++;
     }
     (*n)->count++;
     (*n)->counts[symbol]++;
-    if (1) fprintf(stderr,"   incrementing count of %d (%c) *n=%p\n",symbol,chars[symbol],*n);
+    if (0) fprintf(stderr,"   incrementing count of %d (%c) *n=%p\n",symbol,chars[symbol],*n);
     n=&(*n)->children[c];
     if (order>MAXIMUMORDER) 
       {
@@ -168,7 +168,7 @@ int countChars(unsigned char *s,int len)
 
   if (!(*n)) {
     *n=calloc(sizeof(struct node),1);
-    if (1) fprintf(stderr,"    -- create terminal node %p\n",*n);
+    if (0) fprintf(stderr,"    -- create terminal node %p\n",*n);
     nodeCount++;
   }
   (*n)->count++;
@@ -191,7 +191,6 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   long long totalCount=0;
 
   int debug=0;
-  debug=1;
 
   for(i=0;i<69;i++) totalCount+=n->counts[i];
   if (totalCount!=n->count) {
@@ -219,7 +218,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     childAddresses[i]=0;
 
     if (n->children[i]&&n->children[i]->count>=threshold) {
-      fprintf(stderr,"n->children[%d]->count=%lld\n",i,n->children[i]->count);
+      if (0) fprintf(stderr,"n->children[%d]->count=%lld\n",i,n->children[i]->count);
       snprintf(schild,128,"%s%c",s,chars[i]);
       childAddresses[i]=writeNode(out,n->children[i],schild,totalCount,threshold);
       storedChildren++;
@@ -315,7 +314,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     h.mmap=c->bit_stream;
     h.dummyOffset=addr;
     h.fileLength=addr+bytes;
-    fprintf(stderr,"verifying node @ 0x%x\n",addr);
+    if (0) fprintf(stderr,"verifying node @ 0x%x\n",addr);
     struct node *v=extractNodeAt("",0,addr,totalCountIncludingTerminations,&h,debug);
 
     int i;
@@ -410,7 +409,7 @@ int dumpVariableOrderStats()
 
   /* some simple tests */
   unsigned int v[69];
-  extractVector("abcd",strlen("abcd"),h,v);
+  extractVector("http",strlen("http"),h,v);
   vectorReport("http",v,charIdx(':'));
   extractVector("ease",strlen("ease"),h,v);
   vectorReport("ease",v,charIdx(' '));
@@ -997,7 +996,7 @@ int main(int argc,char **argv)
        it's maximum order/depth of recording. */
     for(i=strlen(line);i>0;i--) {
       countChars((unsigned char *)line,i);
-      dumpTree(nodeTree,0);
+      // dumpTree(nodeTree,0);
     }
 
     for(i=0;i<strlen(line)-1;i++)
