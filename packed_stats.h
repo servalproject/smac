@@ -20,6 +20,10 @@ typedef struct node {
   long long count;
   unsigned int counts[69];
   struct node *children[69];
+
+  /* Only populated when in caching mode */
+  unsigned int *childAddresses;
+  unsigned int *vector;
 } node;
 
 typedef struct compressed_stats_handle {
@@ -34,9 +38,10 @@ typedef struct compressed_stats_handle {
   unsigned int totalCount;
 
   int cache;
-  struct node *rootNode;
+  struct node **extractedNodes;
 } stats_handle;
 
+void node_free(struct node *n);
 struct node *extractNode(char *string,int len,stats_handle *h);
 struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,stats_handle *h,int debugP);
 int extractVector(char *string,int len,stats_handle *h,unsigned int v[69]);
