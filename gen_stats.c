@@ -155,6 +155,7 @@ int countChars(unsigned char *s,int len)
       *n=calloc(sizeof(struct node),1);
       if (0) fprintf(stderr,"    -- create node %p\n",*n);
       nodeCount++;
+      if (!(nodeCount&0x3fff)) fprintf(stderr,"[%lld]",nodeCount);
     }
     (*n)->count++;
     (*n)->counts[symbol]++;
@@ -162,7 +163,7 @@ int countChars(unsigned char *s,int len)
       fprintf(stderr,"   incrementing count of %d (0x%02x = '%c') @ offset=%d *n=%p (now %d)\n",
 	      symbol,s[len-1],s[len-1],j,*n,(*n)->counts[symbol]);
     n=&(*n)->children[c];
-    if (order>MAXIMUMORDER) 
+    if (order>=MAXIMUMORDER) 
       {
 	break;
       }
@@ -347,7 +348,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 		s,addr,c->entropy,totalCountIncludingTerminations);
 	dumpNode(v);
       }
-    free(v);
+    node_free(v);
   }
   range_coder_free(c);
 
