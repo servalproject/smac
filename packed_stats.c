@@ -100,8 +100,9 @@ unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
 struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 			   stats_handle *h,int debug)
 {
-  if (s[len]) fprintf(stderr,"Extracting node '%c'\n",s[len]);
-
+  if (s[len]) fprintf(stderr,"Extracting node '%c' @ 0x%x\n",s[len],nodeAddress);
+  else fprintf(stderr,"Extracting root node @ 0x%x?\n",nodeAddress);
+ 
   range_coder *c=range_new_coder(0);
   c->bit_stream=getCompressedBytes(h,nodeAddress,1024);
   c->bit_stream_length=1024*8;
@@ -109,6 +110,7 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
   c->low=0; c->high=0xffffffff;
   range_decode_prefetch(c);
 
+  unsigned int totalCount=range_decode_equiprobable(c,count+1);
   int children=range_decode_equiprobable(c,69+1);
   int storedChildren=range_decode_equiprobable(c,69+1);
   unsigned int progressiveCount=0;
@@ -123,43 +125,56 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
   unsigned int isStored=(69-storedChildren)*0xffffff/69;
 
   if (debug)
-    fprintf(stderr,"children=%d, storedChildren=%d\n",
-	    children,storedChildren);
+    fprintf(stderr,
+	    "children=%d, storedChildren=%d, count=%d, superCount=%d @ 0x%x\n",
+	    children,storedChildren,totalCount,count,nodeAddress);
 
   struct node *n=calloc(sizeof(struct node),1);
 
   struct node *ret=n;
 
-  n->count=count;
+  n->count=totalCount;
 
   for(i=0;i<69;i++) {
     hasCount=(69-i-children)*0xffffff/(69-i);
-    isStored=(69-i-storedChildren)*0xffffff/(69-i);
 
     int countPresent=range_decode_symbol(c,&hasCount,2);
     if (countPresent) {
-      thisCount=range_decode_equiprobable(c,(count-progressiveCount)+1);
+      thisCount=range_decode_equiprobable(c,(totalCount-progressiveCount)+1);
       if (debug)
 	fprintf(stderr,"  decoded %d of %d for '%c'\n",thisCount,
-		(count-progressiveCount)+1,chars[i]);
+		(totalCount-progressiveCount)+1,chars[i]);
       progressiveCount+=thisCount;
       children--;
       n->counts[i]=thisCount;
+    } else {
+      // fprintf(stderr,"  no count for '%c' %d\n",chars[i],i);
     }
-    
+  }
+
+  if (debug) {
+    int i;
+    fprintf(stderr,"Extracted counts for: '");
+    for(i=0;i<len;i++) fprintf(stderr,"%c",s[i]);
+    fprintf(stderr,"' @ 0x%x\n",nodeAddress);
+    dumpNode(n);
+  }
+
+  for(i=0;i<69;i++) {
+    isStored=(69-i-storedChildren)*0xffffff/(69-i);    
     int addrP=range_decode_symbol(c,&isStored,2);
     if (addrP) {
       childAddress=lowAddr+range_decode_equiprobable(c,highAddr-lowAddr+1);      
       if (debug) fprintf(stderr,"    decoded addr=%d of %d (lowAddr=%d)\n",
 			 childAddress-lowAddr,highAddr-lowAddr+1,lowAddr);
       lowAddr=childAddress;
-      if (len>0&&chars[i]==s[len]) {
+      if (len>0&&chars[i]==s[len-1]) {
 	/* Only extract children if not in dummy mode, as in dummy mode
 	   the rest of the file is unlikely to be present, and so extracting
 	   children will most likely result in segfault. */
 	if (!h->dummyOffset) {
 	  n->children[i]=extractNodeAt(s,len-1,childAddress,
-					       n->counts[i],h,debug);
+				       progressiveCount,h,debug);
 	  if (n->children[i])
 	    {
 	      fprintf(stderr,"Found deeper stats for string offset %d\n",len-1);
@@ -173,10 +188,13 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
   }
 
   if (debug) {
-    fprintf(stderr,"Extract '%s' @ 0x%x (children=%d, storedChildren=%d)\n",
-	    s,nodeAddress,children,storedChildren);
+    int i;
+    fprintf(stderr,"Extracted children for: '");
+    for(i=0;i<len;i++) fprintf(stderr,"%c",s[i]);
+    fprintf(stderr,"' @ 0x%x\n",nodeAddress);
     dumpNode(n);
   }
+
   /* c->bit_stream is provided locally, so we must free the range coder manually,
      instead of using range_coder_free() */
   c->bit_stream=NULL;
@@ -217,7 +235,7 @@ struct node *extractNode(char *string,int len,stats_handle *h)
   unsigned int rootNodeAddress=h->rootNodeAddress;
   unsigned int totalCount=h->totalCount;
 
-  struct node *n=extractNodeAt(string,len,rootNodeAddress,totalCount,h,0);
+  struct node *n=extractNodeAt(string,len,rootNodeAddress,totalCount,h,1);
   if (0) {
     fprintf(stderr,"n=%p\n",n);
     fflush(stderr);
@@ -227,13 +245,13 @@ struct node *extractNode(char *string,int len,stats_handle *h)
   if (!len) return n;
 
   struct node *n2=n;
-
+  
   for(i=0;i<=len;i++) {
     struct node *next=n2->children[charIdx(string[i])];
     // dumpNode(n2);
     
     if (i<len)
-      if (0)
+      if (1)
 	fprintf(stderr,"%c occurs %d/%lld (%.2f%%)\n",
 		string[i],
 		n2->counts[charIdx(string[i])],n2->count,
@@ -244,7 +262,7 @@ struct node *extractNode(char *string,int len,stats_handle *h)
       }
     if (string[i+1]&&(i<len)&&((!next)||(next->counts[charIdx(string[i+1])]<1)))
       {
-	if (0)
+	if (1)
 	  fprintf(stderr,"Next layer down doesn't have any counts for the next character ('%c').\n",string[i+1]);
 	// dumpNode(next);
 	free(n2);
@@ -263,12 +281,11 @@ struct node *extractNode(char *string,int len,stats_handle *h)
 int extractVector(char *string,int len,stats_handle *h,unsigned int v[69])
 {
   if (1)
-    printf("extractVector('%s',%d,...)\n",
-	   string,len-1);
+    fprintf(stderr,"extractVector('%s',%d,...)\n",
+	   string,len);
 
-  if (0) fprintf(stderr,"extractVector(%d,%s)\n",len-1,string);
-  struct node *n=extractNode(string,len-1,h);
-  if (0) fprintf(stderr,"  n=%p\n",n);
+  struct node *n=extractNode(string,len,h);
+  if (1) fprintf(stderr,"  n=%p\n",n);
   if (!n) {
     fprintf(stderr,"Could not obtain any statistics (including zero-order frequencies). Broken stats data file?\n");
     fprintf(stderr,"  len=%d\n",len);

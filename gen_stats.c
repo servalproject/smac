@@ -221,7 +221,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     if (n->children[i]&&n->children[i]->count>=threshold) {
       fprintf(stderr,"n->children[%d]->count=%lld\n",i,n->children[i]->count);
       snprintf(schild,128,"%s%c",s,chars[i]);
-      childAddresses[i]=writeNode(out,n->children[i],schild,n->children[i]->count,threshold);
+      childAddresses[i]=writeNode(out,n->children[i],schild,totalCount,threshold);
       storedChildren++;
     }
     if (n->counts[i]) {
@@ -229,6 +229,8 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     }
   }
   
+  /* Write total count in this node */
+  range_encode_equiprobable(c,totalCountIncludingTerminations+1,totalCount);
   /* Write number of children with counts */
   range_encode_equiprobable(c,69+1,childCount);
   /* Now number of children that we are storing sub-nodes for */
@@ -239,20 +241,21 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   if (debug) fprintf(stderr,"  lowAddr=0x%x, highAddr=0x%x\n",lowAddr,highAddr);
 
   if (debug)
-    fprintf(stderr,"wrote: childCount=%d, storedChildren=%d\n",
-	    childCount,storedChildren);
+    fprintf(stderr,
+	    "wrote: childCount=%d, storedChildren=%d, count=%lld, superCount=%d @ 0x%x\n",
+	    childCount,storedChildren,totalCount,totalCountIncludingTerminations,
+	    (unsigned int)ftello(out));
 
-  unsigned int remainingCount=totalCountIncludingTerminations;
+  unsigned int remainingCount=totalCount;
   // XXX - we can improve on these probabilities by adjusting them
   // according to the remaining number of children and stored children.
   unsigned int hasCount=(69-childCount)*0xffffff/69;
   unsigned int isStored=(69-storedChildren)*0xffffff/69;
   for(i=0;i<69;i++) {
     hasCount=(69-i-childCount)*0xffffff/(69-i);
-    isStored=(69-i-storedChildren)*0xffffff/(69-i);
 
     if (n->counts[i]) {
-      snprintf(schild,128,"%s%c",s,chars[i]);
+      snprintf(schild,128,"%c%s",chars[i],s);
       if (debug) 
 	fprintf(stderr, "writing: '%s' x %d\n",
 		schild,n->counts[i]);
@@ -267,7 +270,10 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     } else {
       range_encode_symbol(c,&hasCount,2,0);
     }
+  }
       
+  for(i=0;i<69;i++) {
+    isStored=(69-i-storedChildren)*0xffffff/(69-i);
     if (childAddresses[i]) {
       range_encode_symbol(c,&isStored,2,1);
       if (debug) fprintf(stderr,":    writing child %d (address attached)\n",i);
@@ -285,6 +291,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       range_encode_symbol(c,&isStored,2,0);
     }  
   }
+
   range_conclude(c);
 
   /* Unaccounted for observations are observations that terminate at this point.
@@ -308,6 +315,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     h.mmap=c->bit_stream;
     h.dummyOffset=addr;
     h.fileLength=addr+bytes;
+    fprintf(stderr,"verifying node @ 0x%x\n",addr);
     struct node *v=extractNodeAt("",0,addr,totalCountIncludingTerminations,&h,debug);
 
     int i;
@@ -402,7 +410,7 @@ int dumpVariableOrderStats()
 
   /* some simple tests */
   unsigned int v[69];
-  extractVector("http",strlen("http"),h,v);
+  extractVector("abcd",strlen("abcd"),h,v);
   vectorReport("http",v,charIdx(':'));
   extractVector("ease",strlen("ease"),h,v);
   vectorReport("ease",v,charIdx(' '));
@@ -988,7 +996,7 @@ int main(int argc,char **argv)
        We provide full length to the counter, because we don't know
        it's maximum order/depth of recording. */
     for(i=strlen(line);i>0;i--) {
-      countChars(line,i);
+      countChars((unsigned char *)line,i);
       dumpTree(nodeTree,0);
     }
 
