@@ -29,7 +29,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 void node_free(struct node *n)
 {
+  if (n->count==0xdeadbeef) {
+    fprintf(stderr,"node double freed.\n");
+    exit(-1);
+  }
   if (n->childAddresses) free(n->childAddresses);
+  n->childAddresses=NULL;
+  n->count=0xdeadbeef;
   free(n);
   return;
 }
@@ -177,7 +183,7 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
       childAddress=lowAddr+range_decode_equiprobable(c,highAddr-lowAddr+1);      
       if (debug) fprintf(stderr,"    decoded addr=%d of %d (lowAddr=%d)\n",
 			 childAddress-lowAddr,highAddr-lowAddr+1,lowAddr);
-      lowAddr=childAddress;
+      lowAddr=childAddress;     
       if (len>0&&chars[i]==s[len-1]) {
 	/* Only extract children if not in dummy mode, as in dummy mode
 	   the rest of the file is unlikely to be present, and so extracting
@@ -190,7 +196,6 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 	      if (0) 
 		fprintf(stderr,"Found deeper stats for string offset %d\n",len-1);
 	      ret=n->children[i];
-	      if (!h->cache) node_free(n);
 	      if (0) dumpNode(ret);
 	    }
 	}

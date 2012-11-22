@@ -37,8 +37,6 @@ typedef struct compressed_stats_handle {
   unsigned int rootNodeAddress;
   unsigned int totalCount;
 
-  int cache;
-  struct node **extractedNodes;
 } stats_handle;
 
 void node_free(struct node *n);
