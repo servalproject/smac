@@ -38,7 +38,7 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *
   int c1=charIdx(' ');
   int c2=charIdx(' ');
   int c3;
-  int o,i;
+  int o;
   for(o=0;o<length;o++) {
 #ifdef DEBUG
       printf("so far: '%s', c1=%d(%c), c2=%d(%c)\n",s,c1,chars[c1],c2,chars[c2]);
@@ -74,7 +74,8 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *
       } else {
       unsigned int v[69];
       s[o]=0;
-      extractVector(s,o,h,v);
+      unsigned int *v_addr=&v[0];
+      extractVector((char *)s,o,h,&v_addr,h->cache);
       c3 =range_decode_symbol(c,v,69);      
       // c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
       s[o]=chars[c3];
@@ -155,20 +156,21 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 		   (int)strlen(wordList[w]),(int)longestLength
 		   );
 #endif
-	    double entropy=entropy3(c1,c2,wordList[w]);
 	    range_coder *t=range_new_coder(1024);
 	    range_encode_symbol(t,wordSubstitutionFlag,2,0);
-	    range_encode_symbol(t,wordFrequencies,wordCount,w);
-	    double substEntropy=t->entropy;
+	    range_encode_symbol(t,wordFrequencies,wordCount,w);	   
 	    range_coder_free(t);
+#ifdef DEBUG
+	    double substEntropy=t->entropy;
+	    double entropy=entropy3(c1,c2,wordList[w]);
 	    double savings=entropy-substEntropy;
-	    
+#endif	    
 	    if (strlen(wordList[w])>longestLength) {
 	      longestLength=strlen(wordList[w]);
 	      longestWord=w;	      
 #ifdef DEBUG
-		printf("spotted substitutable instance of '%s' -- save %f bits (%f vs %f)\n",
-		       wordList[w],savings,substEntropy,entropy);
+	      printf("spotted substitutable instance of '%s' -- save %f bits (%f vs %f)\n",
+		     wordList[w],savings,substEntropy,entropy);
 #endif
 	    }
 	  } else
@@ -178,7 +180,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
       }
       if (longestWord>-1) {
 	/* Encode "we are substituting a word here */
+#ifdef DEBUG
 	double entropy=c->entropy;
+#endif
 	range_encode_symbol(c,wordSubstitutionFlag,2,0);
 
 	/* Encode the word */
@@ -205,11 +209,13 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 	continue;
       } else {
 	/* Encode "not substituting a word here" symbol */
+#ifdef DEBUG
 	double entropy=c->entropy;
+#endif
 	range_encode_symbol(c,wordSubstitutionFlag,2,1);
 #ifdef DEBUG
-	  printf("incurring non-substitution penalty = %f bits\n",
-		 c->entropy-entropy);
+	printf("incurring non-substitution penalty = %f bits\n",
+	       c->entropy-entropy);
 #endif
       }
     } else {
@@ -226,8 +232,10 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 	for(i=0;i<o;i++) fprintf(stderr,"%c",s[i]);
 	fprintf(stderr,"'\n");
       }
-    int t=s[o]; s[o]=0;
-    extractVector(s,o,h,v);
+    int t=s[o]; 
+    s[o]=0;
+    unsigned int *v_addr=&v[0];
+    extractVector((char *)s,o,h,&v_addr,h->cache);
     s[o]=t;
     range_encode_symbol(c,v,69,c3);
     if (0) vectorReport("var",v,c3);    

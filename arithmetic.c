@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define SIGNIFICANTBITS 24
 #define SHIFTUPBITS (32LL-SIGNIFICANTBITS)
 
+int range_check(range_coder *c,int line);
 int range_calc_new_range(range_coder *c,
 			 unsigned int p_low, unsigned int p_high,
 			 unsigned int *new_low,unsigned int *new_high);
@@ -300,7 +301,7 @@ int range_equiprobable_range(range_coder *c,int alphabet_size,int symbol,unsigne
 {
   *p_low=(((unsigned long long)symbol)*0xffffff)/(unsigned long long)alphabet_size;
   *p_high=(((1LL+(unsigned long long)symbol)*0xffffff)/(unsigned long long)alphabet_size)-1LL;
-  if (symbol==alphabet_size-1) p_high=0xffffff;
+  if (symbol==alphabet_size-1) *p_high=0xffffff;
   return 0;
 }
 
@@ -340,7 +341,7 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
   if (alphabet_size<1) return 0;
   unsigned long long space=range_space(c);
   unsigned long long v=c->value-c->low;
-  unsigned long long p=0xffffff*v/space;
+  // unsigned long long p=0xffffff*v/space;
   unsigned int s=v*alphabet_size/space;
   
   if (c->debug)
@@ -745,18 +746,6 @@ int range_coder_free(range_coder *c)
 }
 
 #ifdef STANDALONE
-int main() {
-  struct range_coder *c=range_new_coder(8192);
-
-  //  test_rescale(c);
-  //  test_rescale2(c);
-  test_fineslices(c);
-  test_equiprobable(c);
-  test_verify(c);
-
-  return 0;
-}
-
 int test_fineslices(range_coder *c)
 {
   int i;
@@ -1171,6 +1160,18 @@ int test_verify(range_coder *c)
       return -1;
     }
   printf("   -- passed.\n");
+  return 0;
+}
+
+int main() {
+  struct range_coder *c=range_new_coder(8192);
+
+  //  test_rescale(c);
+  //  test_rescale2(c);
+  test_fineslices(c);
+  test_equiprobable(c);
+  test_verify(c);
+
   return 0;
 }
 #endif

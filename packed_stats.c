@@ -68,9 +68,10 @@ stats_handle *stats_new_handle(char *file)
 		     |(unsigned char)fgetc(h->file);
   for(i=0;i<4;i++) h->totalCount=(h->totalCount<<8)
 		     |(unsigned char)fgetc(h->file);
-  if (0)
-    fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d\n",
-	    h->rootNodeAddress,h->totalCount);
+  h->maximumOrder=fgetc(h->file);
+  if (1)
+    fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d, maximumOrder=%d\n",
+	    h->rootNodeAddress,h->totalCount,h->maximumOrder);
 
   /* Try to mmap() */
   h->mmap=mmap(NULL, h->fileLength, PROT_READ, MAP_SHARED, fileno(h->file), 0);
@@ -282,12 +283,52 @@ struct node *extractNode(char *string,int len,stats_handle *h)
   return n;
 }
 
-int extractVector(char *string,int len,stats_handle *h,unsigned int v[69])
+int extractVector(char *string,int len,stats_handle *h,unsigned int **v,
+		  struct vector_cache **cache)
 {
   if (0)
     fprintf(stderr,"extractVector('%s',%d,...)\n",
 	   string,len);
+  
+  if (string[len]) {
+    fprintf(stderr,"search strings for extractVector() must be null-terminated.\n");
+    exit(-1);
+  }
 
+  /* Try to find in cache first */
+  if (cache) {
+    struct vector_cache **n=cache;
+    char *compareString=string;
+    int compareLen=len;
+    if (compareLen>h->maximumOrder) {
+      compareString+=(compareLen-h->maximumOrder);
+      compareLen=h->maximumOrder;
+    }
+    while (!(*n)) {
+      int c=strcmp((*n)->string,compareString);
+      if (c<0) n=&(*n)->left;
+      else if (c>0) n=&(*n)->right;
+      else break;
+    }
+    if (*n) {
+      *v=(*n)->v;
+      return 0;
+    } else {
+      /* This is where it should go in the tree */
+      (*n)=calloc(sizeof(struct vector_cache),1);
+      *v=(*n)->v;
+      (*n)->string=strdup(compareString);
+      fprintf(stderr,"Caching vector for '%s'\n",compareString);
+    }
+  } else {
+    if (!(*v)) {
+      fprintf(stderr,"%s() called with cache==NULL and (*v)==NULL.\n",
+	      __FUNCTION__);
+      exit(-1);
+    }
+  }
+
+  /* Wasn't in cache, or there is no cache, so exract it */
   struct node *n=extractNode(string,len,h);
   if (0) fprintf(stderr,"  n=%p\n",n);
   if (!n) {
@@ -308,15 +349,15 @@ int extractVector(char *string,int len,stats_handle *h,unsigned int v[69])
   int sum=0;
 
   for(i=0;i<69;i++) {
-    v[i]=cumulative+(n->counts[i]+1)*scale;
-    cumulative=v[i];
+    (*v)[i]=cumulative+(n->counts[i]+1)*scale;
+    cumulative=(*v)[i];
     sum+=n->counts[i]+1;
     if (0) 
       fprintf(stderr,"  '%c' %d : 0x%06x (%d/%lld) %d\n",
-	      chars[i],i,v[i],
+	      chars[i],i,(*v)[i],
 	      n->counts[i]+1,n->count+69,sum);
   }
-  
+
   /* Higher level nodes have already been freed, so just free this one */
   node_free(n);
   return 0;

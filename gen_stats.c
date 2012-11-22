@@ -390,7 +390,7 @@ int dumpVariableOrderStats()
   }
 
   /* Keep space for our header */
-  fprintf(out,"STA1XXXXYYYY");
+  fprintf(out,"STA1XXXXYYYYZ");
 
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
@@ -410,6 +410,8 @@ int dumpVariableOrderStats()
   fputc((totalCount>> 8)&0xff,out);
   fputc((totalCount>> 0)&0xff,out);
 
+  fputc(MAXIMUMORDER+1,out);
+
   fclose(out);
 
   fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
@@ -418,15 +420,16 @@ int dumpVariableOrderStats()
 
   /* some simple tests */
   unsigned int v[69];
-  extractVector("http",strlen("http"),h,v);
+  unsigned int *v_addr=&v[0];
+  extractVector("http",strlen("http"),h,&v_addr,NULL);
   vectorReport("http",v,charIdx(':'));
-  extractVector("ease",strlen("ease"),h,v);
+  extractVector("ease",strlen("ease"),h,&v_addr,NULL);
   vectorReport("ease",v,charIdx(' '));
-  extractVector("lease",strlen("lease"),h,v);
+  extractVector("lease",strlen("lease"),h,&v_addr,NULL);
   vectorReport("lease",v,charIdx(' '));
-  extractVector("kljadfasdf",strlen("kljadfasdf"),h,v);
-  extractVector("/",strlen("/"),h,v);
-  extractVector("",strlen(""),h,v);
+  extractVector("kljadfasdf",strlen("kljadfasdf"),h,&v_addr,NULL);
+  extractVector("/",strlen("/"),h,&v_addr,NULL);
+  extractVector("",strlen(""),h,&v_addr,NULL);
 
   return 0;
 }
