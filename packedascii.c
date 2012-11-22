@@ -53,4 +53,5 @@ int decodePackedASCII(range_coder *c, char *m,int encodedLength)
 	m[i]^=0x20;
   }
   m[i]=0;
+  return 0;
 }
