@@ -190,7 +190,7 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 	      if (0) 
 		fprintf(stderr,"Found deeper stats for string offset %d\n",len-1);
 	      ret=n->children[i];
-	      if (!h->cache) free(n);
+	      if (!h->cache) node_free(n);
 	      if (0) dumpNode(ret);
 	    }
 	}
@@ -313,7 +313,7 @@ int extractVector(char *string,int len,stats_handle *h,unsigned int v[69])
   }
   
   /* Higher level nodes have already been freed, so just free this one */
-  free(n);
+  node_free(n);
   return 0;
 }
 
