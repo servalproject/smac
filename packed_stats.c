@@ -27,6 +27,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 #include "charset.h"
 
+void node_free(struct node *n)
+{
+  if (n->childAddresses) free(n->childAddresses);
+  free(n);
+  return;
+}
+
 void stats_handle_free(stats_handle *h)
 {
   if (h->mmap) munmap(h->mmap,h->fileLength);
