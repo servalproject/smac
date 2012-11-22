@@ -32,6 +32,9 @@ typedef struct compressed_stats_handle {
 
   unsigned int rootNodeAddress;
   unsigned int totalCount;
+
+  int cache;
+  struct node *rootNode;
 } stats_handle;
 
 struct node *extractNode(char *string,int len,stats_handle *h);

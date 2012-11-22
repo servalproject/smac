@@ -135,9 +135,16 @@ int processFile(FILE *f,stats_handle *h)
   char m[1024]; // raw message, no pre-processing
   long long now;
 
+  time_t lastReport=time(0);
+
   m[0]=0; fgets(m,1024,f);
   
   while(m[0]) {    
+    if (time(0)>lastReport) {
+      fprintf(stderr,"Processed %d lines.\n",lines);
+      lastReport=time(0);
+    }
+
     /* chop newline */
     m[strlen(m)-1]=0;
 

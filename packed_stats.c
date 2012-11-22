@@ -55,8 +55,9 @@ stats_handle *stats_new_handle(char *file)
 		     |(unsigned char)fgetc(h->file);
   for(i=0;i<4;i++) h->totalCount=(h->totalCount<<8)
 		     |(unsigned char)fgetc(h->file);
-  fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d\n",
-	  h->rootNodeAddress,h->totalCount);
+  if (0)
+    fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d\n",
+	    h->rootNodeAddress,h->totalCount);
 
   /* Try to mmap() */
   h->mmap=mmap(NULL, h->fileLength, PROT_READ, MAP_SHARED, fileno(h->file), 0);
@@ -182,7 +183,7 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 	      if (0) 
 		fprintf(stderr,"Found deeper stats for string offset %d\n",len-1);
 	      ret=n->children[i];
-	      free(n);
+	      if (!h->cache) free(n);
 	      if (0) dumpNode(ret);
 	    }
 	}
@@ -271,12 +272,12 @@ struct node *extractNode(char *string,int len,stats_handle *h)
 
 int extractVector(char *string,int len,stats_handle *h,unsigned int v[69])
 {
-  if (1)
+  if (0)
     fprintf(stderr,"extractVector('%s',%d,...)\n",
 	   string,len);
 
   struct node *n=extractNode(string,len,h);
-  if (1) fprintf(stderr,"  n=%p\n",n);
+  if (0) fprintf(stderr,"  n=%p\n",n);
   if (!n) {
     fprintf(stderr,"Could not obtain any statistics (including zero-order frequencies). Broken stats data file?\n");
     fprintf(stderr,"  len=%d\n",len);
