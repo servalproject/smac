@@ -419,18 +419,17 @@ int dumpVariableOrderStats()
   fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
 
   stats_handle *h=stats_new_handle("stats.dat");
-  h->use_cache=1;
 
   /* some simple tests */
   struct probability_vector *v;
   v=extractVector("http",strlen("http"),h);
   vectorReport("http",v,charIdx(':'));
-  v=extractVector("ease",strlen("ease"),h);
-  vectorReport("ease",v,charIdx(' '));
-  v=extractVector("lease",strlen("lease"),h);
-  vectorReport("lease",v,charIdx(' '));
-  v=extractVector("kljadfasdf",strlen("kljadfasdf"),h);
-  v=extractVector("/",strlen("/"),h);
+  v=extractVector("",strlen(""),h);
+
+  stats_load_tree(h);
+
+  v=extractVector("http",strlen("http"),h);
+  vectorReport("http",v,charIdx(':'));
   v=extractVector("",strlen(""),h);
 
   return 0;

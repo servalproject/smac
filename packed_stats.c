@@ -86,6 +86,13 @@ stats_handle *stats_new_handle(char *file)
   return h;
 }
 
+int stats_load_tree(stats_handle *h)
+{
+  extractNodeAt("",0,h->rootNodeAddress,h->totalCount,h,
+		1 /* extract all */,0);
+  return 0;
+}
+
 unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
 {
   if (!h) { fprintf(stderr,"failed test at line #%d\n",__LINE__); return NULL; }
@@ -259,14 +266,22 @@ struct node *extractNode(char *string,int len,stats_handle *h)
   unsigned int rootNodeAddress=h->rootNodeAddress;
   unsigned int totalCount=h->totalCount;
 
-  struct node *n=extractNodeAt(string,len,rootNodeAddress,totalCount,h,0,0);
+  struct node *n;
+
+  if (h->tree) {
+    n=h->tree;
+    for(i=len-1;i>=0;i--) {
+      if (!n->children[charIdx(string[i])]) return n;
+      n=n->children[charIdx(string[i])];
+    }
+    return n;
+  } else {
+    n=extractNodeAt(string,len,rootNodeAddress,totalCount,h,0,0);
+  }
   if (0) {
     fprintf(stderr,"n=%p\n",n);
     fflush(stderr);
   }
-
-  /* Return zero-order stats if no string provided. */
-  if (!len) return n;
 
   if (0) {
     fprintf(stderr,"stats for what follows '%s' @ 0x%p\n",

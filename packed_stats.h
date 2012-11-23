@@ -70,4 +70,5 @@ int dumpNode(struct node *n);
 
 void stats_handle_free(stats_handle *h);
 stats_handle *stats_new_handle(char *file);
+int stats_load_tree(stats_handle *h);
 unsigned char *getCompressedBytes(stats_handle *h,int start,int count);
