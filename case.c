@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ctype.h>
 
 #include "arithmetic.h"
-#include "message_stats.h"
+#include "packed_stats.h"
 #include "charset.h"
 
 int stripCase(unsigned char *in,unsigned char *out)
@@ -52,7 +52,7 @@ int mungeCase(char *m)
   return 0;
 }
 
-int decodeCaseModel1(range_coder *c,unsigned char *line)
+int decodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h)
 {
  int wordNumber=0;
   int wordPosn=-1;
@@ -79,15 +79,15 @@ int decodeCaseModel1(range_coder *c,unsigned char *line)
 	if (!charInWord(line[i+1])) caseEnd=1;
 	if (wordPosn==0) {
 	  /* first letter of word, so can only use 1st-order model */
-	  unsigned int frequencies[1]={caseposn1[0][0]};
-	  if (i==0) frequencies[0]=casestartofmessage[0][0];
+	  unsigned int frequencies[1]={h->caseposn1[0][0]};
+	  if (i==0) frequencies[0]=h->casestartofmessage[0][0];
 	  else if (wordNumber>1&&wordPosn==0) {
 	    /* start of word, so use model that considers initial case of
 	       previous word */
-	    frequencies[0]=casestartofword2[lastWordInitialCase][0];
+	    frequencies[0]=h->casestartofword2[lastWordInitialCase][0];
 	    if (wordNumber>2)
 	      frequencies[0]=
-		casestartofword3[lastWordInitialCase2][lastWordInitialCase][0];
+		h->casestartofword3[lastWordInitialCase2][lastWordInitialCase][0];
 	    if (0)
 	      printf("last word began with case=%d, p_lower=%f\n",
 		     lastWordInitialCase,
@@ -103,10 +103,12 @@ int decodeCaseModel1(range_coder *c,unsigned char *line)
 	  if (0) {
 	    printf("case of first letter of word/message @ %d.%d: p=%f\n",
 		   i,wordPosn,
-		   (caseposn2[lastCase][wordPosn][0]*1.0)/0x1000000);
+		   (h->caseposn2[lastCase][wordPosn][0]*1.0)/0x1000000);
 	    printf("  lastCase=%d, wordPosn=%d\n",lastCase,wordPosn);
 	  }
-	  upper=range_decode_symbol(c,caseposn2[lastCase][wordPosn],2);
+	  int pos=wordPosn;
+	  while ((!h->caseposn2[lastCase][pos][0])&&pos) pos--;
+	  upper=range_decode_symbol(c,h->caseposn2[lastCase][pos],2);
 	}
 
 	if (upper==1) line[i]=toupper(line[i]);
@@ -127,7 +129,7 @@ int decodeCaseModel1(range_coder *c,unsigned char *line)
   return 0;
 }
 
-int encodeCaseModel1(range_coder *c,unsigned char *line)
+int encodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h)
 {
   /*
     Have previously looked at flipping case of isolated I's 
@@ -162,15 +164,15 @@ int encodeCaseModel1(range_coder *c,unsigned char *line)
 	if (!charInWord(line[i+1])) caseEnd=1;
 	if (wordPosn==0) {
 	  /* first letter of word, so can only use 1st-order model */
-	  unsigned int frequencies[1]={caseposn1[0][0]};
-	  if (i==0) frequencies[0]=casestartofmessage[0][0];
+	  unsigned int frequencies[1]={h->caseposn1[0][0]};
+	  if (i==0) frequencies[0]=h->casestartofmessage[0][0];
 	  else if (wordNumber>1&&wordPosn==0) {
 	    /* start of word, so use model that considers initial case of
 	       previous word */
-	    frequencies[0]=casestartofword2[lastWordInitialCase][0];
+	    frequencies[0]=h->casestartofword2[lastWordInitialCase][0];
 	    if (wordNumber>2)
  	      frequencies[0]=
-		casestartofword3[lastWordInitialCase2][lastWordInitialCase][0];
+		h->casestartofword3[lastWordInitialCase2][lastWordInitialCase][0];
 	    if (0)
 	      printf("last word began with case=%d, p_lower=%f\n",
 		     lastWordInitialCase,
@@ -186,10 +188,12 @@ int encodeCaseModel1(range_coder *c,unsigned char *line)
 	  if (0) {
 	    printf("case of first letter of word/message @ %d.%d: p=%f\n",
 			i,wordPosn,
-			(caseposn2[lastCase][wordPosn][0]*1.0)/0x1000000);
+			(h->caseposn2[lastCase][wordPosn][0]*1.0)/0x1000000);
 	    printf("  lastCase=%d, wordPosn=%d\n",lastCase,wordPosn);
 	  }
-	  range_encode_symbol(c,caseposn2[lastCase][wordPosn],2,upper);
+	  int pos=wordPosn;
+	  while ((!h->caseposn2[lastCase][pos][0])&&pos) pos--;
+	  range_encode_symbol(c,h->caseposn2[lastCase][pos],2,upper);
 	}
 	if (isupper(line[i])) lastCase=1; else lastCase=0;
 	if (wordPosn==0) {
