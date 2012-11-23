@@ -1,6 +1,6 @@
 CC=gcc
-COPT=-g -Wall -O3
-CFLAGS=-g -Wall -O3
+COPT=-g -Wall
+CFLAGS=-g -Wall
 DEFS=
 
 OBJS=	main.o \
@@ -40,11 +40,11 @@ arithmetic:	arithmetic.c arithmetic.h
 extract_tweets:	extract_tweets.o
 	gcc $(CFLAGS) -o extract_tweets extract_tweets.o
 
-gen_stats:	gen_stats.c arithmetic.o packed_stats.o
-	gcc $(CFLAGS) -o gen_stats gen_stats.c arithmetic.o packed_stats.o
+gen_stats:	gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o
+	gcc $(CFLAGS) -o gen_stats gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o
 
 message_stats.c:	gen_stats twitter_corpus*.txt
-	./gen_stats 5 100 3 twitter_corpus*.txt
+	./gen_stats 5 3 twitter_corpus*.txt
 
 method_stats3:	$(OBJS)
 	gcc -g -Wall -o method_stats3 $(OBJS)

@@ -55,7 +55,7 @@ long long caseend[2]; // end of word
 long long casestartofmessage[2]; // start of message
 long long casestartofword2[2][2]; // case of start of word based on case of start of previous word
 long long casestartofword3[2][2][2]; // case of start of word based on case of start of previous word
-long long messagelengths[1024];
+int messagelengths[1024];
 
 long long wordBreaks=0;
 
@@ -368,6 +368,23 @@ int rescaleCounts(struct node *n,double f)
   return 0;
 }
 
+int writeInt(FILE *out,unsigned int v)
+{
+  fputc((v>>24)&0xff,out);
+  fputc((v>>16)&0xff,out);
+  fputc((v>> 8)&0xff,out);
+  fputc((v>> 0)&0xff,out);
+  return 0;
+}
+
+int write24bit(FILE *out,unsigned int v)
+{
+  fputc((v>>16)&0xff,out);
+  fputc((v>> 8)&0xff,out);
+  fputc((v>> 0)&0xff,out);
+  return 0;
+}
+
 int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 {
   char filename[1024];
@@ -391,25 +408,79 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   /* Keep space for our header */
   fprintf(out,"STA1XXXXYYYYZ");
 
+  /* Write case statistics. No way to compress these, so just write them out. */
+  unsigned int tally;
+  int i,j;
+  /* case of first character of message */
+  tally=casestartofmessage[0]+casestartofmessage[1];
+  write24bit(out,casestartofmessage[0]*1.0*0xffffffff/tally);
+  /* case of first character of word, based on case of first character of previous
+     word, i.e., 2nd-order. */
+  for(i=0;i<2;i++) {
+    tally=casestartofword2[i][0]+casestartofword2[i][1];
+    write24bit(out,casestartofword2[i][0]*1.0*0xffffffff/tally);
+  }
+  /* now 3rd order case */
+  for(i=0;i<2;i++)
+    for(j=0;j<2;j++) {
+      tally=casestartofword3[i][j][0]+casestartofword3[i][j][1];
+      write24bit(out,casestartofword3[i][j][0]*1.0*0xffffffff/tally);
+    }
+  /* case of i-th letter of a word (1st order) */
+  for(i=0;i<80;i++) {
+    tally=caseposn1[i][0]+caseposn1[i][1];
+    write24bit(out,caseposn1[i][0]*1.0*0xffffffff/tally);
+  }
+  /* case of i-th letter of a word, conditional on case of previous letter
+     (2nd order) */
+  for(i=0;i<80;i++)
+    for(j=0;j<2;j++) {
+      tally=caseposn2[j][i][0]+caseposn2[j][i][1];
+      write24bit(out,caseposn2[j][i][0]*1.0*0xffffffff/tally);
+    }    
+
+  fprintf(stderr,"Wrote %d bytes of fixed header (including case prediction statistics)\n",(int)ftello(out));
+
+  /* Write out message length probabilities.  These can be interpolatively coded. */
+  {
+    range_coder *c=range_new_coder(8192);
+    {
+      int lengths[1024];
+      int tally=0;
+      int cumulative=0;
+      for(i=0;i<=1024;i++) {
+	if (!messagelengths[i]) messagelengths[i]=1;
+	tally+=messagelengths[i];
+      }
+      for(i=0;i<=1024;i++) {
+	cumulative+=messagelengths[i];
+	lengths[i]=cumulative*1.0*0xffffff/tally;
+      }	
+      ic_encode_recursive(lengths,1024,0x1000000,c);
+    }
+    range_conclude(c);
+    int bytes=(c->bits_used>>3)+((c->bits_used&7)?1:0);
+    fwrite(c->bit_stream,bytes,1,out);
+    fprintf(stderr,
+	    "Wrote %d bytes of message length probabilities (%d bits used).\n",
+	    bytes,c->bits_used);
+    range_coder_free(c);
+  }
+
+  /* Write compressed data out */
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
 					frequencyThreshold);
 
-  fseek(out,4,SEEK_SET);
-  fputc((topNodeAddress>>24)&0xff,out);
-  fputc((topNodeAddress>>16)&0xff,out);
-  fputc((topNodeAddress>> 8)&0xff,out);
-  fputc((topNodeAddress>> 0)&0xff,out);
-
   unsigned int totalCount=0;
-  int i;
   for(i=0;i<69;i++) totalCount+=nodeTree->counts[i];
-  fputc((totalCount>>24)&0xff,out);
-  fputc((totalCount>>16)&0xff,out);
-  fputc((totalCount>> 8)&0xff,out);
-  fputc((totalCount>> 0)&0xff,out);
 
+  /* Rewrite header bytes with final values */
+  fseek(out,4,SEEK_SET);
+  writeInt(out,topNodeAddress);
+  writeInt(out,totalCount);
   fputc(maximumOrder+1,out);
+  
 
   fclose(out);
 
@@ -1001,29 +1072,28 @@ int main(int argc,char **argv)
   for(i=0;i<1024;i++) messagelengths[i]=0;
 
   if (argc<4) {
-    fprintf(stderr,"usage: gen_stats <maximum order> <frequency threshold> <word model> [training_corpus ...]\n");
-    fprintf(stderr,"             maximum order - length of preceeding string used to bin statistics.\n");
-    fprintf(stderr,"                             Useful values: 1 - 6\n");
-    fprintf(stderr,"       frequency threshold - minimum number of observations of a string in\n");
-    fprintf(stderr,"                             order for that string to be included in suffix tree.\n");
-    fprintf(stderr,"                             Useful values: 10 - 1000\n");
+    fprintf(stderr,"usage: gen_stats <maximum order> <word model> [training_corpus ...]\n");
+    fprintf(stderr,"       maximum order - length of preceeding string used to bin statistics.\n");
+    fprintf(stderr,"                       Useful values: 1 - 6\n");
+    fprintf(stderr,"          word model - 0=no word list (only supported option)\n");
+    fprintf(stderr,"                       3=build using 3rd order entropy estimate,\n");
+    fprintf(stderr,"                       v=build using variable order entropy estimate.\n");
     fprintf(stderr,"\n");
     exit(-1);
   }
 
-  int argn=4;
+  int argn=3;
   FILE *f=stdin;
-  int maximumOrder=atoi(argv[1]);
-  int frequencyThreshold=atoi(argv[2]);
+  int maximumOrder=atoi(argv[1]); 
   int wordModel=0;
-  switch (argv[3][0])
+  switch (argv[2][0])
     {
     case '0': wordModel=0; break;
     case '3': wordModel=3; break;
     case 'v': wordModel=99; break;
     }
 
-  if (argc>4) {
+  if (argc>3) {
     f=fopen(argv[argn],"r");
     if (!f) {
       fprintf(stderr,"Could not read '%s'\n",argv[argn]);
