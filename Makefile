@@ -37,6 +37,9 @@ arithmetic:	arithmetic.c arithmetic.h
 # Build for running tests
 	gcc $(CFLAGS) -DSTANDALONE -o arithmetic arithmetic.c
 
+extract_tweets:	extract_tweets.o
+	gcc $(CFLAGS) -o extract_tweets extract_tweets.o
+
 gen_stats:	gen_stats.c arithmetic.o packed_stats.o
 	gcc $(CFLAGS) -o gen_stats gen_stats.c arithmetic.o packed_stats.o
 
