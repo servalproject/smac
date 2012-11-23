@@ -2,20 +2,21 @@
 #include <stdlib.h>
 #include <strings.h>
 
-int extractTweet(char *s)
+int extractTweet(char *s,int allowUnicode)
 {
+  int len=0;
+  char out[8192];
+  int unicode=0;
+
   while(*s) {
     switch (*s) {
-    case '"': return 0;
+    case '"': goto done;
     case '&': 
-      if (!strncmp(s,"&amp;",5)) { printf("&"); s+=4; }
-      else if (!strncmp(s,"&gt;",4)) { printf(">"); s+=3; }
-      else if (!strncmp(s,"&lt;",4)) { printf("<"); s+=3; }
+      if (!strncmp(s,"&amp;",5)) { out[len++]='&'; s+=4; }
+      else if (!strncmp(s,"&gt;",4)) { out[len++]='>'; s+=3; }
+      else if (!strncmp(s,"&lt;",4)) { out[len++]='<'; s+=3; }
       else { 
-	// int c=s[16]; s[16]=0;
-	// fprintf(stderr,"Unrecognised & code: %s...\n",s);
-	// s[16]=c;
-	printf("%c",*s);
+	out[len++]=*s;
       }
       break;
     case '\\':
@@ -32,50 +33,56 @@ int extractTweet(char *s)
 	  hex[4]=0;
 	  unsigned int codepoint=strtol(hex,NULL,16);
 	  if (codepoint<0x80) {
-	    printf("%c",codepoint);
+	    out[len++]=codepoint;
 	  } else if (codepoint<0x0800) {
-	    printf("%c%c",
-		   0xc0+(codepoint>>6),
-		   0x80+(codepoint&0x3f));
+	    out[len++]=0xc0+(codepoint>>6);
+	    out[len++]=0x80+(codepoint&0x3f);
+	    unicode++;
 	  } else {
-	    printf("%c%c%c",
-		   0xe0+(codepoint>>12),
-		   0x80+((codepoint>>6)&0x3f),
-		   0x80+(codepoint&0x3f));	  
+	    out[len++]=0xe0+(codepoint>>12);
+	    out[len++]=0x80+((codepoint>>6)&0x3f);
+	    out[len++]=0x80+(codepoint&0x3f);
+	    unicode++;
 	  }
 	}
 	break;
       case '\'': case '"': case '/':
 	/* remove escaping from these characters */
-	printf("%c",*s);
+	out[len++]=*s;
 	break;
       case 'n': case 'r': case '\\': 
       default:
 	/* Keep escaped */
-	printf("\\%c",*s);
+	out[len++]='\\';
+	out[len++]=*s;
 	break;
       }
       break;
     default:
-      printf("%c",*s);
+      out[len++]=*s;
       break;
     }
     s++;
   }
+ done:
+  out[len]=0;
+  if (!unicode||allowUnicode) printf("%s\n",out);
   return 0;
 }
 
-int main()
+int main(int argc,char **argv)
 {
   int i;
   char line[8192];
+
+  int allowUnicode=atoi(argv[1]?argv[1]:"0");
 
   line[0]=0; fgets(line,8192,stdin);
   while(line[0]) {
     for(i=0;line[i]&&line[i+10];i++)
       if (!strncasecmp(&line[i],"\"text\":\"",7)) {
 	// Line is for the creation of a tweet
-	extractTweet(&line[8+i]); printf("\n");
+	extractTweet(&line[8+i],allowUnicode);
 	break;
       }    
 
