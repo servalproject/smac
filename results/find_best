@@ -1,0 +1,1 @@
+egrep "compressed size.*byte" *.log | grep -v SMAZ | cut -f1,3 -d: | sort -t: -k2rn | cut -f1 -d\(
