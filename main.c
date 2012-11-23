@@ -225,14 +225,18 @@ int processFile(FILE *f,stats_handle *h)
     if (percent<bestPercent) bestPercent=percent;
     if (percent>worstPercent) worstPercent=percent;
 
-    /* Calculate histograms of compression performance */
-    if (strlen(m)<=1024) {
-      comp_by_size_percent[strlen(m)/10]+=percent;
-      comp_by_size_count[strlen(m)/10]++;
+    {
+      int bytes_used=(c->bits_used>>3)+((c->bits_used&7)?1:0);
+      double percent=bytes_used*100.0/(strlen(m));   
+      /* Calculate histograms of compression performance */
+      if (strlen(m)<=1024) {
+	comp_by_size_percent[strlen(m)/10]+=percent;
+	comp_by_size_count[strlen(m)/10]++;
+      }
+      if (percent>=0&&percent<=100)
+	percent_count[(int)percent]++;
+      if (percent>100) percent_count[101]++;
     }
-    if (percent>=0&&percent<=100)
-      percent_count[(int)percent]++;
-    if (percent>100) percent_count[101]++;
 
     /* Verify that compression worked */
     {
