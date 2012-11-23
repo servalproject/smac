@@ -17,8 +17,8 @@ foreach order ( 1 2 3 4 5 6 )
     echo order = $order threshold = $threshold
     ls -l stats.dat > results/results-o${order}-t${threshold}-w3.log
     ./method_stats3 twitter_test*.txt >> results/results-o${order}-t${threshold}-w${wordmodel}.log
-    mv compressed_size_versus_uncompressed_length{,-o${order}-t${threshold}-w${wordmodel}.csv
-    mv compressed_size_hist{,-o${order}-t${threshold}-w${wordmodel}.csv
+    mv compressed_size_versus_uncompressed_length{,-o${order}-t${threshold}-w${wordmodel}}.csv
+    mv compressed_size_hist{,-o${order}-t${threshold}-w${wordmodel}}.csv
     mv *.csv results/
   end
   rm stats*.dat
