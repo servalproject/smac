@@ -113,7 +113,7 @@ unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
 }
 
 struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
-			   stats_handle *h,int debug)
+			   stats_handle *h,int extractAllP,int debug)
 {
   if (0) {
     if (s[len]) fprintf(stderr,"Extracting node '%c' @ 0x%x\n",s[len],nodeAddress);
@@ -149,6 +149,8 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
   struct node *n=calloc(sizeof(struct node),1);
 
   struct node *ret=n;
+  /* If extracting all of tree, then retain pointer to root of tree */
+  if (extractAllP&&(!h->tree)) h->tree=n;
 
   n->count=totalCount;
 
@@ -185,18 +187,22 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
       if (debug) fprintf(stderr,"    decoded addr=%d of %d (lowAddr=%d)\n",
 			 childAddress-lowAddr,highAddr-lowAddr+1,lowAddr);
       lowAddr=childAddress;     
-      if (len>0&&chars[i]==s[len-1]) {
+      if (extractAllP||(len>0&&chars[i]==s[len-1])) {
 	/* Only extract children if not in dummy mode, as in dummy mode
 	   the rest of the file is unlikely to be present, and so extracting
 	   children will most likely result in segfault. */
 	if (!h->dummyOffset) {
 	  n->children[i]=extractNodeAt(s,len-1,childAddress,
-				       progressiveCount,h,debug);
+				       progressiveCount,h,
+				       extractAllP,debug);
 	  if (n->children[i])
 	    {
 	      if (0) 
 		fprintf(stderr,"Found deeper stats for string offset %d\n",len-1);
-	      ret=n->children[i];
+	      if (!extractAllP) {
+		ret=n->children[i];
+		node_free(n);
+	      }
 	      if (0) dumpNode(ret);
 	    }
 	}
@@ -210,7 +216,7 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
     fprintf(stderr,"Extracted children for: '");
     for(i=0;i<len;i++) fprintf(stderr,"%c",s[i]);
     fprintf(stderr,"' @ 0x%x\n",nodeAddress);
-    dumpNode(n);
+    dumpNode(ret);
   }
 
   /* c->bit_stream is provided locally, so we must free the range coder manually,
@@ -253,7 +259,7 @@ struct node *extractNode(char *string,int len,stats_handle *h)
   unsigned int rootNodeAddress=h->rootNodeAddress;
   unsigned int totalCount=h->totalCount;
 
-  struct node *n=extractNodeAt(string,len,rootNodeAddress,totalCount,h,0);
+  struct node *n=extractNodeAt(string,len,rootNodeAddress,totalCount,h,0,0);
   if (0) {
     fprintf(stderr,"n=%p\n",n);
     fflush(stderr);
@@ -363,11 +369,30 @@ struct probability_vector *extractVector(char *string,int len,stats_handle *h)
   }
 
   /* Higher level nodes have already been freed, so just free this one */
-  node_free(n);
   // vectorReport("extracted",v,26);
   return v;
 }
 
+double entropyOfSymbol(struct probability_vector *v,int s)
+{
+  int high=0x1000000;
+  int low=0;
+  if (s) low=v->v[s-1];
+  if (s<68) high=v->v[s];
+  double p=(high-low)*1.00/0x1000000;
+  return -log(p)/log(2);
+}
+
+int vectorReportShort(char *name,struct probability_vector *v,int s)
+{
+  int high=0x1000000;
+  int low=0;
+  if (s) low=v->v[s-1];
+  if (s<68) high=v->v[s];
+  double percent=(high-low)*100.00/0x1000000;
+  fprintf(stderr,"P[%s](%c) = %.2f%%\n",name,chars[s],percent);
+  return 0;
+}
 
 int vectorReport(char *name,struct probability_vector *v,int s)
 {

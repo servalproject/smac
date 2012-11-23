@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 
 #undef DEBUG
+#undef WORDSUBSTITUTION
 
 double entropy3(int c1,int c2, char *string);
 
@@ -41,9 +42,10 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *
   int o;
   for(o=0;o<length;o++) {
 #ifdef DEBUG
-      printf("so far: '%s', c1=%d(%c), c2=%d(%c)\n",s,c1,chars[c1],c2,chars[c2]);
+    printf("so far: '%s', c1=%d(%c), c2=%d(%c)\n",s,c1,chars[c1],c2,chars[c2]);
 #endif
 
+#ifdef WORDSUBSTITUTION
     int substituted=0;
     if (!charInWord(chars[c2])) {
       /* We are at a word break, so see if we can do word substitution.
@@ -72,6 +74,7 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *
 	}
 	continue;
       } else {
+#endif
       s[o]=0;
       struct probability_vector *v=extractVector((char *)s,o,h);
       c3=range_decode_symbol(c,v->v,69);      
@@ -80,7 +83,9 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *
 #ifdef DEBUG
       printf("  decode alpha char %d = %c\n",c3,s[o]);
 #endif
+#ifdef WORDSUBSTITUTION
     }
+#endif
     c1=c2; c2=c3;
   }
   fclose(stats_file);
@@ -101,6 +106,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 	     o,c1,chars[c1],c2,chars[c2],c3,chars[c3]);
 #endif
 
+#ifdef WORDSUBSTITUTION
     if (!charInWord(chars[c2])) {
       /* We are at a word break, so see if we can do word substitution.
 	 Either way, we must flag whether we performed word substitution */
@@ -222,6 +228,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 	       o,c2,chars[c2],c3,chars[c3]);
 #endif
     }
+#endif // WORDSUBSTITUTIONFLAG
     if (0)
       {
 	int i;

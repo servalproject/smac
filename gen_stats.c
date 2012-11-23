@@ -52,9 +52,9 @@ struct node *nodeTree=NULL;
 long long nodeCount=0;
 
 /* 3rd - 1st order frequency statistics for all characters */
-long long counts3[69][69][69];
-long long counts2[69][69];
-long long counts1[69];
+unsigned int counts3[69][69][69];
+unsigned int counts2[69][69];
+unsigned int counts1[69];
 
 /* Frequency of letter case in each position of a word. */
 long long caseposn3[2][2][80][2]; // position in word
@@ -320,7 +320,8 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     h.fileLength=addr+bytes;
     h.use_cache=0;
     if (0) fprintf(stderr,"verifying node @ 0x%x\n",addr);
-    struct node *v=extractNodeAt("",0,addr,totalCountIncludingTerminations,&h,debug);
+    struct node *v=extractNodeAt("",0,addr,totalCountIncludingTerminations,&h,
+				 0 /* don't extract whole tree */,debug);
 
     int i;
     int error=0;
@@ -551,7 +552,7 @@ int listAllWords()
   return 0;
 }
 
-double entropyOfSymbol(long long v[69],int symbol)
+double entropyOfSymbol3(unsigned int v[69],int symbol)
 {
   int i;
   long long total=0;
@@ -561,19 +562,39 @@ double entropyOfSymbol(long long v[69],int symbol)
   return entropy;
 }
 
-double entropyOfWord(char *word)
+double entropyOfWord3(char *word)
 {
-  double entropyWord=entropyOfSymbol(counts1,charIdx(word[0]));
-if (word[1]) {
-  entropyWord+=entropyOfSymbol(counts2[charIdx(word[0])],charIdx(word[1]));
-  int j;
-  for(j=2;word[j];j++) {
-    entropyWord
-      +=entropyOfSymbol(counts3[charIdx(word[j-2])][charIdx(word[j-1])],
-			charIdx(word[j]));
-  }	
- }
- return entropyWord;
+  double entropyWord=entropyOfSymbol3(counts1,charIdx(word[0]));
+  if (word[1]) {
+    entropyWord+=entropyOfSymbol3(counts2[charIdx(word[0])],charIdx(word[1]));
+    int j;
+    for(j=2;word[j];j++) {
+      entropyWord
+	+=entropyOfSymbol3(counts3[charIdx(word[j-2])][charIdx(word[j-1])],
+			  charIdx(word[j]));
+    }	
+  }
+  return entropyWord;
+}
+
+double entropyOfWord(char *word_in,stats_handle *h)
+{
+  /* Model words as if they followed a space, i.e., as though
+     they are starting a word. */
+  char word[1024];
+  snprintf(word,1024," %s",word_in);
+
+  double wordEntropy=0;
+  int i;
+  for(i=1;word[i];i++) {
+    int t=word[i];
+    word[i]=0;
+    struct probability_vector *v=extractVector(word,i,h);
+    int s=charIdx(t);
+    wordEntropy+=entropyOfSymbol(v,s);
+    word[i]=t;
+  }
+  return wordEntropy;
 }
 
 int cmp_words(const void *a,const void *b)
@@ -625,7 +646,7 @@ int sortWordList(int alphaP)
   return 0;
 }
 
-int filterWords(FILE *f)
+int filterWords(FILE *f,stats_handle *h)
 {
   /* Remove words from list that occur too rarely compared with their
      length, such that it is unlikely that they will be useful for compression.
@@ -690,7 +711,7 @@ int filterWords(FILE *f)
 	double entropyWord=0;
 	
 	char *word=words[i];
-	entropyWord=entropyOfWord(word);
+	entropyWord=entropyOfWord(word,h);
 	
 	if ((entropyOccurrence+occurenceEntropy)<entropyWord) {
 	  double savings=wordCounts[i]*(entropyWord-(entropyOccurrence+occurenceEntropy));
@@ -944,7 +965,8 @@ int writeMessageStats()
   }
 
   listAllWords();
-  filterWords(f);
+  stats_handle *h=stats_new_handle("stats.dat");
+  filterWords(f,h);
   writeWords(f);
 
 return 0;
@@ -1021,6 +1043,7 @@ int main(int argc,char **argv)
 	  case 'r': i++; line[i]='\r'; break;
 	  case 'n': i++; line[i]='\n'; break;
 	  case '\\': i++; line[i]='\\'; break;
+	  case '\'': line[i]='\''; break;
 	  case 0: /* \ at end of line -- nothing to do */
 	    
 	    /* ignore ones we don't de-escape */

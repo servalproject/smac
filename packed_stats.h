@@ -51,6 +51,8 @@ typedef struct compressed_stats_handle {
 
   int use_cache;
   struct vector_cache *cache;
+  /* Full extracted tree */
+  struct node *tree;
 
   /* Used when not caching vectors for returning vector values */
   struct probability_vector vector;
@@ -58,8 +60,11 @@ typedef struct compressed_stats_handle {
 
 void node_free(struct node *n);
 struct node *extractNode(char *string,int len,stats_handle *h);
-struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,stats_handle *h,int debugP);
+struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
+			   stats_handle *h,int extractAllP,int debugP);
 struct probability_vector *extractVector(char *string,int len,stats_handle *h);
+double entropyOfSymbol(struct probability_vector *v,int s);
+int vectorReportShort(char *name,struct probability_vector *v,int s);
 int vectorReport(char *name,struct probability_vector *v,int s);
 int dumpNode(struct node *n);
 
