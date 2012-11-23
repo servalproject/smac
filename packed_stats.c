@@ -108,12 +108,13 @@ stats_handle *stats_new_handle(char *file)
   {
     /* 1024 x 24 bit values interpolative coded cannot
        exceed 4KB (typically around 1.3KB) */
+    int tally=read24bits(h->file);
     range_coder *c=range_new_coder(4096);
     fread(c->bit_stream,4096,1,h->file);
     c->bit_stream_length=4096*8;
     c->low=0; c->high=0;
     range_decode_prefetch(c);
-    ic_decode_recursive(h->messagelengths,1024,0x1000000,c);
+    ic_decode_recursive(h->messagelengths,1024,tally,c);
     range_coder_free(c);
   }
   fprintf(stderr,"Read case and message length statistics.\n");
