@@ -970,7 +970,7 @@ int writeMessageStats(int wordModel,char *filename)
     fprintf(f,"};\n");  
   }
 
-  if (wordModel) {
+  {
     listAllWords();
     stats_handle *h=stats_new_handle(filename);
     filterWords(f,h,wordModel);

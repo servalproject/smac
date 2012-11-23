@@ -1,0 +1,25 @@
+#!/bin/csh -f
+
+foreach wordmodel ( 0 v 3 ) # ( 3 v 0 ) is full range of options
+foreach order ( 1 2 3 4 5 6 )
+  # Generate stats*.dat and message_stats.c
+  ./gen_stats $order 100 $wordmodel twitter_corpus*.txt
+  # recompile using new message_stats.c (affects word substitution costs and word lists)
+  make
+  foreach threshold ( 10 20 50 100 200 500 1000 ) 
+    cp stats-o${order}-t${threshold}.dat stats.dat
+    if ( $wordmodel == 0 ) then
+       gcc -c -DNOWORDS lowercasealpha.c
+       make
+    else
+       rm lowercasealpha.o ; make
+    endif
+    echo order = $order threshold = $threshold
+    ls -l stats.dat > results/results-o${order}-t${threshold}-w3.log
+    ./method_stats3 twitter_test*.txt >> results/results-o${order}-t${threshold}-w${wordmodel}.log
+    mv compressed_size_versus_uncompressed_length{,-o${order}-t${threshold}-w${wordmodel}.csv
+    mv compressed_size_hist{,-o${order}-t${threshold}-w${wordmodel}.csv
+    mv *.csv results/
+  end
+  rm stats*.dat
+end

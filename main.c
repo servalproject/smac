@@ -60,14 +60,23 @@ int outputHistograms()
   FILE *f;
 
   f=fopen("compressed_size_hist.csv","w");
-  fprintf(f,"compressed_size_in_percent;count\n");
-  for(i=0;i<=101;i++) fprintf(f,"%d;%u\n",i,percent_count[i]);
+  fprintf(f,"compressed_size_in_percent;count;cumulative_fraction\n");
+  long long total=0;
+  long long running_total=0;
+  for(i=0;i<=101;i++) total+=percent_count[i];
+  for(i=0;i<=101;i++) {
+    running_total+=percent_count[i];
+    fprintf(f,"%d;%u;%f\n",i,percent_count[i],
+	    running_total*100.0/total);
+  }
   fclose(f);
 
   f=fopen("compressed_size_versus_uncompressed_length.csv","w");
-  fprintf(f,"minlength;compressed_size_in_percent\n");
-  for(i=0;i<=101;i++) fprintf(f,"%d;%f\n",i*10,
-			      comp_by_size_percent[i]/comp_by_size_count[i]);
+  fprintf(f,"minlength;compressed_size_in_percent;count\n");
+  for(i=0;i<=102;i++) {
+    fprintf(f,"%d;%f;%d\n",i*10,
+	    comp_by_size_percent[i]/comp_by_size_count[i],comp_by_size_count[i]);
+  }
   fclose(f);
   return 0;
 }
