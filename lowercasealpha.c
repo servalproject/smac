@@ -31,8 +31,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #undef DEBUG
 #define WORDSUBSTITUTION
 
-double entropy3(int c1,int c2, char *string);
-
 int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *h)
 {
   FILE *stats_file=fopen("stats.dat","r");
@@ -166,7 +164,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 	    range_coder_free(t);
 #ifdef DEBUG
 	    double substEntropy=t->entropy;
-	    double entropy=entropy3(c1,c2,wordList[w]);
+	    // double entropy=entropy3(c1,c2,wordList[w]);
 	    double savings=entropy-substEntropy;
 #endif	    
 	    if (strlen(wordList[w])>longestLength) {

@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "message_stats.h"
 #include "charset.h"
 
+#ifdef UNCOMPRESSEDMESSAGESTATS
 /* Calculate entropy of string using 3rd-order
    message statistics. */
 double entropy3(int c1,int c2, char *string)
@@ -43,6 +44,7 @@ double entropy3(int c1,int c2, char *string)
   range_coder_free(t);
   return entropy;
 }
+#endif
 
 double entropyOfInverse(int n)
 {

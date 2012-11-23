@@ -16,20 +16,21 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <stdio.h>
 #include <strings.h>
 
 #include "arithmetic.h"
-#include "message_stats.h"
+#include "packed_stats.h"
 
-int encodeLength(range_coder *c,int len)
+int encodeLength(range_coder *c,int len,stats_handle *h)
 {
-  range_encode_symbol(c,messagelengths,1024,len);
+  range_encode_symbol(c,(unsigned int *)h->messagelengths,1024,len);
 
   return 0;
 }
 
-int decodeLength(range_coder *c)
+int decodeLength(range_coder *c,stats_handle *h)
 {
-  int len=range_decode_symbol(c,messagelengths,1024);
+  int len=range_decode_symbol(c,(unsigned int *)h->messagelengths,1024);
   return len;
 }

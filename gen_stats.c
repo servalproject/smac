@@ -439,7 +439,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
     for(j=0;j<2;j++) {
       tally=caseposn2[j][i][0]+caseposn2[j][i][1];
       write24bit(out,caseposn2[j][i][0]*1.0*0xffffff/tally);
-    }    
+    }
 
   fprintf(stderr,"Wrote %d bytes of fixed header (including case prediction statistics)\n",(int)ftello(out));
 
@@ -874,6 +874,7 @@ int writeMessageStats(int wordModel,char *filename)
 {
   FILE *f=fopen("message_stats.c","w");
 
+#ifdef UNCOMPRESSEDMESSAGESTATS
   int i,j,k;
 
   fprintf(f,"unsigned int char_freqs3[69][69][69]={\n");
@@ -1047,7 +1048,7 @@ int writeMessageStats(int wordModel,char *filename)
     }
     fprintf(f,"};\n");  
   }
-
+#endif
   {
     listAllWords();
     stats_handle *h=stats_new_handle(filename);

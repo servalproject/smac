@@ -38,22 +38,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "arithmetic.h"
 #include "packed_stats.h"
-#include "message_stats.h"
 #include "charset.h"
 #include "method_stats3.h"
 
 int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h);
 int encodeNonAlpha(range_coder *c,unsigned char *s);
-int encodeLength(range_coder *c,int length);
-int decodeLength(range_coder *c);
+int encodeLength(range_coder *c,int length,stats_handle *h);
+int decodeLength(range_coder *c,stats_handle *h);
 int stripNonAlpha(unsigned char *in,unsigned char *out);
 int stripCase(unsigned char *in,unsigned char *out);
 int mungeCase(char *m);
-int encodeCaseModel1(range_coder *c,unsigned char *line);
+int encodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h);
 
 int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
 		   unsigned char nonAlphaValues[],int *nonAlphaCount,int messageLength);
-int decodeCaseModel1(range_coder *c,unsigned char *line);
+int decodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h);
 int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *h);
 int decodePackedASCII(range_coder *c, char *m,int encodedLength);
 int encodePackedASCII(range_coder *c,char *m);
@@ -83,7 +82,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   
   int notPackedASCII=range_decode_symbol(c,&probPackedASCII,2);
 
-  int encodedLength=decodeLength(c);
+  int encodedLength=decodeLength(c,h);
   for(i=0;i<encodedLength;i++) m[i]='?'; m[i]=0;
   *len_out=encodedLength;
 
@@ -109,7 +108,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount,h);
   lowerCaseAlphaChars[alphaCount]=0;
 
-  decodeCaseModel1(c,lowerCaseAlphaChars);
+  decodeCaseModel1(c,lowerCaseAlphaChars,h);
   mungeCase((char *)lowerCaseAlphaChars);
   
   /* reintegrate alpha and non-alpha characters */
@@ -160,7 +159,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
   double lastEntropy=c->entropy;
   
   /* Encode length of message */
-  encodeLength(c,strlen((char *)m));
+  encodeLength(c,strlen((char *)m),h);
   
   // printf("%f bits to encode length\n",c->entropy-lastEntropy);
   total_length_bits+=c->entropy-lastEntropy;
@@ -189,7 +188,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
      letters and where word breaks are.
  */
   mungeCase((char *)alpha);
-  encodeCaseModel1(c,alpha);
+  encodeCaseModel1(c,alpha,h);
   
   //  printf("%f bits (%d emitted) to encode case\n",c->entropy-lastEntropy,c->bits_used);
   total_case_bits+=c->entropy-lastEntropy;
@@ -204,14 +203,14 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
       range_coder *c2=range_new_coder(1024);
       range_encode_equiprobable(c2,2,1); // not raw ASCII
       range_encode_symbol(c2,&probPackedASCII,2,0); // is packed ASCII
-      encodeLength(c2,strlen((char *)m));
+      encodeLength(c2,strlen((char *)m),h);
       encodePackedASCII(c2,(char *)m);
       range_conclude(c2);
       if (c2->bits_used<c->bits_used) {
 	range_coder_reset(c);
 	range_encode_equiprobable(c,2,1); // not raw ASCII
 	range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
-	encodeLength(c,strlen((char *)m));
+	encodeLength(c,strlen((char *)m),h);
 	encodePackedASCII(c,(char *)m);
 	range_conclude(c);
 	// printf("Reverting to raw non-statistical encoding: %d chars in %d bits\n",
