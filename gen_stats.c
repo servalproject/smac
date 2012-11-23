@@ -409,34 +409,36 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   fprintf(out,"STA1XXXXYYYYZ");
 
   /* Write case statistics. No way to compress these, so just write them out. */
-  unsigned int tally;
+  unsigned int tally,vv;
   int i,j;
   /* case of first character of message */
   tally=casestartofmessage[0]+casestartofmessage[1];
-  write24bit(out,casestartofmessage[0]*1.0*0xffffffff/tally);
+  vv=casestartofmessage[0]*1.0*0xffffff/tally;
+  fprintf(stderr,"casestartofmessage: wrote 0x%x\n",vv);
+  write24bit(out,vv);
   /* case of first character of word, based on case of first character of previous
      word, i.e., 2nd-order. */
   for(i=0;i<2;i++) {
     tally=casestartofword2[i][0]+casestartofword2[i][1];
-    write24bit(out,casestartofword2[i][0]*1.0*0xffffffff/tally);
+    write24bit(out,casestartofword2[i][0]*1.0*0xffffff/tally);
   }
   /* now 3rd order case */
   for(i=0;i<2;i++)
     for(j=0;j<2;j++) {
       tally=casestartofword3[i][j][0]+casestartofword3[i][j][1];
-      write24bit(out,casestartofword3[i][j][0]*1.0*0xffffffff/tally);
+      write24bit(out,casestartofword3[i][j][0]*1.0*0xffffff/tally);
     }
   /* case of i-th letter of a word (1st order) */
   for(i=0;i<80;i++) {
     tally=caseposn1[i][0]+caseposn1[i][1];
-    write24bit(out,caseposn1[i][0]*1.0*0xffffffff/tally);
+    write24bit(out,caseposn1[i][0]*1.0*0xffffff/tally);
   }
   /* case of i-th letter of a word, conditional on case of previous letter
      (2nd order) */
   for(i=0;i<80;i++)
     for(j=0;j<2;j++) {
       tally=caseposn2[j][i][0]+caseposn2[j][i][1];
-      write24bit(out,caseposn2[j][i][0]*1.0*0xffffffff/tally);
+      write24bit(out,caseposn2[j][i][0]*1.0*0xffffff/tally);
     }    
 
   fprintf(stderr,"Wrote %d bytes of fixed header (including case prediction statistics)\n",(int)ftello(out));

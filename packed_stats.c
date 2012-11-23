@@ -27,6 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 #include "charset.h"
 
+#include "message_stats.h"
+
 void node_free_recursive(struct node *n)
 {
   int i;
@@ -93,9 +95,11 @@ stats_handle *stats_new_handle(char *file)
 	    h->rootNodeAddress,h->totalCount,h->maximumOrder);
 
   /* Read in letter case prediction statistics */
-  h->casestartofmessage[0]=read24bits(h->file);
+  h->casestartofmessage[0][0]=read24bits(h->file);
   for(i=0;i<2;i++)
-    h->casestartofword2[i][0]=read24bits(h->file);
+    {
+      h->casestartofword2[i][0]=read24bits(h->file);
+    }
   for(i=0;i<2;i++)
     for(j=0;j<2;j++)
       h->casestartofword3[i][j][0]=read24bits(h->file);
@@ -116,6 +120,8 @@ stats_handle *stats_new_handle(char *file)
     range_decode_prefetch(c);
     ic_decode_recursive(h->messagelengths,1024,tally,c);
     range_coder_free(c);
+    for(i=0;i<1024;i++) 
+      h->messagelengths[i]=h->messagelengths[i]*1.0*0xffffff/tally;
   }
   fprintf(stderr,"Read case and message length statistics.\n");
 
