@@ -20,7 +20,7 @@ int extractTweet(char *s)
     case '\\':
       s++;
       switch(*s) {
-      case '\'': case '"':
+      case '\'': case '"': case '/':
 	/* remove escaping from these characters */
 	printf("%c",*s);
 	break;
@@ -42,14 +42,17 @@ int extractTweet(char *s)
 
 int main()
 {
+  int i;
   char line[8192];
 
   line[0]=0; fgets(line,8192,stdin);
   while(line[0]) {
-    if (!strncasecmp(line,"{\"text\":\"",8)) {
-      // Line is for the creation of a tweet
-      extractTweet(&line[9]); printf("\n");
-    }
+    for(i=0;line[i]&&line[i+10];i++)
+      if (!strncasecmp(&line[i],"\"text\":\"",7)) {
+	// Line is for the creation of a tweet
+	extractTweet(&line[8+i]); printf("\n");
+	break;
+      }    
 
     line[0]=0; fgets(line,8192,stdin);
   }
