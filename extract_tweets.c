@@ -12,14 +12,39 @@ int extractTweet(char *s)
       else if (!strncmp(s,"&gt;",4)) { printf(">"); s+=3; }
       else if (!strncmp(s,"&lt;",4)) { printf("<"); s+=3; }
       else { 
-	s[16]=0;
-	fprintf(stderr,"Unrecognised & code: %s...\n",s);
-	exit(-1);
+	// int c=s[16]; s[16]=0;
+	// fprintf(stderr,"Unrecognised & code: %s...\n",s);
+	// s[16]=c;
+	printf("%c",*s);
       }
       break;
     case '\\':
       s++;
       switch(*s) {
+      case 'u':
+	{
+	  /* unicode character */
+	  char hex[5];
+	  hex[0]=*(++s);
+	  hex[1]=*(++s);
+	  hex[2]=*(++s);
+	  hex[3]=*(++s);
+	  hex[4]=0;
+	  unsigned int codepoint=strtol(hex,NULL,16);
+	  if (codepoint<0x80) {
+	    printf("%c",codepoint);
+	  } else if (codepoint<0x0800) {
+	    printf("%c%c",
+		   0xc0+(codepoint>>6),
+		   0x80+(codepoint&0x3f));
+	  } else {
+	    printf("%c%c%c",
+		   0xe0+(codepoint>>12),
+		   0x80+((codepoint>>6)&0x3f),
+		   0x80+(codepoint&0x3f));	  
+	  }
+	}
+	break;
       case '\'': case '"': case '/':
 	/* remove escaping from these characters */
 	printf("%c",*s);
