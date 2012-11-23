@@ -39,8 +39,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "packed_stats.h"
 
-#define COUNTWORDS
-
 struct node *nodeTree=NULL;
 long long nodeCount=0;
 
@@ -372,9 +370,13 @@ int rescaleCounts(struct node *n,double f)
 
 int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 {
-  FILE *out=fopen("stats.dat","w+");
+  char filename[1024];
+  snprintf(filename,1024,"stats-o%d-t%d.dat",maximumOrder,frequencyThreshold);
+
+  fprintf(stderr,"Writing compressed stats file '%s'\n",filename);
+  FILE *out=fopen(filename,"w+");
   if (!out) {
-    fprintf(stderr,"Could not write to stats.dat");
+    fprintf(stderr,"Could not write to '%s'",filename);
     return -1;
   }
 
@@ -413,19 +415,25 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 
   fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
 
-  stats_handle *h=stats_new_handle("stats.dat");
+  stats_handle *h=stats_new_handle(filename);
+  if (!h) {
+    fprintf(stderr,"Failed to load stats file '%s'\n",filename);
+    exit(-1);
+  }
 
   /* some simple tests */
   struct probability_vector *v;
   v=extractVector("http",strlen("http"),h);
-  vectorReport("http",v,charIdx(':'));
+  // vectorReport("http",v,charIdx(':'));
   v=extractVector("",strlen(""),h);
 
   stats_load_tree(h);
 
   v=extractVector("http",strlen("http"),h);
-  vectorReport("http",v,charIdx(':'));
+  // vectorReport("http",v,charIdx(':'));
   v=extractVector("",strlen(""),h);
+  
+  stats_handle_free(h);
 
   return 0;
 }
@@ -640,7 +648,7 @@ int sortWordList(int alphaP)
   return 0;
 }
 
-int filterWords(FILE *f,stats_handle *h)
+int filterWords(FILE *f,stats_handle *h,int wordModel)
 {
   /* Remove words from list that occur too rarely compared with their
      length, such that it is unlikely that they will be useful for compression.
@@ -708,8 +716,8 @@ int filterWords(FILE *f,stats_handle *h)
 
 	// Two options for modelling word entropy:  either use fixed 3rd order
 	// statistics, or use variable-order model.
-	// entropyWord=entropyOfWord(word,h);
-	entropyWord=entropyOfWord3(word);
+	if (wordModel==99) entropyWord=entropyOfWord(word,h);
+	if (wordModel==3) entropyWord=entropyOfWord3(word);
 	
 	if ((entropyOccurrence+occurenceEntropy)<entropyWord) {
 	  double savings=wordCounts[i]*(entropyWord-(entropyOccurrence+occurenceEntropy));
@@ -784,7 +792,7 @@ int writeWords(FILE *f)
   return 0;
 }
 
-int writeMessageStats()
+int writeMessageStats(int wordModel,char *filename)
 {
   FILE *f=fopen("message_stats.c","w");
 
@@ -962,10 +970,12 @@ int writeMessageStats()
     fprintf(f,"};\n");  
   }
 
-  listAllWords();
-  stats_handle *h=stats_new_handle("stats.dat");
-  filterWords(f,h);
-  writeWords(f);
+  if (wordModel) {
+    listAllWords();
+    stats_handle *h=stats_new_handle(filename);
+    filterWords(f,h,wordModel);
+    writeWords(f);
+  }
 
 return 0;
 }
@@ -990,8 +1000,8 @@ int main(int argc,char **argv)
   }
   for(i=0;i<1024;i++) messagelengths[i]=0;
 
-  if (argc<3) {
-    fprintf(stderr,"usage: gen_stats <maximum order> <frequency threshold> [training_corpus ...]\n");
+  if (argc<4) {
+    fprintf(stderr,"usage: gen_stats <maximum order> <frequency threshold> <word model> [training_corpus ...]\n");
     fprintf(stderr,"             maximum order - length of preceeding string used to bin statistics.\n");
     fprintf(stderr,"                             Useful values: 1 - 6\n");
     fprintf(stderr,"       frequency threshold - minimum number of observations of a string in\n");
@@ -1001,14 +1011,26 @@ int main(int argc,char **argv)
     exit(-1);
   }
 
-  int argn=3;
+  int argn=4;
   FILE *f=stdin;
   int maximumOrder=atoi(argv[1]);
   int frequencyThreshold=atoi(argv[2]);
+  int wordModel=0;
+  switch (argv[3][0])
+    {
+    case '0': wordModel=0; break;
+    case '3': wordModel=3; break;
+    case 'v': wordModel=99; break;
+    }
 
-  if (argc>3) {
-    f=fopen(argv[argn++],"r");
+  if (argc>4) {
+    f=fopen(argv[argn],"r");
+    if (!f) {
+      fprintf(stderr,"Could not read '%s'\n",argv[argn]);
+      exit(-1);
+    }
     fprintf(stderr,"Reading corpora from command line options.\n");
+    argn++;
   }
 
   line[0]=0; fgets(line,8192,f);
@@ -1070,9 +1092,7 @@ int main(int argc,char **argv)
 	int wc=charInWord(line[i]);
 	if (!wc) {
 	  if (wordPosn>0) {
-#ifdef COUNTWORDS
-	    countWord(word,strlen(word));
-#endif
+	    if (wordModel) countWord(word,strlen(word));
 	  }
 	  wordBreaks++;
 	  wordPosn=-1; lc=0;	 
@@ -1131,11 +1151,20 @@ int main(int argc,char **argv)
   
   fprintf(stderr,"Created %lld nodes.\n",nodeCount);
 
-  dumpVariableOrderStats(maximumOrder,frequencyThreshold);
+  dumpVariableOrderStats(maximumOrder,1000);
+  dumpVariableOrderStats(maximumOrder,500);
+  dumpVariableOrderStats(maximumOrder,200);
+  dumpVariableOrderStats(maximumOrder,100);
+  dumpVariableOrderStats(maximumOrder,50);
+  dumpVariableOrderStats(maximumOrder,20);
+  dumpVariableOrderStats(maximumOrder,10);
+  dumpVariableOrderStats(maximumOrder,5);
 
   fprintf(stderr,"\nWriting letter frequency statistics.\n");
 
-  writeMessageStats();
+  char filename[1024];
+  snprintf(filename,1024,"stats-o%d-t1000.dat",maximumOrder);
+  writeMessageStats(wordModel,filename);
 
   return 0;
 }

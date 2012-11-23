@@ -27,6 +27,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 #include "charset.h"
 
+void node_free_recursive(struct node *n)
+{
+  int i;
+  for(i=0;i<69;i++) if (n->children[i]) node_free_recursive(n->children[i]);
+  node_free(n);
+  return;
+}
+
+
 void node_free(struct node *n)
 {
   if (n->count==0xdeadbeef) {
@@ -45,6 +54,8 @@ void stats_handle_free(stats_handle *h)
   if (h->mmap) munmap(h->mmap,h->fileLength);
   if (h->buffer) free(h->buffer);
   if (h->bufferBitmap) free(h->bufferBitmap);
+  if (h->tree) node_free_recursive(h->tree);
+
   free(h);
   return;
 }

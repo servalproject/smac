@@ -50,8 +50,39 @@ long long stats3_decompress_us=0;
 long long smaz_compress_us=0;
 long long smaz_decompress_us=0;
 
+double comp_by_size_percent[104];
+unsigned int comp_by_size_count[104];
+unsigned int percent_count[104];
+
+int outputHistograms()
+{
+  int i;
+  FILE *f;
+
+  f=fopen("compressed_size_hist.csv","w");
+  fprintf(f,"compressed_size_in_percent;count\n");
+  for(i=0;i<=101;i++) fprintf(f,"%d;%u\n",i,percent_count[i]);
+  fclose(f);
+
+  f=fopen("compressed_size_versus_uncompressed_length.csv","w");
+  fprintf(f,"minlength;compressed_size_in_percent\n");
+  for(i=0;i<=101;i++) fprintf(f,"%d;%f\n",i*10,
+			      comp_by_size_percent[i]/comp_by_size_count[i]);
+  fclose(f);
+  return 0;
+}
+
 int main(int argc,char *argv[])
 {
+  int i;
+
+  /* Clear statistics */
+  for(i=0;i<104;i++) {
+    comp_by_size_percent[i]=0;
+    comp_by_size_count[i]=0;
+    percent_count[i]=0;
+  }
+
   stats_handle *h=stats_new_handle("stats.dat");
   if (!h) {
     fprintf(stderr,"Could not read stats.dat.\n");
@@ -122,6 +153,8 @@ int main(int argc,char *argv[])
   printf("SMAZ decompression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
 	 smaz_decompress_us,1000000.0/(smaz_decompress_us*1.0/total_messages),total_uncompressed_bits*0.125/smaz_decompress_us);
 
+  outputHistograms();
+
   return 0;
 }
 
@@ -179,9 +212,18 @@ int processFile(FILE *f,stats_handle *h)
       
     }
 
-    double percent=c->bits_used*100.0/(strlen(m)*8);
+    double percent=c->bits_used*100.0/(strlen(m)*8);   
     if (percent<bestPercent) bestPercent=percent;
     if (percent>worstPercent) worstPercent=percent;
+
+    /* Calculate histograms of compression performance */
+    if (strlen(m)<=1024) {
+      comp_by_size_percent[strlen(m)/10]+=percent;
+      comp_by_size_count[strlen(m)/10]++;
+    }
+    if (percent>=0&&percent<=100)
+      percent_count[(int)percent]++;
+    if (percent>100) percent_count[101]++;
 
     /* Verify that compression worked */
     {

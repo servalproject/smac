@@ -41,7 +41,7 @@ gen_stats:	gen_stats.c arithmetic.o packed_stats.o
 	gcc -g -Wall -o gen_stats gen_stats.c arithmetic.o packed_stats.o
 
 message_stats.c:	gen_stats twitter_corpus*.txt
-	./gen_stats 5 100 twitter_corpus*.txt
+	./gen_stats 5 100 v twitter_corpus*.txt
 
 method_stats3:	$(OBJS)
 	gcc -g -Wall -o method_stats3 $(OBJS)
