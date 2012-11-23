@@ -60,9 +60,17 @@ void stats_handle_free(stats_handle *h)
   return;
 }
 
-stats_handle *stats_new_handle(char *file)
+unsigned int read24bits(FILE *f)
 {
   int i;
+  int v=0;
+  for(i=0;i<3;i++) v=(v<<8)|(unsigned char)fgetc(f);
+  return v;
+}
+
+stats_handle *stats_new_handle(char *file)
+{
+  int i,j;
   stats_handle *h=calloc(sizeof(stats_handle),1);
   h->file=fopen(file,"r");
   if(!h->file) {
@@ -83,6 +91,32 @@ stats_handle *stats_new_handle(char *file)
   if (1)
     fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d, maximumOrder=%d\n",
 	    h->rootNodeAddress,h->totalCount,h->maximumOrder);
+
+  /* Read in letter case prediction statistics */
+  h->casestartofmessage[0]=read24bits(h->file);
+  for(i=0;i<2;i++)
+    h->casestartofword2[i][0]=read24bits(h->file);
+  for(i=0;i<2;i++)
+    for(j=0;j<2;j++)
+      h->casestartofword3[i][j][0]=read24bits(h->file);
+  for(i=0;i<80;i++)
+    h->caseposn1[i][0]=read24bits(h->file);
+  for(i=0;i<80;i++)
+    for(j=0;j<2;j++)
+      h->caseposn2[j][i][0]=read24bits(h->file);
+  /* Read in message length stats */
+  {
+    /* 1024 x 24 bit values interpolative coded cannot
+       exceed 4KB (typically around 1.3KB) */
+    range_coder *c=range_new_coder(4096);
+    fread(c->bit_stream,4096,1,h->file);
+    c->bit_stream_length=4096*8;
+    c->low=0; c->high=0;
+    range_decode_prefetch(c);
+    ic_decode_recursive(h->messagelengths,1024,0x1000000,c);
+    range_coder_free(c);
+  }
+  fprintf(stderr,"Read case and message length statistics.\n");
 
   /* Try to mmap() */
   h->mmap=mmap(NULL, h->fileLength, PROT_READ, MAP_SHARED, fileno(h->file), 0);
@@ -133,6 +167,18 @@ unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
 struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 			   stats_handle *h,int extractAllP,int debug)
 {
+  if (len<(0-(int)h->maximumOrder)) {
+    // We are diving deeper than the maximum order that we expected to see.
+    // This indicates an error.
+    fprintf(stderr,"len=%d, maximumOrder=0x%x\n",len,h->maximumOrder);
+    return NULL;
+  }
+  if (nodeAddress<700) {
+    // The first 700 or so bytes are all fixed header.
+    // If we have been asked to extract a node from here, it indicates an error.
+    return NULL;
+  }
+  
   if (0) {
     if (s[len]) fprintf(stderr,"Extracting node '%c' @ 0x%x\n",s[len],nodeAddress);
     else fprintf(stderr,"Extracting root node @ 0x%x?\n",nodeAddress);

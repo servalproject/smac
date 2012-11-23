@@ -49,6 +49,17 @@ typedef struct compressed_stats_handle {
   unsigned int totalCount;
   unsigned int maximumOrder;
 
+  /* Basic model statistics that are required.
+     These are preloaded when a stats_handle is created.
+     Total size of these is about 5KB, so no big problem,
+     even on an embedded system. */
+  unsigned int casestartofmessage[1];
+  unsigned int casestartofword2[2][1];
+  unsigned int casestartofword3[2][2][1];
+  unsigned int caseposn1[80][1];
+  unsigned int caseposn2[2][80][1];
+  unsigned int messagelengths[1024];
+
   int use_cache;
   struct vector_cache *cache;
   /* Full extracted tree */
