@@ -29,7 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 
 #undef DEBUG
-#undef WORDSUBSTITUTION
+#define WORDSUBSTITUTION
 
 double entropy3(int c1,int c2, char *string);
 

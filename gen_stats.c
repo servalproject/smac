@@ -39,13 +39,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "packed_stats.h"
 
-/* Maximum order of statistics to calculate.
-   Order 5 means we model each character on the previous 4.
-*/
-#define MAXIMUMORDER 5
-/* minimum frequency to count */
-#define OBSERVATIONTHRESHOLD 100
-
 #define COUNTWORDS
 
 struct node *nodeTree=NULL;
@@ -109,7 +102,7 @@ int dumpTree(struct node *n,int indent)
   return 0;
 }
 
-int countChars(unsigned char *s,int len)
+int countChars(unsigned char *s,int len,int maximumOrder)
 {
   int j;
 
@@ -163,7 +156,7 @@ int countChars(unsigned char *s,int len)
       fprintf(stderr,"   incrementing count of %d (0x%02x = '%c') @ offset=%d *n=%p (now %d)\n",
 	      symbol,s[len-1],s[len-1],j,*n,(*n)->counts[symbol]);
     n=&(*n)->children[c];
-    if (order>=MAXIMUMORDER) 
+    if (order>=maximumOrder) 
       {
 	break;
       }
@@ -344,12 +337,14 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
       fprintf(stderr,"\n");
       exit(-1);
     }
+#ifdef DEBUG
     if ((!strcmp(s,"esae"))||(!strcmp(s,"esael")))
       {
 	fprintf(stderr,"%s 0x%x (%f bits) totalCountIncTerms=%d\n",
 		s,addr,c->entropy,totalCountIncludingTerminations);
 	dumpNode(v);
       }
+#endif
     node_free(v);
   }
   range_coder_free(c);
@@ -375,7 +370,7 @@ int rescaleCounts(struct node *n,double f)
   return 0;
 }
 
-int dumpVariableOrderStats()
+int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 {
   FILE *out=fopen("stats.dat","w+");
   if (!out) {
@@ -396,7 +391,7 @@ int dumpVariableOrderStats()
 
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
-					OBSERVATIONTHRESHOLD);
+					frequencyThreshold);
 
   fseek(out,4,SEEK_SET);
   fputc((topNodeAddress>>24)&0xff,out);
@@ -412,7 +407,7 @@ int dumpVariableOrderStats()
   fputc((totalCount>> 8)&0xff,out);
   fputc((totalCount>> 0)&0xff,out);
 
-  fputc(MAXIMUMORDER+1,out);
+  fputc(maximumOrder+1,out);
 
   fclose(out);
 
@@ -710,7 +705,11 @@ int filterWords(FILE *f,stats_handle *h)
 	double entropyWord=0;
 	
 	char *word=words[i];
-	entropyWord=entropyOfWord(word,h);
+
+	// Two options for modelling word entropy:  either use fixed 3rd order
+	// statistics, or use variable-order model.
+	// entropyWord=entropyOfWord(word,h);
+	entropyWord=entropyOfWord3(word);
 	
 	if ((entropyOccurrence+occurenceEntropy)<entropyWord) {
 	  double savings=wordCounts[i]*(entropyWord-(entropyOccurrence+occurenceEntropy));
@@ -991,10 +990,23 @@ int main(int argc,char **argv)
   }
   for(i=0;i<1024;i++) messagelengths[i]=0;
 
-  int argn=1;
-  FILE *f=stdin;
+  if (argc<3) {
+    fprintf(stderr,"usage: gen_stats <maximum order> <frequency threshold> [training_corpus ...]\n");
+    fprintf(stderr,"             maximum order - length of preceeding string used to bin statistics.\n");
+    fprintf(stderr,"                             Useful values: 1 - 6\n");
+    fprintf(stderr,"       frequency threshold - minimum number of observations of a string in\n");
+    fprintf(stderr,"                             order for that string to be included in suffix tree.\n");
+    fprintf(stderr,"                             Useful values: 10 - 1000\n");
+    fprintf(stderr,"\n");
+    exit(-1);
+  }
 
-  if (argc>1) {
+  int argn=3;
+  FILE *f=stdin;
+  int maximumOrder=atoi(argv[1]);
+  int frequencyThreshold=atoi(argv[2]);
+
+  if (argc>3) {
     f=fopen(argv[argn++],"r");
     fprintf(stderr,"Reading corpora from command line options.\n");
   }
@@ -1029,7 +1041,7 @@ int main(int argc,char **argv)
        We provide full length to the counter, because we don't know
        it's maximum order/depth of recording. */
     for(i=strlen(line);i>0;i--) {
-      countChars((unsigned char *)line,i);
+      countChars((unsigned char *)line,i,maximumOrder);
       // dumpTree(nodeTree,0);
     }
 
@@ -1119,7 +1131,7 @@ int main(int argc,char **argv)
   
   fprintf(stderr,"Created %lld nodes.\n",nodeCount);
 
-  dumpVariableOrderStats();
+  dumpVariableOrderStats(maximumOrder,frequencyThreshold);
 
   fprintf(stderr,"\nWriting letter frequency statistics.\n");
 
