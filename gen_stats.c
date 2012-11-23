@@ -452,11 +452,16 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 	if (!messagelengths[i]) messagelengths[i]=1;
 	tally+=messagelengths[i];
       }
+      if (tally>0xffffff) {
+	fprintf(stderr,"ERROR: Need to add support for rescaling message counts if training using more then 2^24-1 messages.\n");
+	exit(-1);
+      }
+      write24bit(out,tally);
       for(i=0;i<=1024;i++) {
 	cumulative+=messagelengths[i];
-	lengths[i]=cumulative*1.0*0xffffff/tally;
+	lengths[i]=cumulative;
       }	
-      ic_encode_recursive(lengths,1024,0x1000000,c);
+      ic_encode_recursive(lengths,1024,tally,c);
     }
     range_conclude(c);
     int bytes=(c->bits_used>>3)+((c->bits_used&7)?1:0);
