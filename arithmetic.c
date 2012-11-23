@@ -300,7 +300,7 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 int range_equiprobable_range(range_coder *c,int alphabet_size,int symbol,unsigned int *p_low,unsigned int *p_high)
 {
   *p_low=(((unsigned long long)symbol)*0xffffff)/(unsigned long long)alphabet_size;
-  *p_high=(((1LL+(unsigned long long)symbol)*0xffffff)/(unsigned long long)alphabet_size)-1LL;
+  *p_high=(((1LL+(unsigned long long)symbol)*0xffffff)/(unsigned long long)alphabet_size);
   if (symbol==alphabet_size-1) *p_high=0xffffff;
   return 0;
 }
@@ -357,6 +357,21 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
     }
 
   fprintf(stderr,"Internal error in range_decode_equiprobable().\n");
+  
+  s=v*alphabet_size/space;
+  fprintf(stderr,"Estimated s=%d (0x%x)\n",s,s);
+  for(symbol=s?s-1:0;symbol<s+2&&symbol<alphabet_size;symbol++)
+    {
+      unsigned int p_low,p_high;
+      c->debug="here";
+      range_equiprobable_range(c,alphabet_size,symbol,&p_low,&p_high);
+      fprintf(stderr,"tried symbol=%d (0x%x) : p_low=0x%x, p_high=0x%x\n",
+	      symbol,symbol,p_low,p_high);
+      if (range_decode_common(c,p_low,p_high,symbol)) {
+	fprintf(stderr,"  and range_decode_common() failed.\n");
+      }
+    } 
+
   exit(-1);
 }
 
