@@ -236,6 +236,7 @@ int processFile(FILE *f,stats_handle *h)
       if (percent>=0&&percent<=100)
 	percent_count[(int)percent]++;
       if (percent>100) percent_count[101]++;
+      // if ((int)percent==66) fprintf(stderr,"%s\n",m);
     }
 
     /* Verify that compression worked */
