@@ -40,8 +40,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "charset.h"
 #include "packed_stats.h"
 
-struct node *nodeTree=NULL;
+/* Only allocate a few entries for nodes by default, because we expect most
+   nodes to be sparse. */
+#define FEW 4
+struct countnode {
+  unsigned char fewCountIds[FEW];
+  unsigned int fewCounts[FEW];
+  unsigned char fewChildIds[FEW];
+  long long count;
+
+  struct countnode *fewChildren[FEW];
+  unsigned int *allCounts;
+  struct countnode **allChildren;
+};
+
+struct countnode *nodeTree=NULL;
 long long nodeCount=0;
+long long nodeBigCountsCount=0;
+long long nodeBigChildrenCount=0;
 
 /* 3rd - 1st order frequency statistics for all characters */
 unsigned int counts3[CHARCOUNT][CHARCOUNT][CHARCOUNT];
@@ -60,21 +76,79 @@ int messagelengths[1024];
 
 long long wordBreaks=0;
 
-int dumpTree(struct node *n,int indent)
+unsigned int getCount(struct countnode *n,int s)
+{
+  int i;
+  if (n->allCounts) return n->allCounts[s];
+  for(i=0;i<FEW;i++) if (n->fewCountIds[i]==1+s) return n->fewCounts[i];
+  return 0;
+}
+int setCount(struct countnode *n,int s, unsigned int count)
+{
+  int i;
+  if (n->allCounts) { n->allCounts[s]=count; return 0; }
+  for(i=0;i<FEW;i++) 
+    if ((!n->fewCountIds[i])||n->fewCountIds[i]==1+s) 
+      { 
+	n->fewCountIds[i]=1+s;
+	n->fewCounts[i]=count; 
+	return 0;
+      }
+  
+  nodeBigCountsCount++;
+  n->allCounts=calloc(sizeof(unsigned int),CHARCOUNT);
+  for(i=0;i<FEW;i++) n->allCounts[n->fewCountIds[i]-1]=n->fewCounts[i];
+  n->allCounts[s]=count; 
+  return 0;
+
+}
+
+int setChild(struct countnode *n,int s, struct countnode *child)
+{
+  int i;
+  if (n->allChildren) { n->allChildren[s]=child; return 0; }
+  for(i=0;i<FEW;i++) 
+    if ((!n->fewChildIds[i])||n->fewChildIds[i]==1+s) 
+      {
+	n->fewChildIds[i]=1+s;
+	n->fewChildren[i]=child; 
+	return 0;
+      }
+
+  nodeBigChildrenCount++;
+  n->allChildren=calloc(sizeof(struct countnode *),CHARCOUNT);
+  for(i=0;i<FEW;i++) n->allChildren[n->fewChildIds[i]-1]=n->fewChildren[i];
+  n->allChildren[s]=child; 
+  return 0;
+}
+struct countnode **getChild(struct countnode *n,int s,int createP)
+{
+  int i;
+  if (n->allChildren) return &n->allChildren[s];
+  for(i=0;i<FEW;i++) if (n->fewChildIds[i]==1+s) return &n->fewChildren[i];
+  if (createP) {
+    /* no child pointer, so set it to NULL and return it by calling ourselves again */
+    setChild(n,s,NULL);
+    return getChild(n,s,0);
+  } else
+    return NULL;
+}
+
+int dumpTree(struct countnode *n,int indent)
 {
   if (indent==0) fprintf(stderr,"dumpTree:\n");
   int i;
   for(i=0;i<CHARCOUNT;i++) {
-    if (n->counts[i]) {
+    if (getCount(n,i)) {
       fprintf(stderr,"%s'%c' x%d\n",
 	      &"                                        "[40-indent],
-	      chars[i],n->counts[i]);
+	      chars[i],getCount(n,i));
     }
-    if (n->children[i]) {
+    if (getChild(n,i,0)&&*getChild(n,i,0)) {
       fprintf(stderr,"%s'%c':\n",
 	      &"                                        "[40-indent],
 	      chars[i]);
-      dumpTree(n->children[i],indent+2);
+      dumpTree(*getChild(n,i,0),indent+2);
     }
   }
   return 0;
@@ -84,9 +158,9 @@ int countChars(unsigned char *s,int len,int maximumOrder)
 {
   int j;
 
-  struct node **n=&nodeTree;
+  struct countnode **n=&nodeTree;
   
-  if (!*n) *n=calloc(sizeof(struct node),1);
+  if (!*n) *n=calloc(sizeof(struct countnode),1);
 
   if (0) fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
 
@@ -123,17 +197,19 @@ int countChars(unsigned char *s,int len,int maximumOrder)
     if (0) fprintf(stderr,"  %d (%c)\n",c,s[j]);
     if (c<0) break;
     if (!(*n)) {
-      *n=calloc(sizeof(struct node),1);
+      *n=calloc(sizeof(struct countnode),1);
       if (0) fprintf(stderr,"    -- create node %p\n",*n);
       nodeCount++;
-      if (!(nodeCount&0x3fff)) fprintf(stderr,"[%lld]",nodeCount);
+      if (!(nodeCount&0x3fff)) 
+	fprintf(stderr,"[%lld,%lld,%lld]",
+		nodeCount,nodeBigCountsCount,nodeBigChildrenCount);
     }
     (*n)->count++;
-    (*n)->counts[symbol]++;
+    setCount((*n),symbol,getCount((*n),symbol)+1);
     if (0) 
       fprintf(stderr,"   incrementing count of %d (0x%02x = '%c') @ offset=%d *n=%p (now %d)\n",
-	      symbol,s[len-1],s[len-1],j,*n,(*n)->counts[symbol]);
-    n=&(*n)->children[c];
+	      symbol,s[len-1],s[len-1],j,*n,getCount((*n),symbol));
+    n=getChild(*n,c,1 /* create pointer if not already existing */); 
     if (order>=maximumOrder) 
       {
 	break;
@@ -142,18 +218,18 @@ int countChars(unsigned char *s,int len,int maximumOrder)
   }
 
   if (!(*n)) {
-    *n=calloc(sizeof(struct node),1);
+    *n=calloc(sizeof(struct countnode),1);
     if (0) fprintf(stderr,"    -- create terminal node %p\n",*n);
     nodeCount++;
   }
   (*n)->count++;
-  (*n)->counts[symbol]++;
+  setCount(*n,symbol,getCount(*n,symbol)+1);
 
   return 0;
 }
 
 int nodesWritten=0;
-unsigned int writeNode(FILE *out,struct node *n,char *s,
+unsigned int writeNode(FILE *out,struct countnode *n,char *s,
 		       /* Terminations don't get counted internally in a node,
 			  but are used when encoding and decoding the node,
 			  so we have to pass it in here. */
@@ -167,7 +243,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 
   int debug=0;
 
-  for(i=0;i<CHARCOUNT;i++) totalCount+=n->counts[i];
+  for(i=0;i<CHARCOUNT;i++) totalCount+=getCount(n,i);
   if (totalCount!=n->count) {
     fprintf(stderr,"Sequence '%s' counts don't add up: %lld vs %lld\n",
 	    s,totalCount,n->count);
@@ -179,8 +255,12 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   if (totalCount<threshold) return 0;
 
   int children=0;
-  for(i=0;i<CHARCOUNT;i++) 
-    if (n->children[i]) children++;
+  if (n->allChildren) {
+    for(i=0;i<CHARCOUNT;i++) 
+      if (n->allChildren[i]) children++;
+  } else {
+    for(i=0;i<FEW;i++) if (n->fewChildIds[i]) children++;
+  }
       
   range_coder *c=range_new_coder(1024);
 
@@ -192,13 +272,15 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   for(i=0;i<CHARCOUNT;i++) {
     childAddresses[i]=0;
 
-    if (n->children[i]&&n->children[i]->count>=threshold) {
-      if (0) fprintf(stderr,"n->children[%d]->count=%lld\n",i,n->children[i]->count);
+    struct countnode **nn;
+    nn=getChild(n,i,0);
+    if (nn&&*nn&&(*nn)->count>=threshold) {
+      if (0) fprintf(stderr,"n->children[%d]->count=%lld\n",i,(*nn)->count);
       snprintf(schild,128,"%s%c",s,chars[i]);
-      childAddresses[i]=writeNode(out,n->children[i],schild,totalCount,threshold);
+      childAddresses[i]=writeNode(out,*nn,schild,totalCount,threshold);
       storedChildren++;
     }
-    if (n->counts[i]) {
+    if (getCount(n,i)) {
       childCount++;
     }
   }
@@ -228,18 +310,18 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   for(i=0;i<CHARCOUNT;i++) {
     hasCount=(CHARCOUNT-i-childCount)*0xffffff/(CHARCOUNT-i);
 
-    if (n->counts[i]) {
+    if (getCount(n,i)) {
       snprintf(schild,128,"%c%s",chars[i],s);
       if (debug) 
 	fprintf(stderr, "writing: '%s' x %d\n",
-		schild,n->counts[i]);
+		schild,getCount(n,i));
       if (debug) fprintf(stderr,":  writing %d of %d count for '%c'\n",
-			 n->counts[i],remainingCount+1,chars[i]);
+			 getCount(n,i),remainingCount+1,chars[i]);
 
       range_encode_symbol(c,&hasCount,2,1);
-      range_encode_equiprobable(c,remainingCount+1,n->counts[i]);
+      range_encode_equiprobable(c,remainingCount+1,getCount(n,i));
 
-      remainingCount-=n->counts[i];
+      remainingCount-=getCount(n,i);
       childCount--;
     } else {
       range_encode_symbol(c,&hasCount,2,0);
@@ -298,14 +380,14 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     int error=0;
     for(i=0;i<CHARCOUNT;i++)
       {
-	if (v->counts[i]!=n->counts[i]) {
+	if (v->counts[i]!=getCount(n,i)) {
 	  if (!error) {
 	    fprintf(stderr,"Verify error writing node for '%s'\n",s);
 	    fprintf(stderr,"  n->count=%lld, totalCount=%lld\n",
 		    n->count,totalCount);
 	  }
 	  fprintf(stderr,"  '%c' (%d) : %d versus %d written.\n",
-		  chars[i],i,v->counts[i],n->counts[i]);
+		  chars[i],i,v->counts[i],getCount(n,i));
 	  error++;
 	}
       }
@@ -330,20 +412,26 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   return addr;
 }
 
-int rescaleCounts(struct node *n,double f)
+int rescaleCounts(struct countnode *n,double f)
 {
   int i;
   n->count=0;
   if (n->count>=(0xffffff-CHARCOUNT)) { fprintf(stderr,"Rescaling failed (1).\n"); exit(-1); }
   for(i=0;i<CHARCOUNT;i++) {
-    if (n->counts[i]) {
-      n->counts[i]/=f;
-      if (n->counts[i]==0) n->counts[i]=1;
+    if (getCount(n,i)) {
+      setCount(n,i,getCount(n,i)/f);
+      if (getCount(n,i)==0) setCount(n,i,1);
     }
-    n->count+=n->counts[i];
-    if (n->counts[i]>=(0xffffff-CHARCOUNT))
+    n->count+=getCount(n,i);
+    if (getCount(n,i)>=(0xffffff-CHARCOUNT))
       { fprintf(stderr,"Rescaling failed (2).\n"); exit(-1); }  
-    if (n->children[i]) rescaleCounts(n->children[i],f);
+  }
+  if (n->allChildren) {
+    for(i=0;i<CHARCOUNT;i++)
+      if (n->allChildren[i]) rescaleCounts(n->allChildren[i],f);
+  } else {
+    for(i=0;i<FEW;i++)
+      if (n->fewChildIds[i]) rescaleCounts(n->fewChildren[i],f);
   }
   return 0;
 }
@@ -460,7 +548,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 					frequencyThreshold);
 
   unsigned int totalCount=0;
-  for(i=0;i<CHARCOUNT;i++) totalCount+=nodeTree->counts[i];
+  for(i=0;i<CHARCOUNT;i++) totalCount+=getCount(nodeTree,i);
 
   /* Rewrite header bytes with final values */
   fseek(out,4,SEEK_SET);
