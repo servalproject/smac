@@ -354,14 +354,14 @@ int rescaleCounts(struct node *n,double f)
 {
   int i;
   n->count=0;
-  if (n->count>0xffffff) { fprintf(stderr,"Rescaling failed (1).\n"); exit(-1); }
+  if (n->count>=(0xffffff-69)) { fprintf(stderr,"Rescaling failed (1).\n"); exit(-1); }
   for(i=0;i<69;i++) {
     if (n->counts[i]) {
       n->counts[i]/=f;
       if (n->counts[i]==0) n->counts[i]=1;
     }
     n->count+=n->counts[i];
-    if (n->counts[i]>0xffffff)
+    if (n->counts[i]>=(0xffffff-69))
       { fprintf(stderr,"Rescaling failed (2).\n"); exit(-1); }  
     if (n->children[i]) rescaleCounts(n->children[i],f);
   }
@@ -398,8 +398,8 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   }
 
   /* Normalise counts if required */
-  if (nodeTree->count>0xffffff) {
-    double factor=nodeTree->count*1.0/0xffffff;
+  if (nodeTree->count>=(0xffffff-69)) {
+    double factor=nodeTree->count*1.0/(0xffffff-69);
     fprintf(stderr,"Dividing all counts by %.1f (saw 0x%llx = %lld observations)\n",
 	    factor,nodeTree->count,nodeTree->count);
     rescaleCounts(nodeTree,factor);
@@ -454,7 +454,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 	if (!messagelengths[i]) messagelengths[i]=1;
 	tally+=messagelengths[i];
       }
-      if (tally>0xffffff) {
+      if (tally>=(0xffffff-69)) {
 	fprintf(stderr,"ERROR: Need to add support for rescaling message counts if training using more then 2^24-1 messages.\n");
 	exit(-1);
       }

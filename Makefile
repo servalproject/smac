@@ -43,8 +43,8 @@ extract_tweets:	extract_tweets.o
 gen_stats:	gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o
 	gcc $(CFLAGS) -o gen_stats gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o
 
-message_stats.c:	gen_stats twitter_corpus*.txt
-	./gen_stats 5 3 twitter_corpus*.txt
+message_stats.c:	gen_stats twitter_corpus1.txt twitter_corpus2.txt twitter_corpus3.txt
+	./gen_stats 3 3 twitter_corpus1.txt twitter_corpus2.txt twitter_corpus3.txt
 
 method_stats3:	$(OBJS)
 	gcc -g -Wall -o method_stats3 $(OBJS)

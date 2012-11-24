@@ -433,6 +433,10 @@ struct probability_vector *extractVector(char *string,int len,stats_handle *h)
   }
 
   int scale=0xffffff/(n->count+69);
+  if (scale==0) {
+    fprintf(stderr,"n->count+69 = 0x%llx > 0xffffff - this really shouldn't happen.  Your stats.dat file is probably corrupt.\n",n->count);
+    exit(-1);
+  }
   int cumulative=0;
   int sum=0;
 
