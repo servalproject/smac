@@ -37,8 +37,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ctype.h>
 
 #include "arithmetic.h"
-#include "packed_stats.h"
 #include "charset.h"
+#include "packed_stats.h"
 #include "method_stats3.h"
 
 int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h);

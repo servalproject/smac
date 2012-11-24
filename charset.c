@@ -18,21 +18,37 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <ctype.h>
 
-int charIdx(unsigned char c);
-int charInWord(unsigned c);
+#include "charset.h"
 
-
-unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
+/* 0 is a place holder for 0-9.
+   U is a place holder for all Unicode characters.
+*/
+char chars[CHARCOUNT]="abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/\r\n\t0U";
+char printableChars[PRINTABLECHARCOUNT]="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/\r\n\t0123456789";
+char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
 int charIdx(unsigned char c)
 {
+  // Collapse digits onto a single position.
+  if (c>='1'&&c<='9') c='0';
+
   int i;
-  for(i=0;i<69;i++)
+  for(i=0;i<CHARCOUNT;i++)
     if (c==chars[i]) return i;
        
   /* Not valid character -- must be encoded separately */
   return -1;
 }
-unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
+
+int printableCharIdx(unsigned char c)
+{
+  int i;
+  for(i=0;i<PRINTABLECHARCOUNT;i++)
+    if (c==printableChars[i]) return i;
+
+  /* Not valid character -- must be encoded separately */
+  return -1;
+}
+
 int charInWord(unsigned c)
 {
   int i;

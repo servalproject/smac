@@ -24,8 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ctype.h>
 
 #include "arithmetic.h"
-#include "packed_stats.h"
 #include "charset.h"
+#include "packed_stats.h"
 
 int stripCase(unsigned char *in,unsigned char *out)
 {

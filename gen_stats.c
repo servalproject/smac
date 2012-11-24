@@ -37,15 +37,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 
 #include "arithmetic.h"
+#include "charset.h"
 #include "packed_stats.h"
 
 struct node *nodeTree=NULL;
 long long nodeCount=0;
 
 /* 3rd - 1st order frequency statistics for all characters */
-unsigned int counts3[69][69][69];
-unsigned int counts2[69][69];
-unsigned int counts1[69];
+unsigned int counts3[CHARCOUNT][CHARCOUNT][CHARCOUNT];
+unsigned int counts2[CHARCOUNT][CHARCOUNT];
+unsigned int counts1[CHARCOUNT];
 
 /* Frequency of letter case in each position of a word. */
 long long caseposn3[2][2][80][2]; // position in word
@@ -59,32 +60,11 @@ int messagelengths[1024];
 
 long long wordBreaks=0;
 
-unsigned char chars[69]="abcdefghijklmnopqrstuvwxyz 0123456789!@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/";
-unsigned char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
-
-int charIdx(unsigned char c)
-{
-  int i;
-  for(i=0;i<69;i++)
-    if (c==chars[i]) return i;
-       
-  /* Not valid character -- must be encoded separately */
-  return -1;
-}
-
-int charInWord(unsigned c)
-{
-  int i;
-  int cc=tolower(c);
-  for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
-  return 0;
-}
-
 int dumpTree(struct node *n,int indent)
 {
   if (indent==0) fprintf(stderr,"dumpTree:\n");
   int i;
-  for(i=0;i<69;i++) {
+  for(i=0;i<CHARCOUNT;i++) {
     if (n->counts[i]) {
       fprintf(stderr,"%s'%c' x%d\n",
 	      &"                                        "[40-indent],
@@ -187,7 +167,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 
   int debug=0;
 
-  for(i=0;i<69;i++) totalCount+=n->counts[i];
+  for(i=0;i<CHARCOUNT;i++) totalCount+=n->counts[i];
   if (totalCount!=n->count) {
     fprintf(stderr,"Sequence '%s' counts don't add up: %lld vs %lld\n",
 	    s,totalCount,n->count);
@@ -199,17 +179,17 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   if (totalCount<threshold) return 0;
 
   int children=0;
-  for(i=0;i<69;i++) 
+  for(i=0;i<CHARCOUNT;i++) 
     if (n->children[i]) children++;
       
   range_coder *c=range_new_coder(1024);
 
-  int childAddresses[69];
+  int childAddresses[CHARCOUNT];
   int childCount=0;
   int storedChildren=0;
 
   /* Encode children first so that we know where they live */
-  for(i=0;i<69;i++) {
+  for(i=0;i<CHARCOUNT;i++) {
     childAddresses[i]=0;
 
     if (n->children[i]&&n->children[i]->count>=threshold) {
@@ -226,9 +206,9 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   /* Write total count in this node */
   range_encode_equiprobable(c,totalCountIncludingTerminations+1,totalCount);
   /* Write number of children with counts */
-  range_encode_equiprobable(c,69+1,childCount);
+  range_encode_equiprobable(c,CHARCOUNT+1,childCount);
   /* Now number of children that we are storing sub-nodes for */
-  range_encode_equiprobable(c,69+1,storedChildren);
+  range_encode_equiprobable(c,CHARCOUNT+1,storedChildren);
 
   unsigned int highAddr=ftell(out);
   unsigned int lowAddr=0;
@@ -243,10 +223,10 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
   unsigned int remainingCount=totalCount;
   // XXX - we can improve on these probabilities by adjusting them
   // according to the remaining number of children and stored children.
-  unsigned int hasCount=(69-childCount)*0xffffff/69;
-  unsigned int isStored=(69-storedChildren)*0xffffff/69;
-  for(i=0;i<69;i++) {
-    hasCount=(69-i-childCount)*0xffffff/(69-i);
+  unsigned int hasCount=(CHARCOUNT-childCount)*0xffffff/CHARCOUNT;
+  unsigned int isStored=(CHARCOUNT-storedChildren)*0xffffff/CHARCOUNT;
+  for(i=0;i<CHARCOUNT;i++) {
+    hasCount=(CHARCOUNT-i-childCount)*0xffffff/(CHARCOUNT-i);
 
     if (n->counts[i]) {
       snprintf(schild,128,"%c%s",chars[i],s);
@@ -266,8 +246,8 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
     }
   }
       
-  for(i=0;i<69;i++) {
-    isStored=(69-i-storedChildren)*0xffffff/(69-i);
+  for(i=0;i<CHARCOUNT;i++) {
+    isStored=(CHARCOUNT-i-storedChildren)*0xffffff/(CHARCOUNT-i);
     if (childAddresses[i]) {
       range_encode_symbol(c,&isStored,2,1);
       if (debug) fprintf(stderr,":    writing child %d (address attached)\n",i);
@@ -316,7 +296,7 @@ unsigned int writeNode(FILE *out,struct node *n,char *s,
 
     int i;
     int error=0;
-    for(i=0;i<69;i++)
+    for(i=0;i<CHARCOUNT;i++)
       {
 	if (v->counts[i]!=n->counts[i]) {
 	  if (!error) {
@@ -354,14 +334,14 @@ int rescaleCounts(struct node *n,double f)
 {
   int i;
   n->count=0;
-  if (n->count>=(0xffffff-69)) { fprintf(stderr,"Rescaling failed (1).\n"); exit(-1); }
-  for(i=0;i<69;i++) {
+  if (n->count>=(0xffffff-CHARCOUNT)) { fprintf(stderr,"Rescaling failed (1).\n"); exit(-1); }
+  for(i=0;i<CHARCOUNT;i++) {
     if (n->counts[i]) {
       n->counts[i]/=f;
       if (n->counts[i]==0) n->counts[i]=1;
     }
     n->count+=n->counts[i];
-    if (n->counts[i]>=(0xffffff-69))
+    if (n->counts[i]>=(0xffffff-CHARCOUNT))
       { fprintf(stderr,"Rescaling failed (2).\n"); exit(-1); }  
     if (n->children[i]) rescaleCounts(n->children[i],f);
   }
@@ -398,8 +378,8 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   }
 
   /* Normalise counts if required */
-  if (nodeTree->count>=(0xffffff-69)) {
-    double factor=nodeTree->count*1.0/(0xffffff-69);
+  if (nodeTree->count>=(0xffffff-CHARCOUNT)) {
+    double factor=nodeTree->count*1.0/(0xffffff-CHARCOUNT);
     fprintf(stderr,"Dividing all counts by %.1f (saw 0x%llx = %lld observations)\n",
 	    factor,nodeTree->count,nodeTree->count);
     rescaleCounts(nodeTree,factor);
@@ -454,7 +434,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 	if (!messagelengths[i]) messagelengths[i]=1;
 	tally+=messagelengths[i];
       }
-      if (tally>=(0xffffff-69)) {
+      if (tally>=(0xffffff-CHARCOUNT)) {
 	fprintf(stderr,"ERROR: Need to add support for rescaling message counts if training using more then 2^24-1 messages.\n");
 	exit(-1);
       }
@@ -480,7 +460,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 					frequencyThreshold);
 
   unsigned int totalCount=0;
-  for(i=0;i<69;i++) totalCount+=nodeTree->counts[i];
+  for(i=0;i<CHARCOUNT;i++) totalCount+=nodeTree->counts[i];
 
   /* Rewrite header bytes with final values */
   fseek(out,4,SEEK_SET);
@@ -632,11 +612,11 @@ int listAllWords()
   return 0;
 }
 
-double entropyOfSymbol3(unsigned int v[69],int symbol)
+double entropyOfSymbol3(unsigned int v[CHARCOUNT],int symbol)
 {
   int i;
   long long total=0;
-  for(i=0;i<69;i++) total+=v[i]?v[i]:1;
+  for(i=0;i<CHARCOUNT;i++) total+=v[i]?v[i]:1;
   double entropy=-log((v[symbol]?v[symbol]:1)*1.0/total)/log(2);
   // fprintf(stderr,"Entropy of %c = %f\n",chars[symbol],entropy);
   return entropy;
@@ -874,187 +854,10 @@ int writeMessageStats(int wordModel,char *filename)
 {
   FILE *f=fopen("message_stats.c","w");
 
-#ifdef UNCOMPRESSEDMESSAGESTATS
-  int i,j,k;
-
-  fprintf(f,"unsigned int char_freqs3[69][69][69]={\n");
-  for(i=0;i<69;i++) {
-    fprintf(f,"  {\n");
-    for(j=0;j<69;j++) {
-      int rowCount=0;
-      double total=0;
-      for(k=0;k<69;k++) { 
-	if (!counts3[i][j][k]) counts3[i][j][k]=1;
-	rowCount+=counts3[i][j][k];
-      }
-      fprintf(f,"      /* %c %c */ {",chars[i],chars[j]);
-      for(k=0;k<69;k++) {
-	total+=counts3[i][j][k]*1.0*0xffffff/rowCount;
-	fprintf(f,"0x%x",(unsigned int)total);
-	if (k<(69-1)) fprintf(f,",");
-      }
-      fprintf(f,"},\n");
-    }
-    fprintf(f,"   },\n");
-  }
-  fprintf(f,"};\n");
-  
-  fprintf(f,"\nunsigned int char_freqs2[69][69]={\n");
-  for(j=0;j<69;j++) {
-    int rowCount=0;
-    double total=0;
-    for(k=0;k<69;k++) { 
-      if (!counts2[j][k]) counts2[j][k]=1;
-      rowCount+=counts2[j][k];
-    }
-    fprintf(f,"      /* %c */ {",chars[j]);
-    for(k=0;k<69;k++) {
-      total+=counts2[j][k]*1.0*0xffffff/rowCount;
-      fprintf(f,"0x%x",(unsigned int)total);
-      if (k<(69-1)) fprintf(f,",");
-    }
-    fprintf(f,"},\n");
-  }
-  fprintf(f,"};\n");
-  
-  fprintf(f,"\nunsigned int char_freqs1[69]={\n");
-  {
-    int rowCount=0;
-    double total=0;
-    for(k=0;k<69;k++) { 
-      if (!counts1[k]) counts1[k]=1;
-      rowCount+=counts1[k];
-    }
-    for(k=0;k<69;k++) {
-      total+=counts1[k]*1.0/rowCount;
-      fprintf(f,"0x%x",(unsigned int)(total*0xffffff));
-      if (k<(69-1)) fprintf(f,",");
-    }
-    fprintf(f,"};\n");  
-  }
-
-  fprintf(f,"\nunsigned int casestartofmessage[1][1]={{");
-  {
-    int rowCount=0;
-    for(k=0;k<2;k++) {
-      if (!caseend[k]) casestartofmessage[k]=1;
-      rowCount+=casestartofmessage[k];
-    }
-    for(k=0;k<(2-1);k++) {
-      fprintf(f,"%.6f",casestartofmessage[k]*1.0*0xffffff/rowCount);
-      if (k<(2-1)) fprintf(f,",");
-    }
-    fprintf(f,"}};\n");  
-  }
-
-  fprintf(f,"\nunsigned int casestartofword2[2][1]={");
-  for(j=0;j<2;j++) {
-    int rowCount=0;
-    for(k=0;k<2;k++) {
-      if (!casestartofword2[j][k]) casestartofword2[j][k]=1;
-      rowCount+=casestartofword2[j][k];    
-    }
-    k=0;
-    fprintf(f,"{0x%x}",(unsigned int)(casestartofword2[j][k]*1.0*0xffffff/rowCount));
-    if (j<(2-1)) fprintf(f,",");
-    
-    fprintf(f,"\n");
-  }
-  fprintf(f,"};\n");
-
-  fprintf(f,"\nunsigned int casestartofword3[2][2][1]={");
-  for(i=0;i<2;i++) {
-    fprintf(f,"  {\n");
-    for(j=0;j<2;j++) {
-      int rowCount=0;
-      for(k=0;k<2;k++) {
-	if (!casestartofword3[i][j][k]) casestartofword3[i][j][k]=1;
-	rowCount+=casestartofword3[i][j][k];    
-      }
-      k=0;
-      fprintf(f,"    {0x%x}",(unsigned int)(casestartofword3[i][j][k]*1.0*0xffffff/rowCount));
-      if (j<(2-1)) fprintf(f,",");
-      
-      fprintf(f,"\n");
-    }
-    fprintf(f,"  },\n");
-  }
-  fprintf(f,"};\n");
-
-  fprintf(f,"\nunsigned int caseend1[1][1]={{");
-  {
-    int rowCount=0;
-    for(k=0;k<2;k++) {
-      if (!caseend[k]) caseend[k]=1;
-      rowCount+=caseend[k];
-    }
-    for(k=0;k<(2-1);k++) {
-      fprintf(f,"%.6f",caseend[k]*1.0*0xffffff/rowCount);
-      if (k<(2-1)) fprintf(f,",");
-    }
-    fprintf(f,"}};\n");  
-  }
-
-  fprintf(f,"\nunsigned int caseposn1[80][1]={\n");
-  for(j=0;j<80;j++) {
-    int rowCount=0;
-    for(k=0;k<2;k++) {
-      if (!caseposn1[j][k]) caseposn1[j][k]=1;
-      rowCount+=caseposn1[j][k];    
-    }
-    fprintf(f,"      /* %dth char of word */ {",j);
-    k=0;
-    fprintf(f,"0x%x}",(unsigned int)(caseposn1[j][k]*1.0*0xffffff/rowCount));
-    if (j<(80-1)) fprintf(f,",");
-    
-    fprintf(f,"\n");
-  }
-  fprintf(f,"};\n");
-  
-  fprintf(f,"\nunsigned int caseposn2[2][80][1]={\n");
-  for(i=0;i<2;i++) {
-    fprintf(f,"  {\n");
-    for(j=0;j<80;j++) {
-      int rowCount=0;
-      for(k=0;k<2;k++) {
-	if (!caseposn2[i][j][k]) caseposn2[i][j][k]=1;
-	rowCount+=caseposn2[i][j][k];    
-      }
-      fprintf(f,"      /* %dth char of word */ {",j);
-      k=0;
-      fprintf(f,"0x%x",(unsigned int)(caseposn2[i][j][k]*1.0*0xffffff/rowCount));
-      fprintf(f,"}");
-      if (j<(80-1)) fprintf(f,",");
-      
-      fprintf(f,"\n");
-    }
-    fprintf(f,"  },\n");
-  }
-  fprintf(f,"};\n");
-
-  fprintf(f,"\nunsigned int messagelengths[1024]={\n");
-  {
-    int rowCount=0;
-    double total=0;
-    for(k=0;k<1024;k++) { 
-      if (!messagelengths[k]) messagelengths[k]=1;
-      rowCount+=messagelengths[k];
-    }
-    for(k=0;k<1024;k++) {
-      total+=messagelengths[k]*1.0/rowCount;
-      fprintf(f,"   /* length = %d */ 0x%x",k,(unsigned int)(total*0xffffff));
-      if (k<(1024-1)) fprintf(f,",");
-      fprintf(f,"\n");
-    }
-    fprintf(f,"};\n");  
-  }
-#endif
-  {
-    listAllWords();
-    stats_handle *h=stats_new_handle(filename);
-    filterWords(f,h,wordModel);
-    writeWords(f);
-  }
+  listAllWords();
+  stats_handle *h=stats_new_handle(filename);
+  filterWords(f,h,wordModel);
+  writeWords(f);
 
 return 0;
 }
@@ -1065,9 +868,9 @@ int main(int argc,char **argv)
 
   int i,j,k;
   /* Zero statistics */
-  for(i=0;i<69;i++) for(j=0;j<69;j++) for(k=0;k<69;k++) counts3[i][j][k]=0;
-  for(j=0;j<69;j++) for(k=0;k<69;k++) counts2[j][k]=0;
-  for(k=0;k<69;k++) counts1[k]=0;
+  for(i=0;i<CHARCOUNT;i++) for(j=0;j<CHARCOUNT;j++) for(k=0;k<CHARCOUNT;k++) counts3[i][j][k]=0;
+  for(j=0;j<CHARCOUNT;j++) for(k=0;k<CHARCOUNT;k++) counts2[j][k]=0;
+  for(k=0;k<CHARCOUNT;k++) counts1[k]=0;
   for(i=0;i<2;i++) { caseend[i]=0; casestartofmessage[i]=0;
     for(k=0;k<2;k++) {
       casestartofword2[i][k]=0;

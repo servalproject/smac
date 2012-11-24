@@ -24,15 +24,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <sys/mman.h>
 
 #include "arithmetic.h"
-#include "packed_stats.h"
 #include "charset.h"
+#include "packed_stats.h"
 
 #include "message_stats.h"
 
 void node_free_recursive(struct node *n)
 {
   int i;
-  for(i=0;i<69;i++) if (n->children[i]) node_free_recursive(n->children[i]);
+  for(i=0;i<CHARCOUNT;i++) if (n->children[i]) node_free_recursive(n->children[i]);
   node_free(n);
   return;
 }
@@ -44,8 +44,6 @@ void node_free(struct node *n)
     fprintf(stderr,"node double freed.\n");
     exit(-1);
   }
-  if (n->childAddresses) free(n->childAddresses);
-  n->childAddresses=NULL;
   n->count=0xdeadbeef;
   free(n);
   return;
@@ -199,8 +197,8 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
   range_decode_prefetch(c);
 
   unsigned int totalCount=range_decode_equiprobable(c,count+1);
-  int children=range_decode_equiprobable(c,69+1);
-  int storedChildren=range_decode_equiprobable(c,69+1);
+  int children=range_decode_equiprobable(c,CHARCOUNT+1);
+  int storedChildren=range_decode_equiprobable(c,CHARCOUNT+1);
   unsigned int progressiveCount=0;
   unsigned int thisCount;
 
@@ -209,8 +207,8 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
   unsigned int childAddress;
   int i;
 
-  unsigned int hasCount=(69-children)*0xffffff/69;
-  unsigned int isStored=(69-storedChildren)*0xffffff/69;
+  unsigned int hasCount=(CHARCOUNT-children)*0xffffff/CHARCOUNT;
+  unsigned int isStored=(CHARCOUNT-storedChildren)*0xffffff/CHARCOUNT;
 
   if (debug)
     fprintf(stderr,
@@ -225,8 +223,8 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 
   n->count=totalCount;
 
-  for(i=0;i<69;i++) {
-    hasCount=(69-i-children)*0xffffff/(69-i);
+  for(i=0;i<CHARCOUNT;i++) {
+    hasCount=(CHARCOUNT-i-children)*0xffffff/(CHARCOUNT-i);
 
     int countPresent=range_decode_symbol(c,&hasCount,2);
     if (countPresent) {
@@ -250,8 +248,8 @@ struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
     dumpNode(n);
   }
 
-  for(i=0;i<69;i++) {
-    isStored=(69-i-storedChildren)*0xffffff/(69-i);    
+  for(i=0;i<CHARCOUNT;i++) {
+    isStored=(CHARCOUNT-i-storedChildren)*0xffffff/(CHARCOUNT-i);    
     int addrP=range_decode_symbol(c,&isStored,2);
     if (addrP) {
       childAddress=lowAddr+range_decode_equiprobable(c,highAddr-lowAddr+1);      
@@ -307,7 +305,7 @@ int dumpNode(struct node *n)
   int c=0;
   int sum=0;
   fprintf(stderr,"Node's internal count=%lld\n",n->count);
-  for(i=0;i<69;i++) {
+  for(i=0;i<CHARCOUNT;i++) {
     // 12 chars wide
     fprintf(stderr," %c% 8d%c |",chars[i],n->counts[i],n->children[i]?'*':' ');
     c++;
@@ -432,22 +430,22 @@ struct probability_vector *extractVector(char *string,int len,stats_handle *h)
     for(i=0;i<len;i++) fprintf(stderr,"%c",string[i]);
   }
 
-  int scale=0xffffff/(n->count+69);
+  int scale=0xffffff/(n->count+CHARCOUNT);
   if (scale==0) {
-    fprintf(stderr,"n->count+69 = 0x%llx > 0xffffff - this really shouldn't happen.  Your stats.dat file is probably corrupt.\n",n->count);
+    fprintf(stderr,"n->count+CHARCOUNT = 0x%llx > 0xffffff - this really shouldn't happen.  Your stats.dat file is probably corrupt.\n",n->count);
     exit(-1);
   }
   int cumulative=0;
   int sum=0;
 
-  for(i=0;i<69;i++) {
+  for(i=0;i<CHARCOUNT;i++) {
     v->v[i]=cumulative+(n->counts[i]+1)*scale;
     cumulative=v->v[i];
     sum+=n->counts[i]+1;
     if (0) 
       fprintf(stderr,"  '%c' %d : 0x%06x (%d/%lld) %d (*v)[i]=%p\n",
 	      chars[i],i,v->v[i],
-	      n->counts[i]+1,n->count+69,sum,
+	      n->counts[i]+1,n->count+CHARCOUNT,sum,
 	      &v->v[i]);
   }
 
@@ -458,10 +456,19 @@ struct probability_vector *extractVector(char *string,int len,stats_handle *h)
 
 double entropyOfSymbol(struct probability_vector *v,int s)
 {
+  double extra=0;
   int high=0x1000000;
   int low=0;
   if (s) low=v->v[s-1];
-  if (s<68) high=v->v[s];
+ 
+  // If it's a digit, then add the extra bits for encoding the number
+  if (chars[s]=='0') extra=-log(0.1)/log(2);
+  if (chars[s]=='U') {
+    // Estimate unicode symbol cost
+    fprintf(stderr,"Estimating entropy of unicode characters not yet implemented.\n");
+    exit(-1);
+  }
+  if (s<CHARCOUNT-1) high=v->v[s];
   double p=(high-low)*1.00/0x1000000;
   return -log(p)/log(2);
 }
@@ -471,7 +478,7 @@ int vectorReportShort(char *name,struct probability_vector *v,int s)
   int high=0x1000000;
   int low=0;
   if (s) low=v->v[s-1];
-  if (s<68) high=v->v[s];
+  if (s<CHARCOUNT-1) high=v->v[s];
   double percent=(high-low)*100.00/0x1000000;
   fprintf(stderr,"P[%s](%c) = %.2f%%\n",name,chars[s],percent);
   return 0;
@@ -482,16 +489,16 @@ int vectorReport(char *name,struct probability_vector *v,int s)
   int high=0x1000000;
   int low=0;
   if (s) low=v->v[s-1];
-  if (s<68) high=v->v[s];
+  if (s<CHARCOUNT-1) high=v->v[s];
   double percent=(high-low)*100.00/0x1000000;
   fprintf(stderr,"P[%s](%c) = %.2f%%\n",name,chars[s],percent);
   int i;
   low=0;
-  for(i=0;i<68;i++) {
-    if (i<68) high=v->v[i]; else high=0x1000000;
+  for(i=0;i<CHARCOUNT;i++) {
+    if (i<CHARCOUNT-1) high=v->v[i]; else high=0x1000000;
     double p=(high-low)*100.00/0x1000000;
 
-    fprintf(stderr," '%c' %.2f%% |",chars[i],p);
+    fprintf(stderr," '%c' %.2f%% |",chars[i]>0x1f?chars[i]:'A'+chars[i],p);
     if (i%5==4) fprintf(stderr,"\n");
 
     low=high;

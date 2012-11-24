@@ -37,7 +37,7 @@ double entropy3(int c1,int c2, char *string)
   for(i=0;i<strlen(string);i++)
     {
       int c3=charIdx(string[i]);
-      range_encode_symbol(t,char_freqs3[c1][c2],69,c3);    
+      range_encode_symbol(t,char_freqs3[c1][c2],CHARCOUNT,c3);    
       c1=c2; c2=c3;
     }
   double entropy=t->entropy;

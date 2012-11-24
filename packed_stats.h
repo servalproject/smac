@@ -17,7 +17,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
 struct probability_vector {
-  unsigned int v[69];
+  unsigned int v[CHARCOUNT];
 };
 
 typedef struct vector_cache {
@@ -29,12 +29,9 @@ typedef struct vector_cache {
 
 typedef struct node {
   long long count;
-  unsigned int counts[69];
-  struct node *children[69];
+  unsigned int counts[CHARCOUNT];
+  struct node *children[CHARCOUNT];
 
-  /* Only populated when in caching mode */
-  unsigned int *childAddresses;
-  unsigned int *vector;
 } node;
 
 typedef struct compressed_stats_handle {

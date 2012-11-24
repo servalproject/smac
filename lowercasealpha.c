@@ -31,6 +31,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #undef DEBUG
 #define WORDSUBSTITUTION
 
+/*
+  TODO: Unicode not yet handled.
+  TODO: Currently uses flat distribution for digit probabilities.  Should use "rule of 9" or similar.
+*/
 int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *h)
 {
   FILE *stats_file=fopen("stats.dat","r");
@@ -75,9 +79,9 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *
 #endif
       s[o]=0;
       struct probability_vector *v=extractVector((char *)s,o,h);
-      c3=range_decode_symbol(c,v->v,69);      
-      // c3=range_decode_symbol(c,char_freqs3[c1][c2],69);
+      c3=range_decode_symbol(c,v->v,CHARCOUNT);
       s[o]=chars[c3];
+      if (s[o]=='0') s[o]='0'+range_decode_equiprobable(c,10);
 #ifdef DEBUG
       printf("  decode alpha char %d = %c\n",c3,s[o]);
 #endif
@@ -238,10 +242,9 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
     s[o]=0;
     struct probability_vector *v=extractVector((char *)s,o,h);
     s[o]=t;
-    range_encode_symbol(c,v->v,69,c3);
+    range_encode_symbol(c,v->v,CHARCOUNT,c3);
+    if (chars[c3]=='0') range_encode_equiprobable(c,10,s[o]-'0');
     if (0) vectorReport("var",v,c3);    
-    //range_encode_symbol(c,char_freqs3[c1][c2],69,c3);
-    // if (0) vectorReport("o3",char_freqs3[c1][c2],c3);
     c1=c2; c2=c3;
   }
   return 0;

@@ -40,11 +40,11 @@ arithmetic:	arithmetic.c arithmetic.h
 extract_tweets:	extract_tweets.o
 	gcc $(CFLAGS) -o extract_tweets extract_tweets.o
 
-gen_stats:	gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o
-	gcc $(CFLAGS) -o gen_stats gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o
+gen_stats:	gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o charset.o
+	gcc $(CFLAGS) -o gen_stats gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o charset.o
 
 message_stats.c:	gen_stats twitter_corpus1.txt twitter_corpus2.txt twitter_corpus3.txt
-	./gen_stats 3 3 twitter_corpus1.txt twitter_corpus2.txt twitter_corpus3.txt
+	./gen_stats 3 0 twitter_corpus1.txt twitter_corpus2.txt twitter_corpus3.txt
 
 method_stats3:	$(OBJS)
 	gcc -g -Wall -o method_stats3 $(OBJS)

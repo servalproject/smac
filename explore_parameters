@@ -1,9 +1,9 @@
 #!/bin/csh -f
 
-foreach wordmodel ( 0 ) # ( 3 v 0 ) is full range of options
-  foreach order ( 1 2 3 4 5 6 )
+foreach wordmodel ( 0 v 3 ) # ( 3 v 0 ) is full range of options
+  foreach order ( 5 4 6 3 2 1 )
     # Generate stats*.dat and message_stats.c
-    ./gen_stats $order 100 $wordmodel twitter_corpus*.txt
+    ./gen_stats $order $wordmodel train.txt
     # recompile using new message_stats.c (affects word substitution costs and word lists)
     make
     if ( "$wordmodel" == "0" ) then
@@ -17,7 +17,7 @@ foreach wordmodel ( 0 ) # ( 3 v 0 ) is full range of options
       cp stats-o${order}-t${threshold}.dat stats.dat
       echo order = $order threshold = $threshold wordmodel = $wordmodel
       ls -l stats.dat > results/results-o${order}-t${threshold}-w${wordmodel}.log
-      ./method_stats3 twitter_test*.txt >> results/results-o${order}-t${threshold}-w${wordmodel}.log
+      ./method_stats3 test.txt >> results/results-o${order}-t${threshold}-w${wordmodel}.log
       mv compressed_size_versus_uncompressed_length{,-o${order}-t${threshold}-w${wordmodel}}.csv
       mv compressed_size_hist{,-o${order}-t${threshold}-w${wordmodel}}.csv
       mv *.csv results/

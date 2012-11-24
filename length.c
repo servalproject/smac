@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <strings.h>
 
 #include "arithmetic.h"
+#include "charset.h"
 #include "packed_stats.h"
 
 int encodeLength(range_coder *c,int len,stats_handle *h)

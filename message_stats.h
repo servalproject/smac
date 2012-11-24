@@ -16,18 +16,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifdef UNCOMPRESSEDMESSAGESTATS
-extern unsigned int char_freqs3[69][69][69];
-extern unsigned int char_freqs2[69][69];
-extern unsigned int char_freqs1[69];
-extern unsigned int caseend1[1][1];
-extern unsigned int caseposn2[2][80][1];
-extern unsigned int caseposn1[80][1];
-extern unsigned int casestartofmessage[1][1];
-extern unsigned int casestartofword2[2][1];
-extern unsigned int casestartofword3[2][2][1];
-extern unsigned int messagelengths[1024];
-#endif
 extern int wordCount;
 extern char *wordList[];
 extern unsigned int wordFrequencies[];
