@@ -889,8 +889,9 @@ int filterWords(FILE *f,stats_handle *h,int wordModel)
 	}
       }
       if (!culled) {
-	fprintf(f,"\n/* %d substitutable words in a total of %lld word breaks. */\n",
-	       usefulOccurrences,wordBreaks);
+	if (usefulOccurrences)
+	  fprintf(f,"\n/* %d substitutable words in a total of %lld word breaks. */\n",
+		  usefulOccurrences,wordBreaks);
 	fprintf(f,"unsigned int wordSubstitutionFlag[1]={0x%x};\n",
 	       (unsigned int)(usefulOccurrences*1.0/wordBreaks*0xffffff));
       } else {
@@ -1127,7 +1128,7 @@ int main(int argc,char **argv)
   dumpVariableOrderStats(maximumOrder,50);
   dumpVariableOrderStats(maximumOrder,20);
   dumpVariableOrderStats(maximumOrder,10);
-  dumpVariableOrderStats(maximumOrder,5);
+  // dumpVariableOrderStats(maximumOrder,5);
 
   fprintf(stderr,"\nWriting letter frequency statistics.\n");
 
