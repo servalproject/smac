@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-foreach wordmodel ( 0 v 3 ) # ( 3 v 0 ) is full range of options
+foreach wordmodel ( v 3 ) # ( 3 v 0 ) is full range of options
   foreach order ( 5 4 6 7 3 2 1 )
     # Generate stats*.dat and message_stats.c
     ./gen_stats $order $wordmodel train.txt
@@ -14,6 +14,7 @@ foreach wordmodel ( 0 v 3 ) # ( 3 v 0 ) is full range of options
     endif
 
     foreach threshold ( 10 20 50 100 200 500 1000 ) 
+      rm stats.dat
       cp stats-o${order}-t${threshold}.dat stats.dat
       echo order = $order threshold = $threshold wordmodel = $wordmodel
       ls -l stats.dat > results/results-o${order}-t${threshold}-w${wordmodel}.log

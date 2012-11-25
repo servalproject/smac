@@ -185,7 +185,7 @@ int processFile(FILE *f,stats_handle *h)
   m[0]=0; fgets(m,1024,f);
   
   while(m[0]) {    
-    if (time(0)>lastReport) {
+    if (time(0)>lastReport+4) {
       fprintf(stderr,"Processed %d lines.\n",lines);
       lastReport=time(0);
     }

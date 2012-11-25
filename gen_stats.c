@@ -559,7 +559,8 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 
   fclose(out);
 
-  fprintf(stderr,"Wrote %d nodes\n",nodesWritten);
+  snprintf(filename,1024,"stats-o%d-t%d.dat",maximumOrder,frequencyThreshold);
+  fprintf(stderr,"Wrote %d nodes to '%s'\n",nodesWritten,filename);
 
   stats_handle *h=stats_new_handle(filename);
   if (!h) {
