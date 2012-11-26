@@ -26,8 +26,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 char chars[CHARCOUNT]="abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/\r\n\t0U";
 char printableChars[PRINTABLECHARCOUNT]="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/\r\n\t0123456789";
 char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
-int charIdx(unsigned char c)
+int charIdx(unsigned short c)
 {
+  if (c>0x7f) c='U';
+
   // Collapse digits onto a single position.
   if (c>='1'&&c<='9') c='0';
 
@@ -49,10 +51,14 @@ int printableCharIdx(unsigned char c)
   return -1;
 }
 
-int charInWord(unsigned c)
+int charInWord(unsigned short c)
 {
   int i;
-  int cc=tolower(c);
-  for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
+  int cc=c;
+  if (c<0x80) {
+    c=tolower(c);
+    for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
+  }
+  // all unicode characters are for now treated as word breaking.
   return 0;
 }

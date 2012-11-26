@@ -27,32 +27,36 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "charset.h"
 #include "packed_stats.h"
 
-int stripCase(unsigned char *in,unsigned char *out)
+int stripCase(unsigned short *in,int in_len,unsigned short *out)
 {
   int l=0;
   int i;
-  for(i=0;in[i];i++) out[l++]=tolower(in[i]);
-  out[l]=0;
+  for(i=0;i<in_len;i++) {
+    if (in[i]<0x80)
+      out[l++]=tolower(in[i]);
+    else out[l++]=in[i];
+  }
   return 0;
 }
 
-int mungeCase(char *m)
+int mungeCase(unsigned short *m,int len)
 {
   int i;
 
   /* Change isolated I's to i, provided preceeding char is lower-case
      (so that we don't mess up all-caps).
   */
-  for(i=1;m[i+1];i++)
-    if (tolower(m[i])=='i'&&(!isalpha(m[i-1]))&&(!isalpha(m[i+1])))
-      {
-	m[i]^=0x20;
-      }
+  for(i=1;i<(len-1);i++)
+    if (m[i]<0x80)
+      if (tolower(m[i])=='i'&&(!isalpha(m[i-1]))&&(!isalpha(m[i+1])))
+	{
+	  m[i]^=0x20;
+	}
      
   return 0;
 }
 
-int decodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h)
+int decodeCaseModel1(range_coder *c,unsigned short *line,int len,stats_handle *h)
 {
  int wordNumber=0;
   int wordPosn=-1;
@@ -62,7 +66,7 @@ int decodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h)
 
   int i;
   //  printf("caps eligble chars: ");
-  for(i=0;line[i];i++) {
+  for(i=0;i<len;i++) {
     int wordChar=charInWord(line[i]);
     if (!wordChar) {	  
       wordPosn=-1; lastCase=0;
@@ -129,7 +133,7 @@ int decodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h)
   return 0;
 }
 
-int encodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h)
+int encodeCaseModel1(range_coder *c,unsigned short *line, int len,stats_handle *h)
 {
   /*
     Have previously looked at flipping case of isolated I's 
@@ -148,7 +152,7 @@ int encodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h)
 
   int i;
   //  printf("caps eligble chars: ");
-  for(i=0;line[i];i++) {
+  for(i=0;i<len;i++) {
     int wordChar=charInWord(line[i]);
     if (!wordChar) {	  
       wordPosn=-1; lastCase=0;

@@ -1,6 +1,6 @@
 CC=gcc
-COPT=-g -Wall
-CFLAGS=-g -Wall
+COPT=-g -Wall -O3
+CFLAGS=-g -Wall -O3
 DEFS=
 
 OBJS=	main.o \
@@ -9,6 +9,7 @@ OBJS=	main.o \
 	\
 	method_stats3.o \
 	\
+	unicode.o \
 	case.o \
 	length.o \
 	lowercasealpha.o \
@@ -23,7 +24,7 @@ OBJS=	main.o \
 	arithmetic.o \
 	gsinterpolative.o
 
-HDRS=	charset.h arithmetic.h message_stats.h packed_stats.h Makefile
+HDRS=	charset.h arithmetic.h message_stats.h packed_stats.h unicode.h Makefile
 
 all: method_stats3 arithmetic gsinterpolative # smaz_test gen_stats tweet_stats.c
 

@@ -40,22 +40,24 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "charset.h"
 #include "packed_stats.h"
 #include "method_stats3.h"
+#include "unicode.h"
 
-int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h);
-int encodeNonAlpha(range_coder *c,unsigned char *s);
+int encodeLCAlphaSpace(range_coder *c,unsigned short *s,int len,stats_handle *h);
+int encodeNonAlpha(range_coder *c,unsigned short *s,int len);
 int encodeLength(range_coder *c,int length,stats_handle *h);
 int decodeLength(range_coder *c,stats_handle *h);
-int stripNonAlpha(unsigned char *in,unsigned char *out);
-int stripCase(unsigned char *in,unsigned char *out);
+int stripNonAlpha(unsigned short *in, int len,unsigned short *out);
+int stripCase(unsigned short *in,int len,unsigned short *out);
 int mungeCase(char *m);
-int encodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h);
+int encodeCaseModel1(range_coder *c,unsigned short *line,int len,stats_handle *h);
 
 int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
-		   unsigned char nonAlphaValues[],int *nonAlphaCount,int messageLength);
-int decodeCaseModel1(range_coder *c,unsigned char *line,stats_handle *h);
-int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *h);
-int decodePackedASCII(range_coder *c, char *m,int encodedLength);
-int encodePackedASCII(range_coder *c,char *m);
+		   unsigned char nonAlphaValues[],int *nonAlphaCount,
+		   int messageLength);
+int decodeCaseModel1(range_coder *c,unsigned short *line,int len,stats_handle *h);
+int decodeLCAlphaSpace(range_coder *c,unsigned short *s,int length,stats_handle *h);
+int decodePackedASCII(range_coder *c, short *m, int len,int encodedLength);
+int encodePackedASCII(range_coder *c,short *m,int len);
 
 unsigned int probPackedASCII=0.05*0xffffff;
 
@@ -147,11 +149,23 @@ int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outle
 
 int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
 {
-  unsigned char alpha[1024]; // message with all non alpha/spaces removed
-  unsigned char lcalpha[1024]; // message with all alpha chars folded to lower-case
+  int len;
+  unsigned short utf16[1024];
 
-  /* Use model instead of just packed ASCII */
-  range_encode_equiprobable(c,2,1); // not raw ASCII
+  unsigned short alpha[1024]; // message with all non alpha/spaces removed
+  unsigned short lcalpha[1024]; // message with all alpha chars folded to lower-case
+
+  // Convert UTF8 input string to UTF16 for handling
+  if (utf8toutf16(m,strlen((char *)m),utf16,&len)) return -1;
+
+  /* Use model instead of just packed ASCII.
+     We use 10x to indicate compressed message. This corresponds to a UTF8
+     continuation byte, which is never allowed at the start of a string, and so
+     we can use that disallowed state to indicate whether a message is compressed
+     or not.
+  */
+  range_encode_equiprobable(c,2,1); 
+  range_encode_equiprobable(c,2,0);
   range_encode_symbol(c,&probPackedASCII,2,1); // not packed ASCII
 
   // printf("%f bits to encode model\n",c->entropy);
@@ -159,7 +173,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
   double lastEntropy=c->entropy;
   
   /* Encode length of message */
-  encodeLength(c,strlen((char *)m),h);
+  encodeLength(c,len,h);
   
   // printf("%f bits to encode length\n",c->entropy-lastEntropy);
   total_length_bits+=c->entropy-lastEntropy;
@@ -167,8 +181,9 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
 
   /* encode any non-ASCII characters */
   encodeNonAlpha(c,m);
-  stripNonAlpha(m,alpha);
-  int nonAlphaChars=strlen((char *)m)-strlen((char *)alpha);
+  int alpha_len=0;
+  stripNonAlpha(utf16,len,alpha,&alpha_len);
+  int nonAlphaChars=len-alpha_len;
 
   //  printf("%f bits (%d emitted) to encode non-alpha\n",c->entropy-lastEntropy,c->bits_used);
   total_nonalpha_bits+=c->entropy-lastEntropy;
