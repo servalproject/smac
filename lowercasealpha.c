@@ -94,13 +94,23 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *
   return 0;
 }
 
-int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
+int strncmp816(char *s1,unsigned short *s2,int len)
+{
+  int j;
+  for(j=0;j<len;j++) {
+    int d=(unsigned char)s1[j]-(unsigned short)s2[j];
+    if (d) return d;
+  }	  
+  return 0;
+}
+
+int encodeLCAlphaSpace(range_coder *c,unsigned short *s,int len,stats_handle *h)
 {
   int c1=charIdx(' ');
   int c2=charIdx(' ');
   int o;
 
-  for(o=0;s[o];o++) {
+  for(o=0;o<len;o++) {
     int c3=charIdx(s[o]);
     
 #ifdef DEBUG
@@ -126,12 +136,12 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 	  int t=w|(1<<bit);
 
 	  /* stop if we have found first match */
-	  int d2=strncmp(wordList[t],(char *)&s[o],strlen(wordList[t]));
+	  int d2=strncmp816(wordList[t],&s[o],strlen(wordList[t]));
 	  /* if wordList[w-1] is lexographically earlier than the text,
 	     and wordList[w] is not lexographically earlier than the next, then
 	     we have found the point we are looking for, and can stop. */
 	  if (d2>=0) {
-	    int d1=t ? strncmp(wordList[t-1],(char *)&s[o],strlen(wordList[t-1])) : -1;
+	    int d1=t ? strncmp816(wordList[t-1],&s[o],strlen(wordList[t-1])) : -1;
 	    if (d1<0)
 	      {
 		// printf("word '%s' comes before '%s'\n",wordList[t-1],&s[o]);
@@ -151,15 +161,15 @@ int encodeLCAlphaSpace(range_coder *c,unsigned char *s,stats_handle *h)
 	// printf("starting to look from '%s' for '%s'\n",wordList[w],&s[o]);
 
 	for(;w<wordCount;w++) {
-	  int d;
-	  d=strncmp(wordList[w],(char *)&s[o],strlen(wordList[w]));
+	  int wordLen=strlen(wordList[w]);
+	  int d=strncmp816(wordList[w],&s[o],wordLen);
 	  if (d<0) {
 	    /* skip words prior to the one we are looking for */
 	    continue;
 	  } else if (d==0) {
 #ifdef DEBUG
 	    printf("    word match: strlen=%d, longestLength=%d\n",
-		   (int)strlen(wordList[w]),(int)longestLength
+		   wordLen,(int)longestLength
 		   );
 #endif
 	    range_coder *t=range_new_coder(1024);
