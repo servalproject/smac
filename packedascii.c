@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 /* 
    TODO: Doesn't handle UTF-8 Unicode yet.
 */
-int encodePackedASCII(range_coder *c,char *m)
+int encodePackedASCII(range_coder *c,unsigned char *m)
 {
   /* we can't encode it more efficiently than char symbols */
   int i;
@@ -39,7 +39,7 @@ int encodePackedASCII(range_coder *c,char *m)
   return 0;
 }
 
-int decodePackedASCII(range_coder *c, char *m,int encodedLength)
+int decodePackedASCII(range_coder *c, unsigned char *m,int encodedLength)
 {
   int i;
   for(i=0;i<encodedLength;i++) {

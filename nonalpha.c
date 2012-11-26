@@ -83,7 +83,7 @@ int encodeNonAlpha(range_coder *c,unsigned short *m)
   for(i=0;m[i];i++)
     /* (non-alpha characters can only be <0x80,
        since higher codepoints are encoded using unicode processing mechanisms) */
-    if (m[i]<0x80)
+    if (m[i]<0x80) {
       if (charIdx(tolower(m[i]))>=0) {
 	/* alpha or space -- so ignore */
       } else {
@@ -92,6 +92,7 @@ int encodeNonAlpha(range_coder *c,unsigned short *m)
 	// printf("non-alpha char: 0x%02x '%c' @ %d\n",m[i],m[i],i);
 	pos[count++]=i;
       }  
+    }
 
   // XXX - The following assumes that 50% of messages have special characters.
   // This is a patently silly assumption.

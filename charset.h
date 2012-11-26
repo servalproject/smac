@@ -24,4 +24,4 @@ extern char wordChars[36];
 
 int charIdx(unsigned short c);
 int printableCharIdx(unsigned char c);
-int charInWord(unsigned c);
+int charInWord(unsigned short c);
