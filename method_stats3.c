@@ -46,9 +46,10 @@ int encodeLCAlphaSpace(range_coder *c,unsigned short *s,int len,stats_handle *h)
 int encodeNonAlpha(range_coder *c,unsigned short *s,int len);
 int encodeLength(range_coder *c,int length,stats_handle *h);
 int decodeLength(range_coder *c,stats_handle *h);
-int stripNonAlpha(unsigned short *in, int len,unsigned short *out);
+int stripNonAlpha(unsigned short *in,int in_len,
+		  unsigned short *out,int *out_len);
 int stripCase(unsigned short *in,int len,unsigned short *out);
-int mungeCase(char *m);
+int mungeCase(unsigned short *m,int len);
 int encodeCaseModel1(range_coder *c,unsigned short *line,int len,stats_handle *h);
 
 int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
@@ -56,8 +57,8 @@ int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
 		   int messageLength);
 int decodeCaseModel1(range_coder *c,unsigned short *line,int len,stats_handle *h);
 int decodeLCAlphaSpace(range_coder *c,unsigned short *s,int length,stats_handle *h);
-int decodePackedASCII(range_coder *c, short *m, int len,int encodedLength);
-int encodePackedASCII(range_coder *c,short *m,int len);
+int decodePackedASCII(range_coder *c, unsigned char *m,int encodedLength);
+int encodePackedASCII(range_coder *c,unsigned char *m);
 
 unsigned int probPackedASCII=0.05*0xffffff;
 
@@ -91,7 +92,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   if (notPackedASCII==0) {
     /* packed ASCII -- copy from input to output */
     // printf("decoding packed ASCII\n");
-    decodePackedASCII(c,(char *)m,encodedLength);
+    decodePackedASCII(c,m,encodedLength);
     return 0;
   }
 
@@ -105,13 +106,12 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
 
   // printf("message contains %d non-alpha characters, %d alpha chars.\n",nonAlphaCount,alphaCount);
 
-  unsigned char lowerCaseAlphaChars[1025];
+  unsigned short lowerCaseAlphaChars[1025];
 
   decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount,h);
-  lowerCaseAlphaChars[alphaCount]=0;
-
-  decodeCaseModel1(c,lowerCaseAlphaChars,h);
-  mungeCase((char *)lowerCaseAlphaChars);
+  
+  decodeCaseModel1(c,lowerCaseAlphaChars,alphaCount,h);
+  mungeCase(lowerCaseAlphaChars,alphaCount);
   
   /* reintegrate alpha and non-alpha characters */
   int nonAlphaPointer=0;
@@ -141,13 +141,17 @@ int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outle
   c->high=0xffffffff;
   range_decode_prefetch(c);
 
-  stats3_decompress_bits(c,out,outlen,h);
+  if (stats3_decompress_bits(c,out,outlen,h)) {
+    range_coder_free(c);
+    return -1;
+  }
 
   range_coder_free(c);
   return 0;
 }
 
-int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
+int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
+			 stats_handle *h)
 {
   int len;
   unsigned short utf16[1024];
@@ -156,7 +160,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
   unsigned short lcalpha[1024]; // message with all alpha chars folded to lower-case
 
   // Convert UTF8 input string to UTF16 for handling
-  if (utf8toutf16(m,strlen((char *)m),utf16,&len)) return -1;
+  if (utf8toutf16(m_in,m_in_len,utf16,&len)) return -1;
 
   /* Use model instead of just packed ASCII.
      We use 10x to indicate compressed message. This corresponds to a UTF8
@@ -180,7 +184,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
   lastEntropy=c->entropy;
 
   /* encode any non-ASCII characters */
-  encodeNonAlpha(c,m);
+  encodeNonAlpha(c,utf16,len);
   int alpha_len=0;
   stripNonAlpha(utf16,len,alpha,&alpha_len);
   int nonAlphaChars=len-alpha_len;
@@ -191,8 +195,8 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
   lastEntropy=c->entropy;
 
   /* compress lower-caseified version of message */
-  stripCase(alpha,lcalpha);
-  encodeLCAlphaSpace(c,lcalpha,h);
+  stripCase(alpha,alpha_len,lcalpha);
+  encodeLCAlphaSpace(c,lcalpha,alpha_len,h);
 
   // printf("%f bits (%d emitted) to encode chars\n",c->entropy-lastEntropy,c->bits_used);
   total_alpha_bits+=c->entropy-lastEntropy;
@@ -202,8 +206,8 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
   /* case must be encoded after symbols, so we know how many
      letters and where word breaks are.
  */
-  mungeCase((char *)alpha);
-  encodeCaseModel1(c,alpha,h);
+  mungeCase(alpha,alpha_len);
+  encodeCaseModel1(c,alpha,alpha_len,h);
   
   //  printf("%f bits (%d emitted) to encode case\n",c->entropy-lastEntropy,c->bits_used);
   total_case_bits+=c->entropy-lastEntropy;
@@ -212,21 +216,21 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
   // printf("%d bits actually used after concluding.\n",c->bits_used);
   total_finalisation_bits+=c->bits_used-c->entropy;
 
-  if ((!nonAlphaChars)&&c->bits_used>=7*strlen((char *)m))
+  if ((!nonAlphaChars)&&c->bits_used>=7*m_in_len)
     {
       /* Can we code it more efficiently without statistical modelling? */
       range_coder *c2=range_new_coder(1024);
       range_encode_equiprobable(c2,2,1); // not raw ASCII
       range_encode_symbol(c2,&probPackedASCII,2,0); // is packed ASCII
-      encodeLength(c2,strlen((char *)m),h);
-      encodePackedASCII(c2,(char *)m);
+      encodeLength(c2,m_in_len,h);
+      encodePackedASCII(c2,m_in);
       range_conclude(c2);
       if (c2->bits_used<c->bits_used) {
 	range_coder_reset(c);
 	range_encode_equiprobable(c,2,1); // not raw ASCII
 	range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
-	encodeLength(c,strlen((char *)m),h);
-	encodePackedASCII(c,(char *)m);
+	encodeLength(c,m_in_len,h);
+	encodePackedASCII(c,m_in);
 	range_conclude(c);
 	// printf("Reverting to raw non-statistical encoding: %d chars in %d bits\n",
 	//        (int)strlen((char *)m),c->bits_used);
@@ -234,15 +238,14 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
       range_coder_free(c2);
     }
   
-  if ((c->bits_used>=8*strlen((char*)m))
-      &&(!(m[0]&0x80)))
+  if (c->bits_used>=8*m_in_len)
     {
       /* we can't encode it more efficiently than 8-bit raw.
          We can only do this is MSB of first char of message is 0, as we use
 	 the first bit of the message to indicate if it is compressed or not. */
       int i;
       range_coder_reset(c);
-      for(i=0;m[i];i++) c->bit_stream[i]=m[i];
+      for(i=0;i<m_in_len;i++) c->bit_stream[i]=m_in[i];
       c->bits_used=8*i;
       c->entropy=8*i;
 
@@ -255,7 +258,10 @@ int stats3_compress_bits(range_coder *c,unsigned char *m,stats_handle *h)
 int stats3_compress(unsigned char *in,int inlen,unsigned char *out, int *outlen,stats_handle *h)
 {
   range_coder *c=range_new_coder(inlen*2);
-  stats3_compress_bits(c,in,h);
+  if (stats3_compress_bits(c,in,inlen,h)) {
+    range_coder_free(c);
+    return -1;
+  }
   range_conclude(c);
   *outlen=c->bits_used>>3;
   if (c->bits_used&7) (*outlen)++;
