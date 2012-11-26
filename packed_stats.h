@@ -70,7 +70,8 @@ void node_free(struct node *n);
 struct node *extractNode(char *string,int len,stats_handle *h);
 struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
 			   stats_handle *h,int extractAllP,int debugP);
-struct probability_vector *extractVector(char *string,int len,stats_handle *h);
+struct probability_vector *extractVector(unsigned short *string,int len,
+					 stats_handle *h);
 double entropyOfSymbol(struct probability_vector *v,int s);
 int vectorReportShort(char *name,struct probability_vector *v,int s);
 int vectorReport(char *name,struct probability_vector *v,int s);

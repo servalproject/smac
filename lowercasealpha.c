@@ -78,7 +78,7 @@ int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *
       } else {
 #endif
       s[o]=0;
-      struct probability_vector *v=extractVector((char *)s,o,h);
+      struct probability_vector *v=extractVector(s,o,h);
       c3=range_decode_symbol(c,v->v,CHARCOUNT);
       s[o]=chars[c3];
       if (s[o]=='0') s[o]='0'+range_decode_equiprobable(c,10);
@@ -250,7 +250,7 @@ int encodeLCAlphaSpace(range_coder *c,unsigned short *s,int len,stats_handle *h)
       }
     int t=s[o]; 
     s[o]=0;
-    struct probability_vector *v=extractVector((char *)s,o,h);
+    struct probability_vector *v=extractVector(s,o,h);
     s[o]=t;
     range_encode_symbol(c,v->v,CHARCOUNT,c3);
     if (chars[c3]=='0') range_encode_equiprobable(c,10,s[o]-'0');

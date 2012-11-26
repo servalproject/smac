@@ -366,7 +366,8 @@ struct node *extractNode(char *string,int len,stats_handle *h)
   return n;
 }
 
-struct probability_vector *extractVector(char *string,int len,stats_handle *h)
+struct probability_vector *extractVector(unsigned short *string,int len,
+					 stats_handle *h)
 {
 
   struct vector_cache **cache=&h->cache;
