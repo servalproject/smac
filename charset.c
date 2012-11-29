@@ -16,6 +16,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <stdio.h>
 #include <ctype.h>
 
 #include "charset.h"
@@ -55,8 +56,8 @@ int charInWord(unsigned short c)
 {
   int i;
   int cc=c;
-  if (c<0x80) {
-    c=tolower(c);
+  if (cc<0x80) {
+    cc=tolower(c);
     for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
   }
   // all unicode characters are for now treated as word breaking.
