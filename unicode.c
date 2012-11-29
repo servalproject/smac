@@ -83,5 +83,7 @@ unsigned short *ascii2utf16(char *in)
 {
   int i;
   for(i=0;in[i]&&i<1024;i++) ret[i]=in[i];
+  // null terminate utf16 string, as some functions require it
+  ret[i]=0;
   return ret;
 }
