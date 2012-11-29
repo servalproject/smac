@@ -39,6 +39,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "charset.h"
 #include "packed_stats.h"
+#include "unicode.h"
 
 /* Only allocate a few entries for nodes by default, because we expect most
    nodes to be sparse. */
@@ -570,134 +571,18 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 
   /* some simple tests */
   struct probability_vector *v;
-  v=extractVector("http",strlen("http"),h);
+  v=extractVector(ascii2utf16("http"),strlen("http"),h);
   // vectorReport("http",v,charIdx(':'));
-  v=extractVector("",strlen(""),h);
+  v=extractVector(ascii2utf16(""),strlen(""),h);
 
   stats_load_tree(h);
 
-  v=extractVector("http",strlen("http"),h);
+  v=extractVector(ascii2utf16("http"),strlen("http"),h);
   // vectorReport("http",v,charIdx(':'));
-  v=extractVector("",strlen(""),h);
+  v=extractVector(ascii2utf16(""),strlen(""),h);
   
   stats_handle_free(h);
 
-  return 0;
-}
-
-int sortWordList(int alphaP);
-
-char **words;
-int *wordCounts;
-int wordCount=0;
-int totalWords=0;
-
-
-int distributeWordCounts(char *word_in,int count,int w)
-{
-  char word[1024];
-  strcpy(word,word_in);
-
-  int i;
-  int bestWord,bestLen;
- tryagain:
-  bestWord=-1;
-  bestLen=0;
-
-  int wordLen=strlen(word);
-
-  /* Assumes word list is sorted with sortWordList(0) 
-     (sorted by length, then reverse lexographical) so
-     that we can short-cut this search. */
-  for(i=w+1;i<wordCount;i++) 
-    if (i!=w) {
-      int len=strlen(words[i]);
-      if (len>wordLen) continue;
-      int d=strncmp(words[i],word,len);
-      if (!d) {
-	if (len>bestLen&&len>2) {
-	  bestLen=len;
-	  bestWord=i;
-	  break;
-	}
-      } else 
-	break;
-    }
-
-  if (bestLen>0) {
-    if (0) fprintf(stderr,"Distributing counts for #%d/%d %s to %s\n",
-		   w,wordCount,word,words[bestWord]);
-    wordCounts[bestWord]+=count;
-    strcpy(word,&word[bestLen]);
-    goto tryagain;
-  }
-  
-  return 0;
-}
-
-struct wordInstance {
-  char *word;
-  int count;
-  struct wordInstance *left;
-  struct wordInstance *right;
-} wordInstance;
-
-struct wordInstance *wordTree=NULL;
-
-int unsortedFrom=0;
-int countWord(char *word_in,int len)
-{
-  if (len<1) return 0;
-
-  char word[1024];
-  strcpy(word,word_in);
-  word[len]=0;
-
-  totalWords++;
-
-  struct wordInstance **wi=&wordTree;
-  while (*wi!=NULL) {
-    int d=strcmp(word,(*wi)->word);
-    if (d==0) {
-      (*wi)->count++;
-      return 0;
-    }
-    else if (d>0) wi=&(*wi)->left;
-    else wi=&(*wi)->right;
-  }
-
-  if (!*wi) {
-    *wi=calloc(sizeof(struct wordInstance),1);
-    (*wi)->word=strdup(word);
-    (*wi)->count=1;
-    wordCount++;
-  }
-   
-  return 0;
-}
-
-int wordNumber=0;
-
-int listWords(struct wordInstance *n)
-{
-  while(n) {
-    if (n->left) listWords(n->left);
-    if (wordNumber>=wordCount) {
-      fprintf(stderr,"word list seems to be longer than itself.\n");
-    }
-    words[wordNumber]=n->word;
-    wordCounts[wordNumber++]=n->count;
-    n=n->right;
-  }
-  return 0;
-}
-
-int listAllWords()
-{
-  fprintf(stderr,"Listing %d words.\n",wordCount);
-  words=calloc(sizeof(char *),wordCount);
-  wordCounts=calloc(sizeof(int),wordCount);
-  listWords(wordTree);
   return 0;
 }
 
@@ -709,247 +594,6 @@ double entropyOfSymbol3(unsigned int v[CHARCOUNT],int symbol)
   double entropy=-log((v[symbol]?v[symbol]:1)*1.0/total)/log(2);
   // fprintf(stderr,"Entropy of %c = %f\n",chars[symbol],entropy);
   return entropy;
-}
-
-double entropyOfWord3(char *word)
-{
-  double entropyWord=entropyOfSymbol3(counts1,charIdx(word[0]));
-  if (word[1]) {
-    entropyWord+=entropyOfSymbol3(counts2[charIdx(word[0])],charIdx(word[1]));
-    int j;
-    for(j=2;word[j];j++) {
-      entropyWord
-	+=entropyOfSymbol3(counts3[charIdx(word[j-2])][charIdx(word[j-1])],
-			  charIdx(word[j]));
-    }	
-  }
-  return entropyWord;
-}
-
-double entropyOfWord(char *word_in,stats_handle *h)
-{
-  /* Model words as if they followed a space, i.e., as though
-     they are starting a word. */
-  char word[1024];
-  snprintf(word,1024," %s",word_in);
-
-  double wordEntropy=0;
-  int i;
-  for(i=1;word[i];i++) {
-    int t=word[i];
-    word[i]=0;
-    struct probability_vector *v=extractVector(word,i,h);
-    int s=charIdx(t);
-    wordEntropy+=entropyOfSymbol(v,s);
-    word[i]=t;
-  }
-  return wordEntropy;
-}
-
-int cmp_words(const void *a,const void *b)
-{
-  int aa=*(int *)a;
-  int bb=*(int *)b;
-
-  /* order by length, and then by reverse lexical order */
-  if (strlen(words[bb])>strlen(words[aa])) return 1;
-  if (strlen(words[bb])<strlen(words[aa])) return -1;
-  return strcmp(words[bb],words[aa]);
-}
-
-int cmp_words_alpha(const void *a,const void *b)
-{
-  int aa=*(int *)a;
-  int bb=*(int *)b;
-
-  /* order by length, and then by reverse lexical order */
-  return strcmp(words[aa],words[bb]);
-}
-
-int sortWordList(int alphaP)
-{
-  int v[wordCount];
-  int counts[wordCount];
-  char *names[wordCount];
-  int i;
-  for(i=0;i<wordCount;i++) v[i]=i;
-
-  /* work out correct order */
-  if (alphaP)
-    qsort(v,wordCount,sizeof(int),cmp_words_alpha); 
-  else
-    qsort(v,wordCount,sizeof(int),cmp_words); 
-  
-  /* now regenerate lists */
-  for(i=0;i<wordCount;i++)
-    {
-      counts[i]=wordCounts[v[i]];
-      names[i]=words[v[i]];
-    }
-  for(i=0;i<wordCount;i++)
-    {
-      wordCounts[i]=counts[i];
-      words[i]=names[i];
-    }
-
-  return 0;
-}
-
-int filterWords(FILE *f,stats_handle *h,int wordModel)
-{
-  /* Remove words from list that occur too rarely compared with their
-     length, such that it is unlikely that they will be useful for compression.
-  */
-  int i;
-
-  fprintf(stderr,"Filtering word list [.=5k words]: ");
-
-  /* Remove very rare words */
-  int filtered=0;
-  for(i=0;i<wordCount;i++) 
-    if (wordCounts[i]<5) {
-      distributeWordCounts(words[i],wordCounts[i],i); 
-      if (i!=wordCount-1) {
-	free(words[i]);
-	words[i]=words[wordCount-1];
-	wordCounts[i]=wordCounts[wordCount-1];
-	i--;
-      }
-      wordCount--;
-      filtered++;
-      if (!(filtered%5000)) { fprintf(stderr,"."); fflush(stderr); }
-    }
-
-  fprintf(stderr,"\n");
-
-  fprintf(stderr,"Culling words with low entropy that are better encoded directly: ");
-  int culled=1;
-  double totalSavings=0;
-  while(culled>0) 
-    {
-      /* Sort word list by longest words first, so that we cull long words before 
-	 their stems, so that the stemmed versions have a chance to be retained.
-      */
-      sortWordList(0);
-
-      totalSavings=0;
-      culled=0;
-      /* How many word occurrences are left */
-      int usefulOccurrences=0;
-      for(i=0;i<wordCount;i++) usefulOccurrences+=wordCounts[i];
-      double occurenceEntropy=-log(usefulOccurrences*1.0/wordBreaks)/log(2);
-      double nonoccurrenceEntropy=-log((wordBreaks-usefulOccurrences)*1.0/wordBreaks)/log(2);
-      nonoccurrenceEntropy*=(wordBreaks-usefulOccurrences);     
-      if (0) {
-	fprintf(stderr,"%d words left.\n",wordCount);
-	fprintf(stderr,"  Total non-occurence penalty = %f bits.\n",
-		nonoccurrenceEntropy);
-	fprintf(stderr,"  Occurence penalty = %f bits (%lld word breaks, %d common word occurrences).\n",
-		occurenceEntropy,
-		wordBreaks,usefulOccurrences);
-      }
-      occurenceEntropy+=nonoccurrenceEntropy/usefulOccurrences;
-      if (0)
-	fprintf(stderr,"  Grossed up occurrence penalty (base + amortised non-occurrence penalty) = %f bits\n",occurenceEntropy);
-      for(i=0;i<wordCount;i++) {
-
-	double entropyOccurrence=-log(wordCounts[i]*1.0/totalWords)/log(2);
-	
-	/* Very crude: should use 3rd order stats we have gathered to calculate 
-	   a more accurate estimate of entropy of the word. */
-	double entropyWord=0;
-	
-	char *word=words[i];
-
-	// Two options for modelling word entropy:  either use fixed 3rd order
-	// statistics, or use variable-order model.
-	if (wordModel==99) entropyWord=entropyOfWord(word,h);
-	if (wordModel==3) entropyWord=entropyOfWord3(word);
-	
-	if ((entropyOccurrence+occurenceEntropy)<entropyWord) {
-	  double savings=wordCounts[i]*(entropyWord-(entropyOccurrence+occurenceEntropy));
-	  totalSavings+=savings;
-	  if (0)
-	    fprintf(stderr,"entropy of %s occurrences (x%d) = %f bits."
-		    " Entropy of word is %f bits. Savings = %f\n",
-		    words[i],wordCounts[i],entropyOccurrence,entropyWord,savings);
-	} else {
-	  /* Word doesn't occur often enough, or is too low entropy to encode 
-	     directly. Either way, it doesn't make sense to introduce a symbol
-	     for it.
-	  */
-	  distributeWordCounts(words[i],wordCounts[i],i); 
-	  if (i!=wordCount-1) {
-	    free(words[i]);
-	    words[i]=words[wordCount-1];
-	    wordCounts[i]=wordCounts[wordCount-1];
-	    i--;
-	  }
-	  wordCount--;
-	  culled++;
-	}
-      }
-      if (!culled) {
-	if (usefulOccurrences)
-	  fprintf(f,"\n/* %d substitutable words in a total of %lld word breaks. */\n",
-		  usefulOccurrences,wordBreaks);
-	fprintf(f,"unsigned int wordSubstitutionFlag[1]={0x%x};\n",
-	       (unsigned int)(usefulOccurrences*1.0/wordBreaks*0xffffff));
-      } else {
-	fprintf(stderr,"%d+",culled); fflush(stderr); 
-      }      
-    }
-  fprintf(stderr,"0\nExpect to save %f bits by encoding %d common words\n",
-	  totalSavings,wordCount);
-  fprintf(stderr,"Word list extract:\n");
-  for(i=0;i<16&&i<wordCount;i++)
-    fprintf(stderr,"  %d %s\n",wordCounts[i],words[i]);
-  return 0;
-}
-
-int writeWords(FILE *f)
-{
-  int i;
-  unsigned int total=0;
-  unsigned int tally=0;
-
-  /* Sort word list alphabetically, so that it can be searched efficiently during compression */
-  fprintf(stderr,"Sorting word list alphabetically for output.\n");
-  sortWordList(1);
-  
-  for(i=0;i<10&&i<wordCount;i++) fprintf(stderr,"  %d %s\n",wordCounts[i],words[i]);
-
-
-  fprintf(f,"\nint wordCount=%d;\n",wordCount);	 
-  fprintf(f,"char *wordList[]={\n");
-  for(i=0;i<wordCount;i++) { 
-    fprintf(f,"\"%s\"",words[i]); 
-    if (i<(wordCount-1)) fprintf(f,",");
-    total+=wordCounts[i]; 
-    if (!(i&7)) fprintf(f,"\n");
-  }
-  fprintf(f,"};\n\n");
-  fprintf(f,"unsigned int wordFrequencies[]={\n");
-  for(i=0;i<(wordCount-1);i++) {
-    tally+=wordCounts[i];   
-    fprintf(f,"0x%x",(unsigned int)(tally*1.0*0xffffff/total));
-    if (i<(wordCount-2)) fprintf(f,",");
-    if (!(i&7)) fprintf(f,"\n");
-  }
-  fprintf(f,"};\n");
-  return 0;
-}
-
-int writeMessageStats(int wordModel,char *filename)
-{
-  FILE *f=fopen("message_stats.c","w");
-
-  listAllWords();
-  stats_handle *h=stats_new_handle(filename);
-  filterWords(f,h,wordModel);
-  writeWords(f);
-
-return 0;
 }
 
 int main(int argc,char **argv)
@@ -1062,9 +706,6 @@ int main(int argc,char **argv)
 
 	int wc=charInWord(line[i]);
 	if (!wc) {
-	  if (wordPosn>0) {
-	    if (wordModel) countWord(word,strlen(word));
-	  }
 	  wordBreaks++;
 	  wordPosn=-1; lc=0;	 
 	} else {
@@ -1130,12 +771,6 @@ int main(int argc,char **argv)
   dumpVariableOrderStats(maximumOrder,20);
   dumpVariableOrderStats(maximumOrder,10);
   // dumpVariableOrderStats(maximumOrder,5);
-
-  fprintf(stderr,"\nWriting letter frequency statistics.\n");
-
-  char filename[1024];
-  snprintf(filename,1024,"stats-o%d-t1000.dat",maximumOrder);
-  writeMessageStats(wordModel,filename);
 
   return 0;
 }
