@@ -19,12 +19,11 @@ OBJS=	main.o \
 	\
 	charset.o \
 	entropyutil.o \
-	message_stats.o \
 	\
 	arithmetic.o \
 	gsinterpolative.o
 
-HDRS=	charset.h arithmetic.h message_stats.h packed_stats.h unicode.h Makefile
+HDRS=	charset.h arithmetic.h packed_stats.h unicode.h Makefile
 
 all: method_stats3 arithmetic gsinterpolative # smaz_test gen_stats tweet_stats.c
 
@@ -43,9 +42,6 @@ extract_tweets:	extract_tweets.o
 
 gen_stats:	gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
 	gcc $(CFLAGS) -o gen_stats gen_stats.c arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
-
-message_stats.c:	gen_stats twitter_corpus1.txt twitter_corpus2.txt twitter_corpus3.txt
-	./gen_stats 3 0 twitter_corpus1.txt twitter_corpus2.txt twitter_corpus3.txt
 
 method_stats3:	$(OBJS)
 	gcc -g -Wall -o method_stats3 $(OBJS)
