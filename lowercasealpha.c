@@ -35,7 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
   TODO: Unicode not yet handled.
   TODO: Currently uses flat distribution for digit probabilities.  Should use "rule of 9" or similar.
 */
-int decodeLCAlphaSpace(range_coder *c,unsigned char *s,int length,stats_handle *h)
+int decodeLCAlphaSpace(range_coder *c,unsigned short *s,int length,stats_handle *h)
 {
   FILE *stats_file=fopen("stats.dat","r");
   int c1=charIdx(' ');

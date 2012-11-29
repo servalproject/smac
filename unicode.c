@@ -77,3 +77,11 @@ int utf8toutf16(unsigned char *in,int in_len,unsigned short *out,int *out_len)
     }
   return 0;
 }
+
+unsigned short ret[1025];
+unsigned short *ascii2utf16(char *in)
+{
+  int i;
+  for(i=0;in[i]&&i<1024;i++) ret[i]=in[i];
+  return ret;
+}

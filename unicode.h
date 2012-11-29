@@ -18,3 +18,4 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 int utf16toutf8(unsigned short *in,int in_len,unsigned char *out,int *out_len);
 int utf8toutf16(unsigned char *in,int in_len,unsigned short *out,int *out_len);
+unsigned short *ascii2utf16(char *in);
