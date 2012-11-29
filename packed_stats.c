@@ -26,8 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "charset.h"
 #include "packed_stats.h"
-
-#include "message_stats.h"
+#include "unicode.h"
 
 void node_free_recursive(struct node *n)
 {
@@ -369,51 +368,27 @@ struct node *extractNode(char *string,int len,stats_handle *h)
 struct probability_vector *extractVector(unsigned short *string,int len,
 					 stats_handle *h)
 {
-
-  struct vector_cache **cache=&h->cache;
   struct probability_vector *v=&h->vector;
   
   if (0)
-    fprintf(stderr,"extractVector('%s',%d,...)\n",
-	   string,len);
+    {
+      unsigned char s[1025];
+      int out_len=0;
+      utf16toutf8(string,len,s,&out_len);
+      fprintf(stderr,"extractVector('%s',%d,...)\n",
+	      s,len);
+    }
   
   if (string[len]) {
     fprintf(stderr,"search strings for extractVector() must be null-terminated.\n");
     exit(-1);
   }
 
-  /* Try to find in cache first */
-  if (h->use_cache) {
-    struct vector_cache **n=cache;
-    char *compareString=string;
-    int compareLen=len;
-    if (compareLen>h->maximumOrder) {
-      compareString+=(compareLen-h->maximumOrder);
-      compareLen=h->maximumOrder;
-    }
-    while (*n) {
-      int c=strcmp((*n)->string,compareString);
-      if (c<0) n=&(*n)->left;
-      else if (c>0) n=&(*n)->right;
-      else break;
-    }
-    if (*n) {
-      fprintf(stderr,"Using cached vector for '%s'\n",compareString);
-      return &(*n)->v;
-    } else {
-      /* This is where it should go in the tree */
-      (*n)=calloc(sizeof(struct vector_cache),1);
-      v=&(*n)->v;
-      (*n)->string=strdup(compareString);
-      fprintf(stderr,"Caching vector for '%s'\n",compareString);
-    }
-  } else {
-    if (!(v)) {
-      fprintf(stderr,"%s() could not work out where to put extracted vector.\n",
-	      __FUNCTION__);
-      exit(-1);
-    }
-  }
+  if (!(v)) {
+    fprintf(stderr,"%s() could not work out where to put extracted vector.\n",
+	    __FUNCTION__);
+    exit(-1);
+  }  
 
   /* Wasn't in cache, or there is no cache, so exract it */
   struct node *n=extractNode(string,len,h);

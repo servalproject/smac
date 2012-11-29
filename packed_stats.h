@@ -57,8 +57,6 @@ typedef struct compressed_stats_handle {
   unsigned int caseposn2[2][80][1];
   int messagelengths[1024];
 
-  int use_cache;
-  struct vector_cache *cache;
   /* Full extracted tree */
   struct node *tree;
 

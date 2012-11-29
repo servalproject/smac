@@ -372,7 +372,6 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
     h.mmap=c->bit_stream;
     h.dummyOffset=addr;
     h.fileLength=addr+bytes;
-    h.use_cache=0;
     if (0) fprintf(stderr,"verifying node @ 0x%x\n",addr);
     struct node *v=extractNodeAt("",0,addr,totalCountIncludingTerminations,&h,
 				 0 /* don't extract whole tree */,debug);

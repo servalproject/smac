@@ -24,27 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <ctype.h>
 
 #include "arithmetic.h"
-#include "message_stats.h"
 #include "charset.h"
-
-#ifdef UNCOMPRESSEDMESSAGESTATS
-/* Calculate entropy of string using 3rd-order
-   message statistics. */
-double entropy3(int c1,int c2, char *string)
-{
-  int i;
-  range_coder *t=range_new_coder(1024);
-  for(i=0;i<strlen(string);i++)
-    {
-      int c3=charIdx(string[i]);
-      range_encode_symbol(t,char_freqs3[c1][c2],CHARCOUNT,c3);    
-      c1=c2; c2=c3;
-    }
-  double entropy=t->entropy;
-  range_coder_free(t);
-  return entropy;
-}
-#endif
 
 double entropyOfInverse(int n)
 {
