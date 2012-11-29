@@ -69,7 +69,10 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   *len_out=0;
 
   /* Check if message is encoded naturally */
-  int notRawASCII=range_decode_equiprobable(c,2);
+  int b7=range_decode_equiprobable(c,2);
+  int b6=range_decode_equiprobable(c,2);
+  int notRawASCII=0;
+  if (b7&&(!b6)) notRawASCII=1;
   if (notRawASCII==0) {
     /* raw bytes -- copy from input to output */
     // printf("decoding raw bytes: bits_used=%d\n",c->bits_used);
