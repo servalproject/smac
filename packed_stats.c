@@ -91,20 +91,30 @@ stats_handle *stats_new_handle(char *file)
     fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d, maximumOrder=%d\n",
 	    h->rootNodeAddress,h->totalCount,h->maximumOrder);
 
+#define CHECK(X) if (h->X==0||h->X>0xfffffe) { fprintf(stderr,"P(uppercase|%s) = 0x%x\n",#X,h->X); return NULL; }
+
   /* Read in letter case prediction statistics */
   h->casestartofmessage[0][0]=read24bits(h->file);
+  CHECK(casestartofmessage[0][0]);
   for(i=0;i<2;i++)
     {
       h->casestartofword2[i][0]=read24bits(h->file);
+      CHECK(casestartofword2[i][0]);
     }
   for(i=0;i<2;i++)
-    for(j=0;j<2;j++)
+    for(j=0;j<2;j++) {
       h->casestartofword3[i][j][0]=read24bits(h->file);
-  for(i=0;i<80;i++)
+      CHECK(casestartofword3[i][j][0]);
+    }
+  for(i=0;i<80;i++) {
     h->caseposn1[i][0]=read24bits(h->file);
+    CHECK(caseposn1[0][0]);
+  }
   for(i=0;i<80;i++)
-    for(j=0;j<2;j++)
+    for(j=0;j<2;j++) {
       h->caseposn2[j][i][0]=read24bits(h->file);
+      CHECK(caseposn2[j][i][0]);
+    }
   /* Read in message length stats */
   {
     /* 1024 x 24 bit values interpolative coded cannot
