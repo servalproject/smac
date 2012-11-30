@@ -502,11 +502,15 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
     write24bit(out,caseposn1[i][0]*1.0*0xffffff/tally);
   }
   /* case of i-th letter of a word, conditional on case of previous letter
-     (2nd order) */
-  for(i=0;i<80;i++)
+     (2nd order).
+     Position 0 is not valid, so don't waste space on it. */
+  for(i=1;i<80;i++)
     for(j=0;j<2;j++) {
       tally=caseposn2[j][i][0]+caseposn2[j][i][1];
-      write24bit(out,caseposn2[j][i][0]*1.0*0xffffff/tally);
+      if ((!caseposn2[j][i][0])||(!caseposn2[j][i][1])) 
+	write24bit(out,0x7fffff);
+      else 
+	write24bit(out,caseposn2[j][i][0]*1.0*0xffffff/tally);
     }
 
   fprintf(stderr,"Wrote %d bytes of fixed header (including case prediction statistics)\n",(int)ftello(out));
@@ -703,23 +707,28 @@ int main(int argc,char **argv)
 	  }
 	}
 
+	//	printf("char '%c'\n",line[i]);
 	int wc=charInWord(line[i]);
 	if (!wc) {
 	  wordBreaks++;
-	  wordPosn=-1; lc=0;	 
+	  wordPosn=-1; lc=0;
+	  //	  printf("word break\n");
 	} else {
 	  if (isalpha(line[i])) {
 	    wordPosn++;
 	    word[wordPosn]=tolower(line[i]);
 	    word[wordPosn+1]=0;
 	    int upper=0;
-	    if (isupper(line[i])) upper=1;
+	    if (isupper((char)line[i])) upper=1;
 	    if (wordPosn<80) caseposn1[wordPosn][upper]++;
-	    if (wordPosn<80) caseposn2[lc][wordPosn][upper]++;
+	    if (wordPosn<80) {
+	      caseposn2[lc][wordPosn][upper]++;
+	      //	      printf("casposn2[%d][%d][%d]++\n",lc,wordPosn,upper);
+	    }
 	    /* note if end of word (which includes end of message,
 	       implicitly detected here by finding null at end of string */
 	    if (!charInWord(line[i+1])) caseend[upper]++;
-	    if (isupper(line[i])) lc=1; else lc=0;
+	    lc=upper;
 	    if (som) {
 	      casestartofmessage[upper]++;
 	      som=0;

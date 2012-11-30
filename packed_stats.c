@@ -110,7 +110,7 @@ stats_handle *stats_new_handle(char *file)
     h->caseposn1[i][0]=read24bits(h->file);
     CHECK(caseposn1[0][0]);
   }
-  for(i=0;i<80;i++)
+  for(i=1;i<80;i++)
     for(j=0;j<2;j++) {
       h->caseposn2[j][i][0]=read24bits(h->file);
       CHECK(caseposn2[j][i][0]);
