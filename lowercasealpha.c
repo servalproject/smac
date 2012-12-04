@@ -63,8 +63,6 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
 {
   int o;
 
-  fprintf(stderr,"%s: c->low=0x%x, c->high=0x%x\n",__FUNCTION__,c->low,c->high);
-
   for(o=0;o<length;o++) {
 #ifdef ENCODING
     int t=s[o];
@@ -81,21 +79,12 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
 #endif
     if (s[o]>='0'&&s[o]<='9') {
 #ifdef ENCODING
-      fprintf(stderr,"   char @ %d is a digit (encode).\n",o);
-      fprintf(stderr,"      c->low=0x%x, c->high=0x%x\n",c->low,c->high);
       range_encode_equiprobable(c,10,s[o]-'0');
-      fprintf(stderr,"      c->low=0x%x, c->high=0x%x after\n",c->low,c->high);
 #else
-      fprintf(stderr,"   char @ %d is a digit (decode).\n",o);
-      fprintf(stderr,"      c->low=0x%x, c->high=0x%x\n",c->low,c->high);
       s[o]='0'+range_decode_equiprobable(c,10);
-      fprintf(stderr,"      c->low=0x%x, c->high=0x%x after\n",c->low,c->high);
 #endif
     }
   }
-
-  fprintf(stderr,"%s: after len=%d c->low=0x%x, c->high=0x%x\n",
-	  __FUNCTION__,length,c->low,c->high);
 
   return 0;
 }

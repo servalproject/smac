@@ -141,7 +141,6 @@ int FUNC(CaseModel1)(range_coder *c,unsigned short *line,int len,stats_handle *h
 	  upper=range_decode_symbol(c,h->caseposn2[lastCase][pos],2);
 #endif
 	}
-	fprintf(stderr,"%d",upper);
 	if (upper==1) line[i]=toupper(line[i]);
 
 	if (isupper(line[i])) lastCase=1; else lastCase=0;
@@ -157,6 +156,5 @@ int FUNC(CaseModel1)(range_coder *c,unsigned short *line,int len,stats_handle *h
       }
     }    
   }
-  fprintf(stderr,"\n");
   return 0;
 }

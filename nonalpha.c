@@ -31,7 +31,7 @@ int stripNonAlpha(unsigned short *in,int in_len,
 {
   int l=0;
   int i;
-  for(i=0;in[i];i++)
+  for(i=0;i<in_len;i++)
     if (in[i]<0x80||charIdx(tolower(in[i]))>=0) out[l++]=in[i];
   *out_len=l;
   return 0;

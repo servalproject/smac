@@ -44,8 +44,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 int encodeLCAlphaSpace(range_coder *c,unsigned short *s,int len,stats_handle *h);
 int encodeNonAlpha(range_coder *c,unsigned short *s,int len);
-int encodeLength(range_coder *c,int length,stats_handle *h);
-int decodeLength(range_coder *c,stats_handle *h);
 int stripNonAlpha(unsigned short *in,int in_len,
 		  unsigned short *out,int *out_len);
 int stripCase(unsigned short *in,int len,unsigned short *out);
@@ -86,9 +84,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
     return 0;
   }
   
-  fprintf(stderr,"probPackedASCII=0x%x\n",probPackedASCII);
   int notPackedASCII=range_decode_symbol(c,&probPackedASCII,2);
-  printf("b7=%d, b6=%d, notPackedASCII=%d\n",b7,b6,notPackedASCII);
 
   int encodedLength=range_decode_symbol(c,h->messagelengths,1024);
   for(i=0;i<encodedLength;i++) m[i]='?'; m[i]=0;
@@ -230,16 +226,15 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
       range_encode_equiprobable(c2,2,1); // not raw ASCII
       range_encode_equiprobable(c2,2,0); 
       range_encode_symbol(c2,&probPackedASCII,2,0); // is packed ASCII
-      encodeLength(c2,m_in_len,h);
+      range_encode_symbol(c2,h->messagelengths,1024,m_in_len);
       encodePackedASCII(c2,m_in);
       range_conclude(c2);
       if (c2->bits_used<c->bits_used) {
-	fprintf(stderr,"Switching to radix-69\n");
 	range_coder_reset(c);
 	range_encode_equiprobable(c,2,1); // not raw ASCII
 	range_encode_equiprobable(c,2,0); 
 	range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
-	encodeLength(c,m_in_len,h);
+	range_encode_symbol(c,h->messagelengths,1024,m_in_len);
 	encodePackedASCII(c,m_in);
 	range_conclude(c);
 	// printf("Reverting to raw non-statistical encoding: %d chars in %d bits\n",
