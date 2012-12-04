@@ -71,6 +71,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
     struct probability_vector *v=extractVector(s,o,h);
 #ifdef ENCODING
     int symbol=charIdx(t);
+    //    vectorReport(NULL,v,symbol);
     range_encode_symbol(c,v->v,CHARCOUNT,symbol);
     s[o]=t;
 #else

@@ -146,8 +146,8 @@ stats_handle *stats_new_handle(char *file)
 }
 
 int stats_load_tree(stats_handle *h)
-{
-  extractNodeAt("",0,h->rootNodeAddress,h->totalCount,h,
+{  
+  extractNodeAt(NULL,0,h->rootNodeAddress,h->totalCount,h,
 		1 /* extract all */,0);
   return 0;
 }
@@ -178,8 +178,8 @@ unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
   return &h->buffer[start];
 }
 
-struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
-			   stats_handle *h,int extractAllP,int debug)
+struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
+			   int count,stats_handle *h,int extractAllP,int debug)
 {
   if (len<(0-(int)h->maximumOrder)) {
     // We are diving deeper than the maximum order that we expected to see.
@@ -330,7 +330,7 @@ int dumpNode(struct node *n)
   return 0;
 }
 
-struct node *extractNode(char *string,int len,stats_handle *h)
+struct node *extractNode(unsigned short *string,int len,stats_handle *h)
 {
   int i;
 
@@ -354,11 +354,11 @@ struct node *extractNode(char *string,int len,stats_handle *h)
     fflush(stderr);
   }
 
-  if (0) {
+#if 0
     fprintf(stderr,"stats for what follows '%s' @ 0x%p\n",
 	    &string[len-i],n);
     dumpNode(n);
-  }
+#endif
     
   if (n==NULL)
     {

@@ -65,8 +65,9 @@ typedef struct compressed_stats_handle {
 } stats_handle;
 
 void node_free(struct node *n);
-struct node *extractNode(char *string,int len,stats_handle *h);
-struct node *extractNodeAt(char *s,int len,unsigned int nodeAddress,int count,
+struct node *extractNode(unsigned short *string,int len,stats_handle *h);
+struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
+			   int count,
 			   stats_handle *h,int extractAllP,int debugP);
 struct probability_vector *extractVector(unsigned short *string,int len,
 					 stats_handle *h);
