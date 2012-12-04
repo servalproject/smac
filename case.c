@@ -40,6 +40,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "charset.h"
 #include "packed_stats.h"
+#include "unicode.h"
 
 int stripCase(unsigned short *in,int in_len,unsigned short *out)
 {
@@ -81,6 +82,7 @@ int FUNC(CaseModel1)(range_coder *c,unsigned short *line,int len,stats_handle *h
   int lastCase=0;
 
   int i;
+
   //  printf("caps eligble chars: ");
   for(i=0;i<len;i++) {
     int wordChar=charInWord(line[i]);

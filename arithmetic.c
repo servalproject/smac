@@ -898,22 +898,38 @@ int test_foo1(range_coder *c)
 0xffff0a,0xffff2d,0xffff50,0xffff73,0xffff96,0xffffb9,0xffffdc};
 
   unsigned int probPackedASCII=0.05*0xffffff;
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
   range_encode_equiprobable(c,2,1);
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
   range_encode_equiprobable(c,2,0);
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
   range_encode_symbol(c,&probPackedASCII,2,1);
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
   range_encode_symbol(c,messagelengths,1024,140);
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
 
   range_conclude(c);
+
+  {
+    int i;
+    for(i=0;i<=(c->bits_used>>3);i++) fprintf(stderr,"%02x ",c->bit_stream[i]);
+    fprintf(stderr,"\n");
+  }
 
   range_coder *vc=range_coder_dup(c);
   vc->bit_stream_length=vc->bits_used;
   vc->bits_used=0;
   range_decode_prefetch(vc);
 
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
   int b7=range_decode_equiprobable(vc,2);
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
   int b6=range_decode_equiprobable(vc,2);
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
   int notPackedASCII=range_decode_symbol(vc,&probPackedASCII,2);
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
   int length=range_decode_symbol(vc,messagelengths,1024);
+  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
 
   if (b7!=1) {
     fprintf(stderr,"Failed to decode b7=1 (got %d)\n",b7);

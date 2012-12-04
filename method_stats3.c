@@ -86,9 +86,11 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
     return 0;
   }
   
+  fprintf(stderr,"probPackedASCII=0x%x\n",probPackedASCII);
   int notPackedASCII=range_decode_symbol(c,&probPackedASCII,2);
+  printf("b7=%d, b6=%d, notPackedASCII=%d\n",b7,b6,notPackedASCII);
 
-  int encodedLength=decodeLength(c,h);
+  int encodedLength=range_decode_symbol(c,h->messagelengths,1024);
   for(i=0;i<encodedLength;i++) m[i]='?'; m[i]=0;
   *len_out=encodedLength;
 
@@ -112,7 +114,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   unsigned short lowerCaseAlphaChars[1025];
 
   decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount,h);
-  
+
   decodeCaseModel1(c,lowerCaseAlphaChars,alphaCount,h);
   mungeCase(lowerCaseAlphaChars,alphaCount);
   
@@ -138,6 +140,7 @@ int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outle
 {
   range_coder *c=range_new_coder(inlen);
   bcopy(in,c->bit_stream,inlen);
+
   c->bit_stream_length=inlen*8;
   c->bits_used=0;
   c->low=0;
@@ -180,7 +183,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
   double lastEntropy=c->entropy;
   
   /* Encode length of message */
-  encodeLength(c,len,h);
+  range_encode_symbol(c,h->messagelengths,1024,len);
   
   // printf("%f bits to encode length\n",c->entropy-lastEntropy);
   total_length_bits+=c->entropy-lastEntropy;
@@ -188,6 +191,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
 
   /* encode any non-ASCII characters */
   encodeNonAlpha(c,utf16,len);
+
   int alpha_len=0;
   stripNonAlpha(utf16,len,alpha,&alpha_len);
   int nonAlphaChars=len-alpha_len;
@@ -211,7 +215,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
  */
   mungeCase(alpha,alpha_len);
   encodeCaseModel1(c,alpha,alpha_len,h);
-  
+
   //  printf("%f bits (%d emitted) to encode case\n",c->entropy-lastEntropy,c->bits_used);
   total_case_bits+=c->entropy-lastEntropy;
 
@@ -224,13 +228,16 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
       /* Can we code it more efficiently without statistical modelling? */
       range_coder *c2=range_new_coder(1024);
       range_encode_equiprobable(c2,2,1); // not raw ASCII
+      range_encode_equiprobable(c2,2,0); 
       range_encode_symbol(c2,&probPackedASCII,2,0); // is packed ASCII
       encodeLength(c2,m_in_len,h);
       encodePackedASCII(c2,m_in);
       range_conclude(c2);
       if (c2->bits_used<c->bits_used) {
+	fprintf(stderr,"Switching to radix-69\n");
 	range_coder_reset(c);
 	range_encode_equiprobable(c,2,1); // not raw ASCII
+	range_encode_equiprobable(c,2,0); 
 	range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
 	encodeLength(c,m_in_len,h);
 	encodePackedASCII(c,m_in);

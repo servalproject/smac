@@ -199,6 +199,12 @@ int processFile(FILE *f,stats_handle *h)
     now = current_time_us();
     stats3_compress_bits(c,(unsigned char *)m,strlen(m),h);
     stats3_compress_us+=current_time_us()-now;
+    
+    {
+      int i;
+      for(i=0;i<=(c->bits_used>>3);i++) fprintf(stderr,"%02x ",c->bit_stream[i]);
+      fprintf(stderr,"\n");
+    }
 
     total_compressed_bits+=c->bits_used;
     total_uncompressed_bits+=strlen(m)*8;

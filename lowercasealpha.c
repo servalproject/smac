@@ -16,6 +16,20 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#ifndef UNDER_CONTROL
+#define UNDER_CONTROL
+#define COMMON
+#undef FUNC
+#undef ENCODING
+#define FUNC(Y) decode ## Y
+#include "lowercasealpha.c"
+#undef COMMON
+#undef FUNC
+#define ENCODING
+#define FUNC(Y) encode ## Y
+#endif
+
+#ifdef COMMON
 #include <stdio.h>
 #include <strings.h>
 #include <math.h>
@@ -29,36 +43,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #undef DEBUG
 
-/*
-  TODO: Unicode not yet handled.
-  TODO: Currently uses flat distribution for digit probabilities.  Should use "rule of 9" or similar.
-*/
-int decodeLCAlphaSpace(range_coder *c,unsigned short *s,int length,stats_handle *h)
-{
-  FILE *stats_file=fopen("stats.dat","r");
-  int c1=charIdx(' ');
-  int c2=charIdx(' ');
-  int c3;
-  int o;
-  for(o=0;o<length;o++) {
-#ifdef DEBUG
-    printf("so far: '%s', c1=%d(%c), c2=%d(%c)\n",s,c1,chars[c1],c2,chars[c2]);
-#endif
-
-    s[o]=0;
-    struct probability_vector *v=extractVector(s,o,h);
-    c3=range_decode_symbol(c,v->v,CHARCOUNT);
-    s[o]=chars[c3];
-    if (s[o]=='0') s[o]='0'+range_decode_equiprobable(c,10);
-#ifdef DEBUG
-    printf("  decode alpha char %d = %c\n",c3,s[o]);
-#endif
-    c1=c2; c2=c3;
-  }
-  fclose(stats_file);
-  return 0;
-}
-
 int strncmp816(char *s1,unsigned short *s2,int len)
 {
   int j;
@@ -69,35 +53,36 @@ int strncmp816(char *s1,unsigned short *s2,int len)
   return 0;
 }
 
-int encodeLCAlphaSpace(range_coder *c,unsigned short *s,int len,stats_handle *h)
-{
-  int c1=charIdx(' ');
-  int c2=charIdx(' ');
-  int o;
-
-  for(o=0;o<len;o++) {
-    int c3=charIdx(s[o]);
-    
-#ifdef DEBUG
-      printf("  encoding @ %d, c1=%d(%c) c2=%d(%c), c3=%d(%c)\n",
-	     o,c1,chars[c1],c2,chars[c2],c3,chars[c3]);
 #endif
 
-    if (0)
-      {
-	int i;
-	fprintf(stderr,"After '");
-	for(i=0;i<o;i++) fprintf(stderr,"%c",s[i]);
-	fprintf(stderr,"'\n");
-      }
-    int t=s[o]; 
+/*
+  TODO: Unicode not yet handled.
+  TODO: Currently uses flat distribution for digit probabilities.  Should use "rule of 9" or similar.
+*/
+int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle *h)
+{
+  int o;
+  for(o=0;o<length;o++) {
+#ifdef ENCODING
+    int t=s[o];
+#endif
     s[o]=0;
     struct probability_vector *v=extractVector(s,o,h);
+#ifdef ENCODING
+    int symbol=charIdx(t);
+    range_encode_symbol(c,v->v,CHARCOUNT,symbol);
     s[o]=t;
-    range_encode_symbol(c,v->v,CHARCOUNT,c3);
-    if (chars[c3]=='0') range_encode_equiprobable(c,10,s[o]-'0');
-    if (0) vectorReport("var",v,c3);    
-    c1=c2; c2=c3;
+#else
+    int symbol=range_decode_symbol(c,v->v,CHARCOUNT);
+    s[o]=chars[symbol];
+#endif
+    if (s[o]>='0'&&s[o]<='9') {
+#ifdef ENCODING
+      if (chars[symbol]=='0') range_encode_equiprobable(c,10,s[o]-'0');
+#else
+      s[o]='0'+range_decode_equiprobable(c,10);
+#endif
+    }
   }
   return 0;
 }
