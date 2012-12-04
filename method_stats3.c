@@ -227,9 +227,9 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
       range_encode_equiprobable(c2,2,0); 
       range_encode_symbol(c2,&probPackedASCII,2,0); // is packed ASCII
       range_encode_symbol(c2,h->messagelengths,1024,m_in_len);
-      encodePackedASCII(c2,m_in);
+      int bad=encodePackedASCII(c2,m_in);
       range_conclude(c2);
-      if (c2->bits_used<c->bits_used) {
+      if ((!bad)&&c2->bits_used<c->bits_used) {
 	range_coder_reset(c);
 	range_encode_equiprobable(c,2,1); // not raw ASCII
 	range_encode_equiprobable(c,2,0); 

@@ -33,6 +33,7 @@ int encodePackedASCII(range_coder *c,unsigned char *m)
   for(i=0;m[i];i++) {
     int v=m[i];
     v=printableCharIdx(v);
+    if (v<0) return -1;
     range_encode_equiprobable(c,PRINTABLECHARCOUNT,v);
   }
   // encodeCaseModel1(c,m);

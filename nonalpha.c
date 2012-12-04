@@ -69,7 +69,7 @@ int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
 }
 
 
-int encodeNonAlpha(range_coder *c,unsigned short *m)
+int encodeNonAlpha(range_coder *c,unsigned short *m,int messageLength)
 {
   /* Get positions and values of non-alpha chars.
      Encode count, then write the chars, then use interpolative encoding to
@@ -108,7 +108,6 @@ int encodeNonAlpha(range_coder *c,unsigned short *m)
   // printf("Using 8-bits to encode each of %d non-alpha chars.\n",count);
 
   /* Encode number of non-alpha chars */
-  int messageLength=strlen((char *)m);
   range_encode_equiprobable(c,messageLength+1,count);
 
   // printf("Using %f bits to encode the number of non-alpha/space chars.\n",countBits);
