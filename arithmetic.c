@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <strings.h>
 #include <math.h>
+#include <assert.h>
 #include "arithmetic.h"
 
 #define MAXVALUE 0xffffff
@@ -519,6 +520,9 @@ int range_encode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
 {
   if (c->errors) return -1;
   range_check(c,__LINE__);
+
+  assert(symbol>=0);
+  assert(symbol<alphabet_size);
 
   unsigned int p_low=0;
   if (symbol>0) p_low=frequencies[symbol-1];
