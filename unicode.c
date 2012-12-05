@@ -87,3 +87,30 @@ unsigned short *ascii2utf16(char *in)
   ret[i]=0;
   return ret;
 }
+
+int unEscape(unsigned char *utf8line,int *utf8len)
+{
+  int outLen=0;
+  int i;
+
+  for(i=0;i<*utf8len;i++) {
+    if (utf8line[i]=='\\') {
+      switch(utf8line[i+1]) {
+	
+      case 'r': i++; utf8line[outLen++]='\r'; break;
+      case 'n': i++; utf8line[outLen++]='\n'; break;
+      case '\\': i++; utf8line[outLen++]='\\'; break;
+      case '\'': utf8line[outLen++]='\''; break;
+      case 0: utf8line[outLen++]='\\'; break;
+      default:
+	/* don't do anything to an unknown escape */
+	utf8line[outLen++]='\\';
+	break;
+      }
+    } else {
+      utf8line[outLen++]=utf8line[i];
+    }    
+  }
+  *utf8len=outLen;
+  return 0;
+}

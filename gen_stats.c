@@ -155,15 +155,13 @@ int dumpTree(struct countnode *n,int indent)
   return 0;
 }
 
-int countChars(unsigned char *s,int len,int maximumOrder)
+int countChars(unsigned short *s,int len,int maximumOrder)
 {
   int j;
 
   struct countnode **n=&nodeTree;
   
   if (!*n) *n=calloc(sizeof(struct countnode),1);
-
-  if (0) fprintf(stderr,"Count occurrence of '%s' (len=%d)\n",s,len);
 
   /*
     Originally, we inserted strings in a forward direction, e.g., inserting
@@ -601,7 +599,10 @@ double entropyOfSymbol3(unsigned int v[CHARCOUNT],int symbol)
 
 int main(int argc,char **argv)
 {
-  char line[8192];
+  unsigned char utf8line[8192];
+  int utf8len;
+  unsigned short utf16line[8192];
+  int utf16len;
 
   int i,j,k;
   /* Zero statistics */
@@ -651,7 +652,9 @@ int main(int argc,char **argv)
     argn++;
   }
 
-  line[0]=0; fgets(line,8192,f);
+  utf8line[0]=0; fgets((char *)utf8line,8192,f);
+  utf8len=strlen((char *)utf8line);
+
   int lineCount=0;
   int wordPosn=-1;
   char word[1024];
@@ -660,7 +663,9 @@ int main(int argc,char **argv)
   int wordCount=0;
 
   fprintf(stderr,"Reading corpus [.=5k lines]: ");
-  while(line[0]) {    
+  while(utf8len) {    
+
+    unEscape(utf8line,&utf8len);
 
     int som=1;
     lineCount++;
@@ -670,56 +675,38 @@ int main(int argc,char **argv)
 
     if (!(lineCount%5000)) { fprintf(stderr,"."); fflush(stderr); }
 
+    /* Chop CR/LF from end of line */
+    utf8line[utf8len-1]=0;
+    utf8toutf16(utf8line,utf8len,utf16line,&utf16len);
+
     /* record occurrance of message of this length.
        (minus one for the LF at end of line that we chop) */
-    messagelengths[strlen(line)-1]++;
-
-    /* Chop CR/LF from end of line */
-    line[strlen(line)-1]=0;
+    messagelengths[utf16len]++;
 
     /* Insert each string suffix into the tree.
        We provide full length to the counter, because we don't know
        it's maximum order/depth of recording. */
-    for(i=strlen(line);i>0;i--) {
-      countChars((unsigned char *)line,i,maximumOrder);
+    for(i=utf16len;i>0;i--) {
+      countChars(utf16line,i,maximumOrder);
       // dumpTree(nodeTree,0);
     }
 
-    for(i=0;i<strlen(line)-1;i++)
+    for(i=0;i<utf16len;i++)
       {       
 
-	if (line[i]=='\\') {
-	  switch(line[i+1]) {
-	    
-	  case 'r': i++; line[i]='\r'; break;
-	  case 'n': i++; line[i]='\n'; break;
-	  case '\\': i++; line[i]='\\'; break;
-	  case '\'': line[i]='\''; break;
-	  case 0: /* \ at end of line -- nothing to do */
-	    
-	    /* ignore ones we don't de-escape */
-	  case 'u':
-	    break;
-	  default:
-	    fprintf(stderr,"Illegal \\-escape in line #%d:\n%s",lineCount,line);
-	    exit(-1);
-	    break;
-	  }
-	}
-
 	//	printf("char '%c'\n",line[i]);
-	int wc=charInWord(line[i]);
+	int wc=charInWord(utf16line[i]);
 	if (!wc) {
 	  wordBreaks++;
 	  wordPosn=-1; lc=0;
 	  //	  printf("word break\n");
 	} else {
-	  if (isalpha(line[i])) {
+	  if (isalpha(utf16line[i])) {
 	    wordPosn++;
-	    word[wordPosn]=tolower(line[i]);
+	    word[wordPosn]=tolower(utf16line[i]);
 	    word[wordPosn+1]=0;
 	    int upper=0;
-	    if (isupper((char)line[i])) upper=1;
+	    if (isupper((char)utf16line[i])) upper=1;
 	    if (wordPosn<80) caseposn1[wordPosn][upper]++;
 	    if (wordPosn<80) {
 	      caseposn2[lc][wordPosn][upper]++;
@@ -727,7 +714,7 @@ int main(int argc,char **argv)
 	    }
 	    /* note if end of word (which includes end of message,
 	       implicitly detected here by finding null at end of string */
-	    if (!charInWord(line[i+1])) caseend[upper]++;
+	    if (!charInWord(utf16line[i+1])) caseend[upper]++;
 	    lc=upper;
 	    if (som) {
 	      casestartofmessage[upper]++;
@@ -745,11 +732,11 @@ int main(int argc,char **argv)
 	}
 
 	/* fold all letters to lower case */
-	if (line[i]>='A'&&line[i]<='Z') line[i]|=0x20;
+	if (utf16line[i]>='A'&&utf16line[i]<='Z') utf16line[i]|=0x20;
 
 	/* process if it is a valid char */
-	if (charIdx(line[i])>=0) {
-	  int c3=charIdx(line[i]);
+	if (charIdx(utf16line[i])>=0) {
+	  int c3=charIdx(utf16line[i]);
 	  counts3[c1][c2][c3]++;
 	  counts2[c2][c3]++;
 	  counts1[c3]++;
@@ -757,9 +744,10 @@ int main(int argc,char **argv)
 	}
       }
 
-  trynextfile:    
-    line[0]=0; fgets(line,8192,f);
-    if (!line[0]) {
+  trynextfile:
+    utf8line[0]=0; fgets((char *)utf8line,8192,f);
+    utf8len=strlen((char *)utf8line);    
+    if (!utf8line[0]) {
       fclose(f); f=NULL;
       while(f==NULL&&argn<argc) {
 	f=fopen(argv[argn++],"r");	
