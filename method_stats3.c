@@ -88,12 +88,12 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
 
   int encodedLength=range_decode_symbol(c,h->messagelengths,1024);
   for(i=0;i<encodedLength;i++) m[i]='?'; m[i]=0;
-  *len_out=encodedLength;
 
   if (notPackedASCII==0) {
     /* packed ASCII -- copy from input to output */
     // printf("decoding packed ASCII\n");
     decodePackedASCII(c,m,encodedLength);
+    *len_out=encodedLength;
     return 0;
   }
 
@@ -103,7 +103,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
 
   decodeNonAlpha(c,nonAlphaPositions,nonAlphaValues,&nonAlphaCount,encodedLength);
 
-  int alphaCount=(*len_out)-nonAlphaCount;
+  int alphaCount=encodedLength-nonAlphaCount;
 
   // printf("message contains %d non-alpha characters, %d alpha chars.\n",nonAlphaCount,alphaCount);
 
@@ -118,7 +118,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   int nonAlphaPointer=0;
   int alphaPointer=0;
   unsigned short m16[1025];
-  for(i=0;i<(*len_out);i++)
+  for(i=0;i<(alphaCount+nonAlphaCount);i++)
     {
       if (nonAlphaPointer<nonAlphaCount
 	  &&nonAlphaPositions[nonAlphaPointer]==i) {
@@ -127,9 +127,9 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
 	m16[i]=lowerCaseAlphaChars[alphaPointer++];
       }
     }
-  m16[i]=0;
   utf16toutf8(m16,i,m,len_out);
   m[*len_out]=0;
+  //  fprintf(stderr,"m='%s', len=%d\n",m,*len_out);
 
   return 0;
 }

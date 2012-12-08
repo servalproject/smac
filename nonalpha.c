@@ -80,7 +80,7 @@ int encodeNonAlpha(range_coder *c,unsigned short *m,int messageLength)
   int count=0;
   
   int i;
-  for(i=0;m[i];i++)
+  for(i=0;i<messageLength;i++)
     /* (non-alpha characters can only be <0x80,
        since higher codepoints are encoded using unicode processing mechanisms) */
     if (m[i]<0x80) {
