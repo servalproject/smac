@@ -93,3 +93,5 @@ stats_handle *stats_new_handle(char *file);
 int stats_load_tree(stats_handle *h);
 unsigned char *getCompressedBytes(stats_handle *h,int start,int count);
 int *getUnicodeStatistics(stats_handle *h,int codePage);
+int unicodeVectorReport(char *name,int *counts,int previousCodePage,
+			int codePage,unsigned short s);

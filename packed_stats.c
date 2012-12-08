@@ -529,12 +529,60 @@ int *getUnicodeStatistics(stats_handle *h,int codePage)
     int totalCount=range_decode_equiprobable(c,0xffffff);
     ic_decode_recursive(h->unicode_pages[codePage]->counts,
 			128+512+1,totalCount+1,c);
-    int i;
-    int runningTotal=0;
-    for(i=0;i<128+512+1;i++) {
-      runningTotal=h->unicode_pages[codePage]->counts[i];
-      h->unicode_pages[codePage]->counts[i]-=runningTotal+1;
-    }
   }
   return h->unicode_pages[codePage]->counts;
+}
+
+int unicodeVectorReport(char *name,int *counts,int previousCodePage,
+			int codePage,unsigned short s)
+{
+  int max=counts[128+512];
+  int range;
+
+  if (s>=codePage*0x80&&s<=(codePage*0x80+0x7f)) {
+    // Character is in this code page
+    int symbol=s-codePage*0x80;
+    if (symbol>0)
+      range=counts[symbol]-counts[symbol-1];
+    else range=counts[symbol];
+    double percent=range*100.00/max;
+    fprintf(stderr,"P[%s](codepoint 0x%04x) = %.2f%%\n",name,s,percent);    
+  } else {
+    // code page switch
+    int newCodePage;
+    if (s/0x80==previousCodePage) newCodePage=512;
+    else newCodePage=s/0x80;
+    range=counts[128+newCodePage]-counts[128+newCodePage-1];
+    double percent=range*100.00/max;
+    fprintf(stderr,"P[%s](codepage 0x%04x) = %.2f%% (%d of %d)\n",
+	    name,newCodePage*0x80,percent,range,counts[128+512]);
+  }
+
+  int i,low;
+  fprintf(stderr,"Character probabilities (excluding probability of page switch):\n");
+  for(i=0;i<128;i++) {
+    if (i) low=counts[i-1]; else low=0;
+
+    double p=(counts[i]-low)*100.00/counts[128];
+
+    fprintf(stderr," 0x%04x 0x%06x %.2f%% |",codePage*0x80+i,counts[i],p);
+    if (i%5==4) fprintf(stderr,"\n");
+  }
+  fprintf(stderr,"\n");
+
+  fprintf(stderr,"Code page switch probabilities (excluding probability of characters):\n");
+  for(i=0;i<(512+1);i++) {
+
+    double p=(counts[128+i]-counts[128+i-1])*100.00/(counts[128+512]-counts[127]);
+
+    fprintf(stderr," 0x%04x 0x%06x %.2f%% |",i*0x80,counts[128+i],p);
+    if (i%5==4) fprintf(stderr,"\n");
+  }
+  fprintf(stderr,"\n");
+  double p=counts[128]*100.00/counts[128+512];
+  fprintf(stderr,"Characters in code page occur %.2f%% of the time (%d times), characters in another code page occur %.2f%% of the time (%d times).\n",
+	  p,counts[127],
+	  100.0-p,(counts[128+512]-counts[127]));
+
+  return 0;
 }
