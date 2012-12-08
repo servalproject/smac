@@ -43,6 +43,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #undef DEBUG
 
+extern long long total_unicode_millibits;
+extern long long total_unicode_chars;
+
 int strncmp816(char *s1,unsigned short *s2,int len)
 {
   int j;
@@ -56,7 +59,6 @@ int strncmp816(char *s1,unsigned short *s2,int len)
 #endif
 
 /*
-  TODO: Unicode not yet handled.
   TODO: Currently uses flat distribution for digit probabilities.  Should use "rule of 9" or similar.
 */
 int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle *h)
@@ -64,6 +66,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
   int o;
   int lastCodePage=0x0080/0x80;
   int lastLastCodePage=0x0080/0x80;
+  int firstUnicode=1;
 
   for(o=0;o<length;o++) {
 #ifdef ENCODING
@@ -90,8 +93,14 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
       // unicode character
       unsigned int *counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
 #ifdef ENCODING
+      double before=c->entropy;
       int switchedPage=0;
-      if (s[o]/0x80!=lastCodePage) {
+      if (firstUnicode) {
+	range_encode_equiprobable(c,511,(s[o]/0x80)-1);
+	switchedPage=1;
+	firstUnicode=0;
+	lastCodePage=s[o]/0x80;
+      } else if (s[o]/0x80!=lastCodePage) {
 	// character is not in current code page
 	range_encode_symbol(c,counts,128+512,128+s[o]/0x80);
 	switchedPage=1;
@@ -102,8 +111,19 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
       counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
       range_encode_symbol(c,counts,switchedPage?128:(128+512),s[o]&0x7f);
       //      fprintf(stderr,"encoded unicode char: 0x%04x\n",s[o]);
+      double unicodeEntropy=c->entropy-before;
+      //      fprintf(stderr,"encoded 0x%04x in %.2f bits\n",
+      //      	      s[o],unicodeEntropy);
+      total_unicode_millibits+=unicodeEntropy*1000;
+      total_unicode_chars++;
 #else
-      symbol=range_decode_symbol(c,counts,128+512);
+      if (firstUnicode) {
+	firstUnicode=0;
+	lastCodePage=range_decode_equiprobable(c,511)+1;
+	counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
+	symbol=range_decode_symbol(c,counts,128);
+      } else
+	symbol=range_decode_symbol(c,counts,128+512);
       if (symbol>127) {
 	lastLastCodePage=lastCodePage;
 	lastCodePage=symbol-128;

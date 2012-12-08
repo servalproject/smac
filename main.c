@@ -38,8 +38,12 @@ long long total_alpha_bits=0;
 long long total_nonalpha_bits=0;
 long long total_case_bits=0;
 long long total_model_bits=0;
-long long total_length_bits=0;
+long long total_length_millibits=0;
 long long total_finalisation_bits=0;
+long long total_length_bits=0;
+
+long long total_unicode_millibits=0;
+long long total_unicode_chars=0;
 
 long long total_messages=0;
 
@@ -149,6 +153,8 @@ int main(int argc,char *argv[])
   printf("     model-encoding bits: %lld\n",total_model_bits);
   printf("      case-encoding bits: %lld\n",total_case_bits);
   printf("     alpha-encoding bits: %lld\n",total_alpha_bits);
+  printf("   avg unicode bits/char: %.2f\n",
+	 total_unicode_millibits/total_unicode_chars/1000.0);
   printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
   printf("   SMAZ compressed bytes: %lld (for comparison)\n",total_smaz_bytes);
   printf("    SMAZ compressed size: %f%% (byte oriented; for comparison)\n",
