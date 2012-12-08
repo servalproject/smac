@@ -112,14 +112,16 @@ int main(int argc,char *argv[])
       {
 	int i;
 	for(i=0;i<2048;i++) c->bit_stream[i]=random()&0xff;
-	c->bit_stream[0]|=0x80; // make sure it gets treated as a compressed message.
+	// make sure it gets treated as a compressed message.
+	c->bit_stream[0]&=0x3f; 
+	c->bit_stream[0]|=0x80; 
 	c->low=0; c->high=0xffffffff;
 	c->bit_stream_length=8192;
 	c->bits_used=0;
 	range_decode_prefetch(c);
 	char out[2048];
 	int lenout;
-	stats3_decompress_bits(c,(unsigned char *)out,&lenout,h);
+	stats3_decompress_bits(c,(unsigned char *)out,&lenout,h,NULL);
 	printf("%s\n",out);
       }
 
@@ -203,7 +205,7 @@ int processFile(FILE *f,stats_handle *h)
 
     range_coder *c=range_new_coder(2048);
     now = current_time_us();
-    stats3_compress_bits(c,(unsigned char *)m,strlen(m),h);
+    stats3_compress_bits(c,(unsigned char *)m,strlen(m),h,NULL);
     stats3_compress_us+=current_time_us()-now;
     
     total_compressed_bits+=c->bits_used;
@@ -257,7 +259,7 @@ int processFile(FILE *f,stats_handle *h)
       
       now=current_time_us();
       range_decode_prefetch(d);
-      stats3_decompress_bits(d,(unsigned char *)mout,&lenout,h);
+      stats3_decompress_bits(d,(unsigned char *)mout,&lenout,h,NULL);
       stats3_decompress_us+=current_time_us()-now;
 
       if (lenout!=strlen(m)) {	
