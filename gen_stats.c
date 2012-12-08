@@ -482,7 +482,7 @@ int write24bit(FILE *out,unsigned int v)
   return 0;
 }
 
-int writeUnicodeStats(FILE *out,int frequencyThreshold)
+int writeUnicodeStats(FILE *out,int frequencyThreshold,int rootNodeAddress)
 {
   /* For each code page we need:
      1. Frequency of each symbol
@@ -497,10 +497,13 @@ int writeUnicodeStats(FILE *out,int frequencyThreshold)
 
   /* We ignore code page zero, since that is the ASCII7 characters. */
   int codePage;
-  unsigned int unicodeRowAddress[512];
+  int unicodeRowAddress[512];
+  int unicodeBytes=0;
 
+  unicodeRowAddress[0]=rootNodeAddress;
   for(codePage=1;codePage<512;codePage++)
     {
+      unicodeRowAddress[codePage]=unicodeRowAddress[codePage-1];
       int i;
       long long totalCount=0;
       for(i=0;i<128;i++) totalCount+=unicode_counts[codePage*128+i];
@@ -511,8 +514,8 @@ int writeUnicodeStats(FILE *out,int frequencyThreshold)
 	}
 
       if (totalCount>=frequencyThreshold) {
-	fprintf(stderr,"%lld events for code page 0x%04x--0x%04x\n",
-		totalCount,codePage*128,codePage*128+127);
+	//	 fprintf(stderr,"%lld events for code page 0x%04x--0x%04x\n",
+	//		totalCount,codePage*128,codePage*128+127);
 	
 	int frequencies[128+512+1];
 	for(i=0;i<128;i++) frequencies[i]=unicode_counts[codePage*128+i];
@@ -546,8 +549,6 @@ int writeUnicodeStats(FILE *out,int frequencyThreshold)
 	// Build compressed list of frequency information
 	range_coder *c=range_new_coder(8192);
 	assert(totalCount>=frequencies[128+512]);
-	fprintf(stderr,"totalCount=%lld, cumulative_frequencies[128+512]=%d\n",
-		totalCount,frequencies[128+512]);
 	ic_encode_recursive(frequencies,128+512+1,totalCount+1,c);	
 	range_conclude(c);
 
@@ -555,12 +556,34 @@ int writeUnicodeStats(FILE *out,int frequencyThreshold)
 	int bytes=c->bits_used>>3;
 	if (c->bits_used&7) bytes++;
 	fwrite(c->bit_stream,bytes,1,out);
-	fprintf(stderr,"Code page 0x%04x -- 0x%04x written in %d bytes.\n",
-		codePage*128,codePage*128+127,bytes);
+	//	fprintf(stderr,"Code page 0x%04x -- 0x%04x written in %d bytes.\n",
+	//		codePage*128,codePage*128+127,bytes);
 	range_coder_free(c);
+	unicodeBytes+=bytes;
       }
     }
-  return 0;
+
+  // Now write out table of 511 addresses.
+  unsigned int unicodeAddress=ftello(out);
+  range_coder *c=range_new_coder(8192);
+  int i;
+  for(i=1;i<512;i++) {
+    unicodeRowAddress[i]=(unicodeRowAddress[i]-rootNodeAddress)+i;
+  }
+  fprintf(stderr,"rootNodeAddress=0x%x, unicodeAddress=0x%x, diff=%d\n",
+	  rootNodeAddress,unicodeAddress,unicodeAddress-rootNodeAddress);
+  fprintf(stderr,"unicodeRowAddress[511]=%d\n",unicodeRowAddress[511]);
+  assert(unicodeAddress-rootNodeAddress+512+1>=unicodeRowAddress[511]);
+  ic_encode_recursive(&unicodeRowAddress[1],511,
+		      unicodeAddress-rootNodeAddress+512+1,c);
+  range_conclude(c);
+  int bytes=c->bits_used>>3; if (c->bits_used&7) bytes++;
+  fwrite(c->bit_stream,bytes,1,out);
+  range_coder_free(c);
+
+  fprintf(stderr,"%d+%d bytes required to write 511 compressed unicode page statistics.\n",unicodeBytes,bytes);  
+  
+  return unicodeAddress;
 }
 
 int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
@@ -661,10 +684,8 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 					nodeTree->count,
 					frequencyThreshold);
 
-  unsigned int unicodeAddress=(unsigned int)ftello(out);
-  fprintf(stderr,"Writing unicode stats at 0x%x\n",unicodeAddress);
-
-  writeUnicodeStats(out,frequencyThreshold);
+  unsigned int unicodeAddress
+    =writeUnicodeStats(out,frequencyThreshold,topNodeAddress);
 
   unsigned int totalCount=0;
   for(i=0;i<CHARCOUNT;i++) totalCount+=getCount(nodeTree,i);
