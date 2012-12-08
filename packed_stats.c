@@ -525,6 +525,12 @@ int *getUnicodeStatistics(stats_handle *h,int codePage)
     // Load code page
     h->unicode_pages[codePage]=calloc(sizeof(struct unicode_page_statistics),1);
     range_coder *c=range_new_coder(8192);
+    if (h->unicode_page_addresses[codePage]+1==
+	h->unicode_page_addresses[codePage+1])
+      {
+	fprintf(stderr,"WARNING: No stats for code page 0x%04x; making some up.\n",
+		codePage*0x80);
+      }
     fseek(h->file,h->unicode_page_addresses[codePage],SEEK_SET);
     fread(c->bit_stream,8192,1,h->file);
     c->bit_stream_length=8192*8;

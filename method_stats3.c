@@ -42,7 +42,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "method_stats3.h"
 #include "unicode.h"
 
-int encodeLCAlphaSpace(range_coder *c,unsigned short *s,int len,stats_handle *h);
+int encodeLCAlphaSpace(range_coder *c,unsigned short *s,int len,stats_handle *h,
+		       double *entropyLog);
 int encodeNonAlpha(range_coder *c,unsigned short *s,int len);
 int stripNonAlpha(unsigned short *in,int in_len,
 		  unsigned short *out,int *out_len);
@@ -54,7 +55,8 @@ int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
 		   unsigned char nonAlphaValues[],int *nonAlphaCount,
 		   int messageLength);
 int decodeCaseModel1(range_coder *c,unsigned short *line,int len,stats_handle *h);
-int decodeLCAlphaSpace(range_coder *c,unsigned short *s,int length,stats_handle *h);
+int decodeLCAlphaSpace(range_coder *c,unsigned short *s,int length,stats_handle *h,
+		       double *entropyLog);
 int decodePackedASCII(range_coder *c, unsigned char *m,int encodedLength);
 int encodePackedASCII(range_coder *c,unsigned char *m);
 
@@ -109,7 +111,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
 
   unsigned short lowerCaseAlphaChars[1025];
 
-  decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount,h);
+  decodeLCAlphaSpace(c,lowerCaseAlphaChars,alphaCount,h,NULL);
 
   decodeCaseModel1(c,lowerCaseAlphaChars,alphaCount,h);
   mungeCase(lowerCaseAlphaChars,alphaCount);
@@ -202,7 +204,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
 
   /* compress lower-caseified version of message */
   stripCase(alpha,alpha_len,lcalpha);
-  encodeLCAlphaSpace(c,lcalpha,alpha_len,h);
+  encodeLCAlphaSpace(c,lcalpha,alpha_len,h,NULL);
 
   // printf("%f bits (%d emitted) to encode chars\n",c->entropy-lastEntropy,c->bits_used);
   total_alpha_bits+=c->entropy-lastEntropy;

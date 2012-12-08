@@ -63,7 +63,8 @@ int strncmp816(char *s1,unsigned short *s2,int len)
   TODO: We don't currently handle the situation where there are no statistics to
   return for a given code page.
 */
-int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle *h)
+int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle *h,
+		       double *entropyLog)
 {
   int o;
   int lastCodePage=0x0080/0x80;
@@ -71,6 +72,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
   int firstUnicode=1;
 
   for(o=0;o<length;o++) {
+    double previousEntropy=c->entropy;
 #ifdef ENCODING
     int t=s[o];
 #endif
@@ -136,6 +138,8 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
       //      fprintf(stderr,"decoded unicode char: 0x%04x\n",s[o]);
 #endif
     }
+    // Record entropy for this character if requested.
+    if (entropyLog) entropyLog[o]=c->entropy-previousEntropy;
   }
 
   return 0;
