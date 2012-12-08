@@ -38,7 +38,7 @@ struct unicode_page_statistics {
   // Counts of each of the 128 characters
   // plus counts of transitions to the 512 possible code pages
   // plus count of transitions back to the previously used code page
-  unsigned int counts[128+512+1];
+  int counts[128+512+1];
 };
 
 typedef struct compressed_stats_handle {
@@ -70,6 +70,7 @@ typedef struct compressed_stats_handle {
 
   /* Unicode statistics */
   struct unicode_page_statistics *unicode_pages[512];
+  int *unicode_page_addresses;
 
   /* Used when not caching vectors for returning vector values */
   struct probability_vector vector;
@@ -91,3 +92,4 @@ void stats_handle_free(stats_handle *h);
 stats_handle *stats_new_handle(char *file);
 int stats_load_tree(stats_handle *h);
 unsigned char *getCompressedBytes(stats_handle *h,int start,int count);
+int *getUnicodeStatistics(stats_handle *h,int codePage);

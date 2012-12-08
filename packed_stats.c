@@ -55,6 +55,10 @@ void stats_handle_free(stats_handle *h)
   if (h->bufferBitmap) free(h->bufferBitmap);
   if (h->tree) node_free_recursive(h->tree);
 
+  int i;
+  for(i=0;i<512;i++) if (h->unicode_pages[i]) free(h->unicode_pages[i]);
+  if (h->unicode_page_addresses) free(h->unicode_page_addresses);
+
   free(h);
   return;
 }
@@ -493,4 +497,44 @@ int vectorReport(char *name,struct probability_vector *v,int s)
   }
   fprintf(stderr,"\n");
   return 0;
+}
+
+int *getUnicodeStatistics(stats_handle *h,int codePage)
+{
+  if (codePage<1||codePage>511) return NULL;
+  if (!h->unicode_page_addresses) {
+    // Load list of addresses to unicode page statistics
+    h->unicode_page_addresses=calloc(sizeof(int),512);
+    int addressRange=h->unicodeAddress-h->rootNodeAddress+512+1;
+    range_coder *c=range_new_coder(8192);
+    fseek(h->file,h->unicodeAddress,SEEK_SET);
+    fread(c->bit_stream,8192,1,h->file);
+    c->bit_stream_length=8192*8;
+    range_decode_prefetch(c);
+    ic_decode_recursive(&h->unicode_page_addresses[1],511,addressRange,c);
+    range_coder_free(c);
+    int i;
+    // Convert addresses back to absolute form
+    for(i=1;i<512;i++) h->unicode_page_addresses[i]+=h->rootNodeAddress-i;
+  }
+
+  if (!h->unicode_pages[codePage]) {
+    // Load code page
+    h->unicode_pages[codePage]=calloc(sizeof(struct unicode_page_statistics),1);
+    range_coder *c=range_new_coder(8192);
+    fseek(h->file,h->unicode_page_addresses[codePage],SEEK_SET);
+    fread(c->bit_stream,8192,1,h->file);
+    c->bit_stream_length=8192*8;
+    range_decode_prefetch(c);
+    int totalCount=range_decode_equiprobable(c,0xffffff);
+    ic_decode_recursive(h->unicode_pages[codePage]->counts,
+			128+512+1,totalCount+1,c);
+    int i;
+    int runningTotal=0;
+    for(i=0;i<128+512+1;i++) {
+      runningTotal=h->unicode_pages[codePage]->counts[i];
+      h->unicode_pages[codePage]->counts[i]-=runningTotal+1;
+    }
+  }
+  return h->unicode_pages[codePage]->counts;
 }
