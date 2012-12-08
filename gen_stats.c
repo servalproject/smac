@@ -525,9 +525,9 @@ int writeUnicodeStats(FILE *out,int frequencyThreshold,int rootNodeAddress)
 	  else
 	    frequencies[128+i]=0;
 	
-	if (totalCount>0xffffff) {
+	if (totalCount>=0xfff000) {
 	  // Rescale counts
-	  float scaleFactor=totalCount*1.0/0xffffff;
+	  float scaleFactor=totalCount*1.0/0xfff000;
 	  for(i=0;i<(128+513);i++) frequencies[i]=frequencies[i]/scaleFactor;
 	}
 
@@ -549,6 +549,7 @@ int writeUnicodeStats(FILE *out,int frequencyThreshold,int rootNodeAddress)
 	// Build compressed list of frequency information
 	range_coder *c=range_new_coder(8192);
 	assert(totalCount>=frequencies[128+512]);
+	range_encode_equiprobable(c,0xffffff,totalCount);
 	ic_encode_recursive(frequencies,128+512+1,totalCount+1,c);	
 	range_conclude(c);
 
@@ -570,9 +571,6 @@ int writeUnicodeStats(FILE *out,int frequencyThreshold,int rootNodeAddress)
   for(i=1;i<512;i++) {
     unicodeRowAddress[i]=(unicodeRowAddress[i]-rootNodeAddress)+i;
   }
-  fprintf(stderr,"rootNodeAddress=0x%x, unicodeAddress=0x%x, diff=%d\n",
-	  rootNodeAddress,unicodeAddress,unicodeAddress-rootNodeAddress);
-  fprintf(stderr,"unicodeRowAddress[511]=%d\n",unicodeRowAddress[511]);
   assert(unicodeAddress-rootNodeAddress+512+1>=unicodeRowAddress[511]);
   ic_encode_recursive(&unicodeRowAddress[1],511,
 		      unicodeAddress-rootNodeAddress+512+1,c);
