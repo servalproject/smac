@@ -532,6 +532,14 @@ int *getUnicodeStatistics(stats_handle *h,int codePage)
     int totalCount=range_decode_equiprobable(c,0xffffff);
     ic_decode_recursive(h->unicode_pages[codePage]->counts,
 			128+512+1,totalCount+1,c);
+
+    // Rescale to fill 0-0xffffff range
+    double rescaleFactor=0xffff00*1.0/(totalCount+1);
+    if (0) fprintf(stderr,"totalCount for code page 0x%04x = %d. Rescale x%.2f\n",
+		   codePage*0x80,totalCount+1,rescaleFactor);
+    int i;
+    for(i=0;i<128+512+1;i++)
+      h->unicode_pages[codePage]->counts[i]*=rescaleFactor;
   }
   return h->unicode_pages[codePage]->counts;
 }

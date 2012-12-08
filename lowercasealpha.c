@@ -60,6 +60,8 @@ int strncmp816(char *s1,unsigned short *s2,int len)
 
 /*
   TODO: Currently uses flat distribution for digit probabilities.  Should use "rule of 9" or similar.
+  TODO: We don't currently handle the situation where there are no statistics to
+  return for a given code page.
 */
 int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle *h)
 {
@@ -102,7 +104,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
 	lastCodePage=s[o]/0x80;
       } else if (s[o]/0x80!=lastCodePage) {
 	// character is not in current code page
-	range_encode_symbol(c,counts,128+512,128+s[o]/0x80);
+	range_encode_symbol(c,counts,128+512,128+s[o]/0x80);      
 	switchedPage=1;
 	lastLastCodePage=lastCodePage;
 	lastCodePage=s[o]/0x80;
@@ -110,10 +112,9 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
       // now character must be in code page, so encode
       counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
       range_encode_symbol(c,counts,switchedPage?128:(128+512),s[o]&0x7f);
-      //      fprintf(stderr,"encoded unicode char: 0x%04x\n",s[o]);
       double unicodeEntropy=c->entropy-before;
       //      fprintf(stderr,"encoded 0x%04x in %.2f bits\n",
-      //      	      s[o],unicodeEntropy);
+      //	      s[o],unicodeEntropy);
       total_unicode_millibits+=unicodeEntropy*1000;
       total_unicode_chars++;
 #else
@@ -122,12 +123,13 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
 	lastCodePage=range_decode_equiprobable(c,511)+1;
 	counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
 	symbol=range_decode_symbol(c,counts,128);
-      } else
-	symbol=range_decode_symbol(c,counts,128+512);
+      } else {
+	symbol=range_decode_symbol(c,counts,128+512);      
+      }
       if (symbol>127) {
 	lastLastCodePage=lastCodePage;
 	lastCodePage=symbol-128;
-	counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
+	unsigned int *counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
 	symbol=range_decode_symbol(c,counts,128);
       } 
       s[o]=lastCodePage*0x80+symbol;
