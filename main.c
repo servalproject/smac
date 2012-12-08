@@ -262,8 +262,13 @@ int processFile(FILE *f,stats_handle *h)
 	printf("Verify error: even ignoring case, the messages do not match.\n");
 	printf("   Input: [%s]\n  Output: [%s]\n",m,mout);
 	int i;
+	printf(" input as utf8: ");
 	for(i=0;i<strlen(m);i++)
-	  printf("<%02x>",m[i]);
+	  printf("<%02x>",(unsigned char)m[i]);
+	printf("\n");
+	printf("output as utf8: ");
+	for(i=0;i<strlen(mout);i++)
+	  printf("<%02x>",(unsigned char)mout[i]);
 	printf("\n");
 	exit(-1);
       } else if (strcmp(m,mout)) {

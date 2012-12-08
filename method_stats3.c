@@ -129,6 +129,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
     }
   m16[i]=0;
   utf16toutf8(m16,i,m,len_out);
+  m[*len_out]=0;
 
   return 0;
 }

@@ -101,7 +101,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
       // now character must be in code page, so encode
       counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
       range_encode_symbol(c,counts,counts[switchedPage?128:(128+512)],s[o]&0x7f);
-      fprintf(stderr,"encoded unicode char: 0x%04x\n",s[o]);
+      //      fprintf(stderr,"encoded unicode char: 0x%04x\n",s[o]);
 #else
       symbol=range_decode_symbol(c,counts,counts[128+512]);
       if (symbol>127) {
@@ -111,7 +111,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
 	symbol=range_decode_symbol(c,counts,counts[128]);
       } 
       s[o]=lastCodePage*0x80+symbol;
-      fprintf(stderr,"decoded unicode char: 0x%04x\n",s[o]);
+      //      fprintf(stderr,"decoded unicode char: 0x%04x\n",s[o]);
 #endif
     }
   }
