@@ -62,6 +62,8 @@ int strncmp816(char *s1,unsigned short *s2,int len)
 int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle *h)
 {
   int o;
+  int lastCodePage=0x0080/0x80;
+  int lastLastCodePage=0x0080/0x80;
 
   for(o=0;o<length;o++) {
 #ifdef ENCODING
@@ -83,6 +85,33 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
       range_encode_equiprobable(c,10,s[o]-'0');
 #else
       s[o]='0'+range_decode_equiprobable(c,10);
+#endif
+    } else if (s[o]=='U'||s[o]>0x7f) {
+      // unicode character
+      unsigned int *counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
+#ifdef ENCODING
+      int switchedPage=0;
+      if (s[o]/0x80!=lastCodePage) {
+	// character is not in current code page
+	range_encode_symbol(c,counts,counts[128+512],128+s[o]/0x80);
+	switchedPage=1;
+	lastLastCodePage=lastCodePage;
+	lastCodePage=s[o]/0x80;
+      }
+      // now character must be in code page, so encode
+      counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
+      range_encode_symbol(c,counts,counts[switchedPage?128:(128+512)],s[o]&0x7f);
+      fprintf(stderr,"encoded unicode char: 0x%04x\n",s[o]);
+#else
+      symbol=range_decode_symbol(c,counts,counts[128+512]);
+      if (symbol>127) {
+	lastLastCodePage=lastCodePage;
+	lastCodePage=symbol-128;
+	counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
+	symbol=range_decode_symbol(c,counts,counts[128]);
+      } 
+      s[o]=lastCodePage*0x80+symbol;
+      fprintf(stderr,"decoded unicode char: 0x%04x\n",s[o]);
 #endif
     }
   }

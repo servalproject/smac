@@ -117,16 +117,18 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   /* reintegrate alpha and non-alpha characters */
   int nonAlphaPointer=0;
   int alphaPointer=0;
+  unsigned short m16[1025];
   for(i=0;i<(*len_out);i++)
     {
       if (nonAlphaPointer<nonAlphaCount
 	  &&nonAlphaPositions[nonAlphaPointer]==i) {
-	m[i]=nonAlphaValues[nonAlphaPointer++];
+	m16[i]=nonAlphaValues[nonAlphaPointer++];
       } else {
-	m[i]=lowerCaseAlphaChars[alphaPointer++];
+	m16[i]=lowerCaseAlphaChars[alphaPointer++];
       }
     }
-  m[i]=0;
+  m16[i]=0;
+  utf16toutf8(m16,i,m,len_out);
 
   return 0;
 }

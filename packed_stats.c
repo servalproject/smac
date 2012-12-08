@@ -501,7 +501,10 @@ int vectorReport(char *name,struct probability_vector *v,int s)
 
 int *getUnicodeStatistics(stats_handle *h,int codePage)
 {
-  if (codePage<1||codePage>511) return NULL;
+  if (codePage<1||codePage>511) {
+    fprintf(stderr,"Illegal code page: 0x%x\n",codePage);
+    return NULL;
+  }
   if (!h->unicode_page_addresses) {
     // Load list of addresses to unicode page statistics
     h->unicode_page_addresses=calloc(sizeof(int),512);
