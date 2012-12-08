@@ -90,8 +90,8 @@ stats_handle *stats_new_handle(char *file)
 		     |(unsigned char)fgetc(h->file);
   h->maximumOrder=fgetc(h->file);
   if (1)
-    fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d, maximumOrder=%d\n",
-	    h->rootNodeAddress,h->totalCount,h->maximumOrder);
+    fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d, unicodeAddress=0x%x, maximumOrder=%d\n",
+	    h->rootNodeAddress,h->totalCount,h->unicodeAddress,h->maximumOrder);
 
 #define CHECK(X) if (h->X==0||h->X>0xfffffe) { fprintf(stderr,"P(uppercase|%s) = 0x%x\n",#X,h->X); return NULL; }
 
