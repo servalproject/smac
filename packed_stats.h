@@ -44,6 +44,7 @@ typedef struct compressed_stats_handle {
 
   unsigned int rootNodeAddress;
   unsigned int totalCount;
+  unsigned int unicodeAddress;
   unsigned int maximumOrder;
 
   /* Basic model statistics that are required.

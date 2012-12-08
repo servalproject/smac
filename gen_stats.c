@@ -35,6 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
+#include <assert.h>
 
 #include "arithmetic.h"
 #include "charset.h"
@@ -76,6 +77,36 @@ long long casestartofword3[2][2][2]; // case of start of word based on case of s
 int messagelengths[1024];
 
 long long wordBreaks=0;
+
+long long unicode_counts[65536];
+long long unicode_page_counts[512]; // = 65536 / unicode page size (128)
+long long unicode_page_changes[512][513]; /* extra code is for switching back to
+					     previously used code page */
+int lastPage=0;  // page of last unicode character seen
+int lastLastPage=0; // page of unicode character before the last one
+
+int countUnicode(unsigned short codePoint)
+{
+  int codePage=codePoint/0x80;
+  unicode_counts[codePoint]++;
+  unicode_page_counts[codePage]++;
+
+  /* Record statistics of code page changes */
+  if (codePage!=lastPage&&codePage==lastLastPage) 
+    unicode_page_changes[lastPage][512]++;
+  else 
+    unicode_page_changes[lastPage][codePage]++;
+
+  lastLastPage=lastPage;
+  lastPage=codePage;
+  return 0;
+}
+
+int unicodeNewLine()
+{
+  lastPage=0;
+  return 0;
+}
 
 unsigned int getCount(struct countnode *n,int s)
 {
@@ -451,6 +482,87 @@ int write24bit(FILE *out,unsigned int v)
   return 0;
 }
 
+int writeUnicodeStats(FILE *out,int frequencyThreshold)
+{
+  /* For each code page we need:
+     1. Frequency of each symbol
+     2. Frequency of switch to every other code page
+
+     Then when encountering a unicode character, and knowing the 
+     previous code page, we can work out the probability of it being
+     either a character in page (and apply relative frequency), and
+     the probability of it being a codepoint from another page (and
+     apply relative frequency of switching to each page from each page)
+  */
+
+  /* We ignore code page zero, since that is the ASCII7 characters. */
+  int codePage;
+  unsigned int unicodeRowAddress[512];
+
+  for(codePage=1;codePage<512;codePage++)
+    {
+      int i;
+      long long totalCount=0;
+      for(i=0;i<128;i++) totalCount+=unicode_counts[codePage*128+i];
+      for(i=1;i<513;i++)
+	{
+	  if (i!=codePage)
+	    totalCount+=unicode_page_changes[codePage][i];
+	}
+
+      if (totalCount>=frequencyThreshold) {
+	fprintf(stderr,"%lld events for code page 0x%04x--0x%04x\n",
+		totalCount,codePage*128,codePage*128+127);
+	
+	int frequencies[128+512+1];
+	for(i=0;i<128;i++) frequencies[i]=unicode_counts[codePage*128+i];
+	for(i=0;i<513;i++) 
+	  if (i!=codePage)
+	    frequencies[128+i]=unicode_page_changes[codePage][i];
+	  else
+	    frequencies[128+i]=0;
+	
+	if (totalCount>0xffffff) {
+	  // Rescale counts
+	  float scaleFactor=totalCount*1.0/0xffffff;
+	  for(i=0;i<(128+513);i++) frequencies[i]=frequencies[i]/scaleFactor;
+	}
+
+	// Now convert to cumulative totals for interpolative coding
+	int runningTotal=0;
+	for(i=0;i<128+513;i++) {
+	  // add one to make sure that they are strictly increasing.
+	  // also adds in our damping to prevent zero counts being considered
+	  // impossible.
+	  frequencies[i]=runningTotal+frequencies[i]+1; 
+	  runningTotal=frequencies[i];
+	}
+
+	totalCount=runningTotal;
+
+	// Remember where we are writing this entry
+	unicodeRowAddress[codePage]=ftello(out);
+
+	// Build compressed list of frequency information
+	range_coder *c=range_new_coder(8192);
+	assert(totalCount>=frequencies[128+512]);
+	fprintf(stderr,"totalCount=%lld, cumulative_frequencies[128+512]=%d\n",
+		totalCount,frequencies[128+512]);
+	ic_encode_recursive(frequencies,128+512+1,totalCount+1,c);	
+	range_conclude(c);
+
+	// Now write compressed list to stats file
+	int bytes=c->bits_used>>3;
+	if (c->bits_used&7) bytes++;
+	fwrite(c->bit_stream,bytes,1,out);
+	fprintf(stderr,"Code page 0x%04x -- 0x%04x written in %d bytes.\n",
+		codePage*128,codePage*128+127,bytes);
+	range_coder_free(c);
+      }
+    }
+  return 0;
+}
+
 int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 {
   char filename[1024];
@@ -472,7 +584,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   }
 
   /* Keep space for our header */
-  fprintf(out,"STA1XXXXYYYYZ");
+  fprintf(out,"STA1XXXXYYYYUUUUZ");
 
   /* Write case statistics. No way to compress these, so just write them out. */
   unsigned int tally,vv;
@@ -549,6 +661,11 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 					nodeTree->count,
 					frequencyThreshold);
 
+  unsigned int unicodeAddress=(unsigned int)ftello(out);
+  fprintf(stderr,"Writing unicode stats at 0x%x\n",unicodeAddress);
+
+  writeUnicodeStats(out,frequencyThreshold);
+
   unsigned int totalCount=0;
   for(i=0;i<CHARCOUNT;i++) totalCount+=getCount(nodeTree,i);
 
@@ -556,8 +673,8 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   fseek(out,4,SEEK_SET);
   writeInt(out,topNodeAddress);
   writeInt(out,totalCount);
+  writeInt(out,unicodeAddress);
   fputc(maximumOrder+1,out);
-  
 
   fclose(out);
 
@@ -619,6 +736,9 @@ int main(int argc,char **argv)
     }
   }
   for(i=0;i<1024;i++) messagelengths[i]=0;
+  for(i=0;i<65536;i++) unicode_counts[i]=0;
+  for(i=0;i<512;i++) unicode_page_counts[i]=0;
+  for(i=0;i<512;i++) for(j=0;j<513;j++) unicode_page_changes[i][j]=0;
 
   if (argc<4) {
     fprintf(stderr,"usage: gen_stats <maximum order> <word model> [training_corpus ...]\n");
@@ -691,9 +811,10 @@ int main(int argc,char **argv)
       // dumpTree(nodeTree,0);
     }
 
+    unicodeNewLine();
     for(i=0;i<utf16len;i++)
       {       
-
+	if (utf16line[i]>0x7f) countUnicode(utf16line[i]);
 	//	printf("char '%c'\n",line[i]);
 	int wc=charInWord(utf16line[i]);
 	if (!wc) {

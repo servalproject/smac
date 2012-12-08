@@ -86,6 +86,8 @@ stats_handle *stats_new_handle(char *file)
 		     |(unsigned char)fgetc(h->file);
   for(i=0;i<4;i++) h->totalCount=(h->totalCount<<8)
 		     |(unsigned char)fgetc(h->file);
+  for(i=0;i<4;i++) h->unicodeAddress=(h->unicodeAddress<<8)
+		     |(unsigned char)fgetc(h->file);
   h->maximumOrder=fgetc(h->file);
   if (1)
     fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d, maximumOrder=%d\n",
