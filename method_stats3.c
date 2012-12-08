@@ -137,7 +137,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
 int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outlen,
 		      stats_handle *h)
 {
-  range_coder *c=range_new_coder(inlen);
+  range_coder *c=range_new_coder(inlen*2);
   bcopy(in,c->bit_stream,inlen);
 
   c->bit_stream_length=inlen*8;
@@ -225,7 +225,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
   if ((!nonAlphaChars)&&c->bits_used>=7*m_in_len)
     {
       /* Can we code it more efficiently without statistical modelling? */
-      range_coder *c2=range_new_coder(1024);
+      range_coder *c2=range_new_coder(1024*2);
       range_encode_equiprobable(c2,2,1); // not raw ASCII
       range_encode_equiprobable(c2,2,0); 
       range_encode_symbol(c2,&probPackedASCII,2,0); // is packed ASCII

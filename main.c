@@ -195,7 +195,7 @@ int processFile(FILE *f,stats_handle *h)
 
     total_messages++;
 
-    range_coder *c=range_new_coder(1024);
+    range_coder *c=range_new_coder(2048);
     now = current_time_us();
     stats3_compress_bits(c,(unsigned char *)m,strlen(m),h);
     stats3_compress_us+=current_time_us()-now;

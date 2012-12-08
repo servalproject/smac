@@ -93,22 +93,22 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
       int switchedPage=0;
       if (s[o]/0x80!=lastCodePage) {
 	// character is not in current code page
-	range_encode_symbol(c,counts,counts[128+512],128+s[o]/0x80);
+	range_encode_symbol(c,counts,128+512,128+s[o]/0x80);
 	switchedPage=1;
 	lastLastCodePage=lastCodePage;
 	lastCodePage=s[o]/0x80;
       }
       // now character must be in code page, so encode
       counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
-      range_encode_symbol(c,counts,counts[switchedPage?128:(128+512)],s[o]&0x7f);
+      range_encode_symbol(c,counts,switchedPage?128:(128+512),s[o]&0x7f);
       //      fprintf(stderr,"encoded unicode char: 0x%04x\n",s[o]);
 #else
-      symbol=range_decode_symbol(c,counts,counts[128+512]);
+      symbol=range_decode_symbol(c,counts,128+512);
       if (symbol>127) {
 	lastLastCodePage=lastCodePage;
 	lastCodePage=symbol-128;
 	counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
-	symbol=range_decode_symbol(c,counts,counts[128]);
+	symbol=range_decode_symbol(c,counts,128);
       } 
       s[o]=lastCodePage*0x80+symbol;
       //      fprintf(stderr,"decoded unicode char: 0x%04x\n",s[o]);
