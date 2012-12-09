@@ -1,6 +1,6 @@
 CC=gcc
-COPT=-g -Wall
-CFLAGS=-g -Wall
+COPT=-g -Wall -O3
+CFLAGS=-g -Wall -O3
 DEFS=
 
 OBJS=	main.o \
@@ -21,9 +21,11 @@ OBJS=	main.o \
 	entropyutil.o \
 	\
 	arithmetic.o \
-	gsinterpolative.o
+	gsinterpolative.o \
+	\
+	visualise.o
 
-HDRS=	charset.h arithmetic.h packed_stats.h unicode.h Makefile
+HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h Makefile
 
 all: method_stats3 arithmetic gsinterpolative gen_stats
 

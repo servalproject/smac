@@ -24,11 +24,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include<sys/time.h>
 
 #include "charset.h"
+#include "visualise.h"
 #include "arithmetic.h"
 #include "packed_stats.h"
 #include "method_stats3.h"
 
-int processFile(FILE *f,stats_handle *h);
+int processFile(FILE *f,FILE *contentXML,stats_handle *h);
 
 int lines=0;
 double worstPercent=0,bestPercent=100;
@@ -130,6 +131,9 @@ int main(int argc,char *argv[])
   
   FILE *f;
 
+  FILE *contentXML=fopen("content.xml","w+");
+  beginContentXML(contentXML);
+
   int argn=1;
 
   for(argn=1;argn<argc;argn++) {
@@ -138,10 +142,13 @@ int main(int argc,char *argv[])
       fprintf(stderr,"Failed to open `%s' for input.\n",argv[1]);
       exit(-1);
     } else {
-      processFile(f,h);
+      processFile(f,contentXML,h);
       fclose(f);
     }
   }
+
+  endContentXML(contentXML);
+  fclose(contentXML);
 
   printf("Summary:\n");
   printf("         compressed size: %f%% (bit oriented)\n",
@@ -183,7 +190,7 @@ long long current_time_us()
   return tv.tv_usec+tv.tv_sec*1000000LL;
 }
 
-int processFile(FILE *f,stats_handle *h)
+int processFile(FILE *f,FILE *contentXML,stats_handle *h)
 {
   char m[1024]; // raw message, no pre-processing
   long long now;
@@ -203,11 +210,16 @@ int processFile(FILE *f,stats_handle *h)
 
     total_messages++;
 
+    double entropyLog[1025];
     range_coder *c=range_new_coder(2048);
     now = current_time_us();
-    stats3_compress_bits(c,(unsigned char *)m,strlen(m),h,NULL);
+    stats3_compress_bits(c,(unsigned char *)m,strlen(m),h,entropyLog);
     stats3_compress_us+=current_time_us()-now;
     
+    if (total_messages<1000)
+      visualiseMessage(contentXML,(unsigned char *)m,
+		       c->bits_used*100.0/(strlen(m)*8),entropyLog);
+
     total_compressed_bits+=c->bits_used;
     total_uncompressed_bits+=strlen(m)*8;
 

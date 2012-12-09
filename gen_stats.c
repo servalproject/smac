@@ -717,9 +717,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   v=extractVector(ascii2utf16("http"),strlen("http"),h);
   // vectorReport("http",v,charIdx(':'));
   v=extractVector(ascii2utf16(""),strlen(""),h);
-  
   int *codePage=getUnicodeStatistics(h,0x0400/0x80);
-  unicodeVectorReport("cyrillic",codePage,0x400/0x80,0x0400/0x80,0x041f);
 
   stats_handle_free(h);
 

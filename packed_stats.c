@@ -525,25 +525,33 @@ int *getUnicodeStatistics(stats_handle *h,int codePage)
     // Load code page
     h->unicode_pages[codePage]=calloc(sizeof(struct unicode_page_statistics),1);
     range_coder *c=range_new_coder(8192);
-    if (h->unicode_page_addresses[codePage]+1==
+    int i;
+    int totalCount;
+    if (h->unicode_page_addresses[codePage]==
 	h->unicode_page_addresses[codePage+1])
       {
-	fprintf(stderr,"WARNING: No stats for code page 0x%04x; making some up.\n",
-		codePage*0x80);
-      }
-    fseek(h->file,h->unicode_page_addresses[codePage],SEEK_SET);
-    fread(c->bit_stream,8192,1,h->file);
-    c->bit_stream_length=8192*8;
-    range_decode_prefetch(c);
-    int totalCount=range_decode_equiprobable(c,0xffffff);
-    ic_decode_recursive(h->unicode_pages[codePage]->counts,
-			128+512+1,totalCount+1,c);
+	if (0) fprintf(stderr,"WARNING: No stats for code page 0x%04x; making some up.\n",
+		       codePage*0x80);
+	for(i=0;i<128;i++) h->unicode_pages[codePage]->counts[i]=40;
+	for(i=128;i<=128+512;i++) h->unicode_pages[codePage]->counts[i]=1;
+	for(i=1;i<128+512+1;i++)
+	  h->unicode_pages[codePage]->counts[i]+=
+	    h->unicode_pages[codePage]->counts[i-1];
+	totalCount=h->unicode_pages[codePage]->counts[128+512];	
+      } else {
+      fseek(h->file,h->unicode_page_addresses[codePage],SEEK_SET);
+      fread(c->bit_stream,8192,1,h->file);
+      c->bit_stream_length=8192*8;
+      range_decode_prefetch(c);
+      totalCount=range_decode_equiprobable(c,0xffffff);
+      ic_decode_recursive(h->unicode_pages[codePage]->counts,
+			  128+512+1,totalCount+1,c);
+    }
 
     // Rescale to fill 0-0xffffff range
     double rescaleFactor=0xffff00*1.0/(totalCount+1);
     if (0) fprintf(stderr,"totalCount for code page 0x%04x = %d. Rescale x%.2f\n",
 		   codePage*0x80,totalCount+1,rescaleFactor);
-    int i;
     for(i=0;i<128+512+1;i++)
       h->unicode_pages[codePage]->counts[i]*=rescaleFactor;
   }
