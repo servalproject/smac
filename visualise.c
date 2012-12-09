@@ -28,17 +28,60 @@ int writePalette(FILE *out)
      representing higher entropy, and blue lower entropy. */
   int i;
 
+  unsigned int colours[25]={
+    0x00007f, // 0 bim blue
+    0x0000ff, // 1 blue
+    0x0040bf, // 2
+    0x007f7f, // 3
+    0x00bf3f, // 4
+    0x00ff00, // 5 green
+    0x3fff00, // 6
+    0x7fff00, // 7
+    0xbfff00, // 8
+    0xffff00, // 9 yellow
+    0xffbf00, // 10
+    0xff7f00, // 11
+    0xff3f00, // 12
+    0xff0000, // 13 red
+    0xff1f1f, // 14
+    0xff3f3f, // 15
+    0xff5f5f, // 16
+    0xff7f7f, // 17 pink
+    0xff9f9f, // 18
+    0xffbfbf, // 19
+    0xffdfdf, // 20
+    0xffffff, // 21 white
+    0xffffff, // 22
+    0xffffff, // 23
+    0xffffff // 24
+  };
+
   for(i=0;i<256;i++) {
-    fprintf(out,"<style:style style:name=\"T%d\" style:family=\"text\"><style:text-properties fo:background-color=\"#%02x%02x%02x\" fo:foreground-color=\"#000000\" style:font-name-complex=\"Times New Roman1\"/></style:style>\n",i,i,i,255-i);
+    int bits=i*24/256;
+
+    fprintf(out,"<style:style style:name=\"T%d\" style:family=\"text\"><style:text-properties fo:background-color=\"#%06x\" fo:foreground-color=\"#000000\" style:font-name-complex=\"Times New Roman1\"/></style:style>\n",i,
+	    colours[bits]
+	    //i,i,255-i
+	    );
   }
   return 0;
 }
 
 int beginContentXML(FILE *out)
 {
+  int i;
   fprintf(out,"%s",contentXML1);
   writePalette(out);
   fprintf(out,"%s",contentXML3);
+
+  // Draw colour legend
+  fprintf(out,"<text:p text:style-name=\"Standard\">Legend: <text:tab/>");
+  for(i=0;i<=24;i++) {
+    fprintf(out,"<text:span text:style-name=\"T%d\"> %d </text:span>",i*256/24,i);
+  }
+  fprintf(out,"bits</text:p>\n");
+  fprintf(out,"<text:p/>\n");
+
   return 0;
 }
 
