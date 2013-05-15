@@ -53,3 +53,8 @@ test:	gsinterpolative arithmetic
 	./gsinterpolative
 	./arithmetic
 	./smac twitter_corpus*.txt
+
+out.odt:	content.xml
+	cp content.xml odt-shell/
+	cd odt-shell
+	zip -fr ../out.odt *
