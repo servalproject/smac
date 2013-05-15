@@ -1,6 +1,13 @@
 SMAC - Short Message Arithmetic Compressor
 ------------------------------------------
+(C) Paul Gardner-Stephen 2012-2013.
 
+SMAC compresses SMS and Twitter like messages to around half of their original size, often less.
+It uses a compressed pre-computed multi-order dictionary to feed probabilities to an arithmetic coder.
+It offers full unicode support, and accepts UTF-8 strings.  
+Using redundancy in the UTF-8 format, SMAC offers the feature that it never increases
+the length of a string during compression, and uncompressed strings can be passed to 
+the decompressor without causing problems.
 
 CREDITS
 -------
