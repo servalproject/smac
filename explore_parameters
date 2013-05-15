@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-foreach wordmodel ( 0 ) # ( 3 v 0 ) is full range of options
+foreach wordmodel ( 0 ) 
   foreach order ( 5 4 6 7 3 2 1 )
     # Generate stats*.dat and message_stats.c
     ./gen_stats $order $wordmodel utrain.txt
@@ -10,12 +10,12 @@ foreach wordmodel ( 0 ) # ( 3 v 0 ) is full range of options
       cp stats-o${order}-t${threshold}.dat stats.dat
       echo order = $order threshold = $threshold wordmodel = $wordmodel
       ls -l stats.dat > results/results-o${order}-t${threshold}-w${wordmodel}.log
-      ./method_stats3 utest.txt >> results/results-o${order}-t${threshold}-w${wordmodel}.log
+      ./smac utest.txt >> results/results-o${order}-t${threshold}-w${wordmodel}.log
       mv compressed_size_versus_uncompressed_length{,-o${order}-t${threshold}-w${wordmodel}}.csv
       mv compressed_size_hist{,-o${order}-t${threshold}-w${wordmodel}}.csv
       mv *.csv results/
     end
-    rm stats*.dat
+#    rm stats*.dat
   end
 end
 
