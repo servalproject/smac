@@ -159,6 +159,7 @@ int main(int argc,char *argv[])
   printf("     model-encoding bits: %lld\n",total_model_bits);
   printf("      case-encoding bits: %lld\n",total_case_bits);
   printf("     alpha-encoding bits: %lld\n",total_alpha_bits);
+  if (total_unicode_chars)
   printf("   avg unicode bits/char: %.2f\n",
 	 total_unicode_millibits/total_unicode_chars/1000.0);
   printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
