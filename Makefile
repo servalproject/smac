@@ -5,7 +5,7 @@ DEFS=
 
 OBJS=	main.o \
 	\
-	method_stats3.o \
+	smac.o \
 	\
 	unicode.o \
 	case.o \
@@ -25,13 +25,10 @@ OBJS=	main.o \
 
 HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h Makefile
 
-all: method_stats3 arithmetic gsinterpolative gen_stats
-
-smaz_test: smaz_test.c smaz.c
-	gcc -o smaz_test -O2 -Wall -W -ansi -pedantic smaz.c smaz_test.c
+all: smac arithmetic gsinterpolative gen_stats
 
 clean:
-	rm -rf smaz_test *.o gen_stats method_stats3
+	rm -rf gen_stats smac
 
 arithmetic:	arithmetic.c arithmetic.h
 # Build for running tests
@@ -43,8 +40,8 @@ extract_tweets:	extract_tweets.o
 gen_stats:	gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
 	gcc $(CFLAGS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
 
-method_stats3:	$(OBJS)
-	gcc -g -Wall -o method_stats3 $(OBJS)
+smac:	$(OBJS)
+	gcc -g -Wall -o smac $(OBJS)
 
 gsinterpolative:	gsinterpolative.c $(OBJS)
 	gcc -g -Wall -DSTANDALONE -o gsinterpolative{,.c} arithmetic.o
@@ -55,4 +52,4 @@ gsinterpolative:	gsinterpolative.c $(OBJS)
 test:	gsinterpolative arithmetic
 	./gsinterpolative
 	./arithmetic
-	./method_stats3 twitter_corpus*.txt
+	./smac twitter_corpus*.txt

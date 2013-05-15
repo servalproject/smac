@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "visualise.h"
 #include "arithmetic.h"
 #include "packed_stats.h"
-#include "method_stats3.h"
+#include "smac.h"
 
 int processFile(FILE *f,FILE *contentXML,stats_handle *h);
 
