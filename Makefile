@@ -56,5 +56,4 @@ test:	gsinterpolative arithmetic
 
 out.odt:	content.xml
 	cp content.xml odt-shell/
-	cd odt-shell
-	zip -fr ../out.odt *
+	cd odt-shell ; zip -r ../out.odt *
