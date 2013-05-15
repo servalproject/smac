@@ -49,12 +49,9 @@ long long total_unicode_chars=0;
 long long total_messages=0;
 
 long long total_stats3_bytes=0;
-long long total_smaz_bytes=0;
 
 long long stats3_compress_us=0;
 long long stats3_decompress_us=0;
-long long smaz_compress_us=0;
-long long smaz_decompress_us=0;
 
 double comp_by_size_percent[104];
 unsigned int comp_by_size_count[104];
@@ -165,18 +162,11 @@ int main(int argc,char *argv[])
   printf("   avg unicode bits/char: %.2f\n",
 	 total_unicode_millibits/total_unicode_chars/1000.0);
   printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
-  printf("   SMAZ compressed bytes: %lld (for comparison)\n",total_smaz_bytes);
-  printf("    SMAZ compressed size: %f%% (byte oriented; for comparison)\n",
-	 total_smaz_bytes*100.0/(total_uncompressed_bits/8.0));
   printf("\n");
   printf("stats3 compression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
 	 stats3_compress_us,1000000.0/(stats3_compress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_compress_us);
   printf("stats3 decompression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
 	 stats3_decompress_us,1000000.0/(stats3_decompress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_decompress_us);
-  printf("SMAZ compression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
-	 smaz_compress_us,1000000.0/(smaz_compress_us*1.0/total_messages),total_uncompressed_bits*0.125/smaz_compress_us);
-  printf("SMAZ decompression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
-	 smaz_decompress_us,1000000.0/(smaz_decompress_us*1.0/total_messages),total_uncompressed_bits*0.125/smaz_decompress_us);
 
   outputHistograms();
 
@@ -226,21 +216,6 @@ int processFile(FILE *f,FILE *contentXML,stats_handle *h)
     /* Also count whole bytes for comparison with SMAZ etc */
     total_stats3_bytes+=c->bits_used>>3;
     if (c->bits_used&7) total_stats3_bytes++;
-
-    /* Compare with SMAZ original algorithm */
-    {
-      unsigned char out[2048];
-      now=current_time_us();
-      int outlen=smaz_compress(m,strlen(m),out,2048);
-      smaz_compress_us+=current_time_us()-now;   
-      total_smaz_bytes+=outlen;
-
-      unsigned char out2[2048];
-      now=current_time_us();
-      outlen=smaz_decompress(out,outlen,out2,2048);
-      smaz_decompress_us+=current_time_us()-now;   
-      
-    }
 
     double percent=c->bits_used*100.0/(strlen(m)*8);   
     if (percent<bestPercent) bestPercent=percent;
