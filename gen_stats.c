@@ -85,6 +85,11 @@ long long unicode_page_changes[512][513]; /* extra code is for switching back to
 int lastPage=0;  // page of last unicode character seen
 int lastLastPage=0; // page of unicode character before the last one
 
+#define MAX_PERMUTATIONS 1048576
+int permutation_count;
+int permutation_addresses[MAX_PERMUTATIONS];
+char *permutations[MAX_PERMUTATIONS];
+
 int countUnicode(unsigned short codePoint)
 {
   int codePage=codePoint/0x80;
@@ -258,6 +263,120 @@ int countChars(unsigned short *s,int len,int maximumOrder)
   return 0;
 }
 
+typedef struct doublet {
+  int a;
+  int b;
+} doublet;
+
+int compare_tolerance=0;
+int compare_doublet(const void *a,const void *b)
+{
+  const doublet *aa=a;
+  const doublet *bb=b;
+  if (abs(aa->a-bb->a)>compare_tolerance)
+    {
+      if (aa->a<bb->a) return 1;
+      if (aa->a>bb->a) return -1;
+    }
+  if (aa->b>bb->b) return 1;
+  if (aa->b<bb->b) return -1;
+  return 0;
+}
+
+int dump(char *name,unsigned char *addr,int len);
+
+unsigned int curve_freq_encode(FILE *out,range_coder *c,
+			       struct countnode *n,char *s,
+			       int totalCountIncludingTerminations,int threshold,
+			       int pass)
+{
+  int i;
+  doublet freqs[CHARCOUNT];
+  long long totalCount=0;
+  int hasCount=0,maxCountChild=0;
+  for(i=0;i<CHARCOUNT;i++) { 
+    freqs[i].b=i;
+    totalCount+=getCount(n,i);
+    freqs[i].a=getCount(n,i);
+    if (getCount(n,i)) { hasCount++; maxCountChild=i; }
+  }
+
+  // fprintf(stderr,"Node has %d non-zero elements (count=%lld).\n",
+  // hasCount,totalCount);
+
+  // Sort characters by frequency
+  qsort(freqs,CHARCOUNT,sizeof(doublet),compare_doublet);
+  // Build permtutation
+  char permutation[CHARCOUNT*2+1];
+  int tail_end=CHARCOUNT-1;
+  while (tail_end>0&&freqs[tail_end-1].b==freqs[tail_end].b-1) tail_end--;
+  for(i=0;i<=tail_end;i++) 
+    if (freqs[i].a)
+      sprintf(&permutation[i*2],"%02x",freqs[i].b);
+    else break;
+  // See if we have seen it before.
+  // (it turns out that exactly the same permutations repeat quite often, with 
+  // one test showing <20% unique permutations).
+  int permutation_number;
+  for(permutation_number=0;permutation_number<permutation_count;
+      permutation_number++) {
+    if (!strcmp(permutations[permutation_number],permutation)) {
+      break;
+    }
+  }
+  if (permutation_number==permutation_count) {
+    if (pass) {
+      fprintf(stderr,"This shouldn't happen.\n");
+      exit(-1);
+    }
+    // Haven't seen the permutation before, so write it out, and 
+    // remember the address.
+    
+    int permutation_length=strlen(permutation)/2;
+    // fprintf(stderr,"Writing permutation %d (len=%d)\n",
+    // permutation_number,permutation_length);
+
+    range_encode_equiprobable(c,CHARCOUNT+1,permutation_length);
+
+    int used[CHARCOUNT];
+    for(i=0;i<CHARCOUNT;i++) used[i]=0;
+    for(i=0;i<permutation_length;i++) {
+      int rank=0,j;
+      for(j=0;j<freqs[i].b;j++) 
+	if (!used[j]) rank++; 
+      range_encode_equiprobable(c,CHARCOUNT-i,rank);
+      used[freqs[i].b]=1;
+    }
+
+    permutation_addresses[permutation_count]=ftello(out);
+    permutations[permutation_count]=strdup(permutation);
+    permutation_count++;
+
+    // conclude and advance to next byte boundary
+    range_mark_and_continue(c);
+  } 
+  if (!pass) return 0;
+
+  // Encode character permutation
+  range_encode_equiprobable(c,ftello(out)+1+(c->bookmark>>3),
+			    permutation_addresses[permutation_number]);
+
+  // Encode frequencies
+  // XXX - Later use a algebraic model to dramatically reduce the entropy
+  // of this part.
+  int previousCount=totalCount;
+  int remainingCount=totalCount;
+  for(i=0;i<CHARCOUNT;i++) {
+    int minCount=remainingCount/(CHARCOUNT-i);    
+    range_encode_equiprobable(c,previousCount+1-minCount,freqs[i].a-minCount);
+    
+    previousCount=freqs[i].a;
+    remainingCount-=freqs[i].a;
+    if (!previousCount) break;
+  }  
+  return 0;
+}
+
 int nodesWritten=0;
 unsigned int writeNode(FILE *out,struct countnode *n,char *s,
 		       /* Terminations don't get counted internally in a node,
@@ -315,13 +434,6 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
     }
   }
   
-  /* Write total count in this node */
-  range_encode_equiprobable(c,totalCountIncludingTerminations+1,totalCount);
-  /* Write number of children with counts */
-  range_encode_equiprobable(c,CHARCOUNT+1,childCount);
-  /* Now number of children that we are storing sub-nodes for */
-  range_encode_equiprobable(c,CHARCOUNT+1,storedChildren);
-
   unsigned int highAddr=ftell(out);
   unsigned int lowAddr=0;
   if (debug) fprintf(stderr,"  lowAddr=0x%x, highAddr=0x%x\n",lowAddr,highAddr);
@@ -335,8 +447,13 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   unsigned int remainingCount=totalCount;
   // XXX - we can improve on these probabilities by adjusting them
   // according to the remaining number of children and stored children.
-  unsigned int hasCount=(CHARCOUNT-childCount)*0xffffff/CHARCOUNT;
   unsigned int isStored=(CHARCOUNT-storedChildren)*0xffffff/CHARCOUNT;
+
+  int start_bit=c->bits_used;
+
+#if 0
+  // Encode frequency table
+  unsigned int hasCount=(CHARCOUNT-childCount)*0xffffff/CHARCOUNT;
   for(i=0;i<CHARCOUNT;i++) {
     hasCount=(CHARCOUNT-i-childCount)*0xffffff/(CHARCOUNT-i);
 
@@ -357,7 +474,24 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
       range_encode_symbol(c,&hasCount,2,0);
     }
   }
-      
+#endif
+
+  // Write out permutation table if required
+  curve_freq_encode(out,c,n,s,totalCountIncludingTerminations,threshold,0);
+
+  /* Write total count in this node */
+  range_encode_equiprobable(c,totalCountIncludingTerminations+1,totalCount);
+  /* Write number of children with counts */
+  range_encode_equiprobable(c,CHARCOUNT+1,childCount);
+  /* Now number of children that we are storing sub-nodes for */
+  range_encode_equiprobable(c,CHARCOUNT+1,storedChildren);
+
+  // Write out frequency table referencing appropriate permutation table
+  curve_freq_encode(out,c,n,s,totalCountIncludingTerminations,threshold,1);
+
+  int freq_bits=c->bits_used-start_bit;
+  start_bit=c->bits_used;
+
   for(i=0;i<CHARCOUNT;i++) {
     isStored=(CHARCOUNT-i-storedChildren)*0xffffff/(CHARCOUNT-i);
     if (childAddresses[i]) {
@@ -378,6 +512,10 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
     }  
   }
 
+  int addr_bits=c->bits_used-start_bit;
+  fprintf(stderr,"thresh:freq bits:addr bits:%d:%d:%d\n",
+	  threshold,freq_bits,addr_bits);
+
   range_conclude(c);
 
   /* Unaccounted for observations are observations that terminate at this point.
@@ -393,6 +531,10 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   if (c->bits_used&7) bytes++;
   fwrite(c->bit_stream,bytes,1,out);
 
+  // fprintf(stderr,"addr=0x%x, bookmark=0x%x, node=0x%x, bytes=0x%x\n",
+  // addr,c->bookmark>>3,addr+(c->bookmark>>3),bytes);
+  // dump("bytes",c->bit_stream,bytes<48?bytes:48);
+
   /* Verify */
   {
     /* Make pretend stats handle to extract from */
@@ -402,7 +544,7 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
     h.dummyOffset=addr;
     h.fileLength=addr+bytes;
     if (0) fprintf(stderr,"verifying node @ 0x%x\n",addr);
-    struct node *v=extractNodeAt(NULL,0,addr,totalCountIncludingTerminations,&h,
+    struct node *v=extractNodeAt(NULL,0,addr+(c->bookmark>>3),totalCountIncludingTerminations,&h,
 				 0 /* don't extract whole tree */,debug);
 
     int i;
@@ -436,6 +578,8 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
 #endif
     node_free(v);
   }
+  
+  addr+=(c->bookmark>>3);
   range_coder_free(c);
 
   return addr;
@@ -678,6 +822,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   }
 
   /* Write compressed data out */
+  permutation_count=0;
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
 					frequencyThreshold);

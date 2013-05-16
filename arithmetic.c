@@ -46,6 +46,17 @@ int bits2bytes(int b)
   return (b>>3)+extra;
 }
 
+int range_mark_and_continue(range_coder *c)
+{
+  range_conclude(c);
+  while (c->bits_used&7) { c->bits_used++; c->entropy++; }
+  c->low=0;
+  c->high=0xffffffff;
+  c->underflow=0;
+  c->bookmark=c->bits_used;
+  return 0;
+}
+
 int range_encode_length(range_coder *c,int len)
 {
   int bits=0,i;
@@ -501,6 +512,7 @@ int range_coder_reset(struct range_coder *c)
   c->bits_used=0;
   c->underflow=0;
   c->errors=0;
+  c->bookmark=0;
   return 0;
 }
 

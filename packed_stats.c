@@ -28,6 +28,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 #include "unicode.h"
 
+int dump(char *name,unsigned char *addr,int len)
+{
+  int i,j;
+  fprintf(stderr,"Dump of %s\n",name);
+  for(i=0;i<len;i+=16) 
+    {
+      fprintf(stderr,"  %04x :",i);
+      for(j=0;j<16&&(i+j)<len;j++) fprintf(stderr," %02x",addr[i+j]);
+      for(;j<16;j++) fprintf(stderr,"   ");
+      fprintf(stderr,"    ");
+      for(j=0;j<16&&(i+j)<len;j++) fprintf(stderr,"%c",addr[i+j]>=' '&&addr[i+j]<0x7f?addr[i+j]:'.');
+      fprintf(stderr,"\n");
+    }
+  return 0;
+}
+
 void node_free_recursive(struct node *n)
 {
   int i;
@@ -190,7 +206,7 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   if (len<(0-(int)h->maximumOrder)) {
     // We are diving deeper than the maximum order that we expected to see.
     // This indicates an error.
-    fprintf(stderr,"len=%d, maximumOrder=0x%x\n",len,h->maximumOrder);
+    // fprintf(stderr,"len=%d, maximumOrder=0x%x\n",len,h->maximumOrder);
     return NULL;
   }
   if (nodeAddress<700) {
@@ -200,7 +216,8 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   }
   
   if (0) {
-    if (s[len]) fprintf(stderr,"Extracting node '%c' @ 0x%x\n",s[len],nodeAddress);
+    if (s&&s[len]) fprintf(stderr,"Extracting node '%04x' @ 0x%x\n",
+			(unsigned int)s[len],(unsigned int)nodeAddress);
     else fprintf(stderr,"Extracting root node @ 0x%x?\n",nodeAddress);
   }
  
@@ -210,19 +227,21 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   c->bits_used=0;
   c->low=0; c->high=0xffffffff;
   range_decode_prefetch(c);
+  //  dump("node bitstream",c->bit_stream,
+  //     c->bit_stream_length>>3<48?c->bit_stream_length>>3:48);
 
   unsigned int totalCount=range_decode_equiprobable(c,count+1);
   int children=range_decode_equiprobable(c,CHARCOUNT+1);
   int storedChildren=range_decode_equiprobable(c,CHARCOUNT+1);
+  long long permutation_address=range_decode_equiprobable(c,nodeAddress+1);
+
   unsigned int progressiveCount=0;
-  unsigned int thisCount;
 
   unsigned int highAddr=nodeAddress;
   unsigned int lowAddr=0;
   unsigned int childAddress;
   int i;
 
-  unsigned int hasCount=(CHARCOUNT-children)*0xffffff/CHARCOUNT;
   unsigned int isStored=(CHARCOUNT-storedChildren)*0xffffff/CHARCOUNT;
 
   if (debug)
@@ -238,6 +257,10 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
 
   n->count=totalCount;
 
+#if 0
+  // Extract table of frequencies
+  unsigned int thisCount;
+  unsigned int hasCount=(CHARCOUNT-children)*0xffffff/CHARCOUNT;
   for(i=0;i<CHARCOUNT;i++) {
     hasCount=(CHARCOUNT-i-children)*0xffffff/(CHARCOUNT-i);
 
@@ -254,6 +277,65 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
       // fprintf(stderr,"  no count for '%c' %d\n",chars[i],i);
     }
   }
+#else
+  // Extract table of frequencies using permuted order
+  int freqs[CHARCOUNT];
+  int charids[CHARCOUNT];
+  bzero(freqs,sizeof(freqs));
+  bzero(charids,sizeof(charids));
+
+  // fprintf(stderr,"Reading permutated alphabet from 0x%llx\n",
+  // permutation_address);
+  {
+    int used[CHARCOUNT];
+    for(i=0;i<CHARCOUNT;i++) used[i]=0;
+    range_coder *c=range_new_coder(0);
+    c->bit_stream=getCompressedBytes(h,permutation_address,1024);
+    c->bit_stream_length=1024*8;
+    c->bits_used=0;
+    c->low=0; c->high=0xffffffff;
+    range_decode_prefetch(c);
+    // dump("permutation bitstream",c->bit_stream,
+    // c->bit_stream_length>>3<48?c->bit_stream_length>>3:48);
+ 
+    int permutation_length=range_decode_equiprobable(c,CHARCOUNT+1);
+    // fprintf(stderr,"Extracting permutation (len=%d, byte0=0x%02x): ",
+    // permutation_length,c->bit_stream[0]);
+    for(i=0;i<permutation_length;i++) {
+      int rank=range_decode_equiprobable(c,CHARCOUNT-i);
+      int charid=0;
+      for(charid=0;(charid<CHARCOUNT)&&(rank>0);charid++) 
+	if (!used[charid]) rank--;
+      while (used[charid]) charid++;
+      used[charid]=1;
+      charids[i]=charid;
+    }
+    // Reassemble tail
+    for(;i<CHARCOUNT;++i) {
+      int j;
+      for(j=0;j<CHARCOUNT;j++) if (!used[j]) break;
+      charids[i]=j; used[j]=1;
+    }
+  }
+
+  // Read frequencies
+  int previousCount=totalCount;
+  int remainingCount=totalCount;
+  for(i=0;i<CHARCOUNT;i++) {
+    int minCount=remainingCount/(CHARCOUNT-i);    
+    int freq=range_decode_equiprobable(c,previousCount+1-minCount)+minCount;
+    n->counts[charids[i]]=freq;
+    //    fprintf(stderr,"%d. counts[0x%02x]=%d\n",i,charids[i],freq);
+    previousCount=freq;
+    remainingCount-=freq;
+    if (!previousCount) break;
+  }  
+  for(;i<CHARCOUNT;i++) {
+    n->counts[charids[i]]=0;
+    //    fprintf(stderr,"%d. counts[0x%02x]=%d **tail\n",i,charids[i],0);
+  }
+
+#endif
 
   if (debug) {
     int i;

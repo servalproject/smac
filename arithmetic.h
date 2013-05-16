@@ -33,6 +33,8 @@ typedef struct range_coder {
   unsigned char *bit_stream;
   int bit_stream_length;  
   unsigned int bits_used;
+
+  unsigned int bookmark;
 } range_coder;
 
 int range_coder_reset(struct range_coder *c);
@@ -53,6 +55,7 @@ range_coder *range_coder_dup(range_coder *in);
 int range_rescale(range_coder *c);
 int range_unrescale_value(unsigned int v,int underflow_bits);
 int range_decode_prefetch(range_coder *c);
+int range_mark_and_continue(range_coder *c);
 
 int ic_encode_recursive(int *list,
 			int list_length,
