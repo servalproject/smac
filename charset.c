@@ -24,7 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 /* 0 is a place holder for 0-9.
    U is a place holder for all Unicode characters.
 */
-char chars[CHARCOUNT]="abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/\r\n\t0U";
+// char chars[CHARCOUNT]="abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/\r\n\t0U";
+char chars[CHARCOUNT]="U aetionrslhumd0cpk.gyb@:/wfvj_!,#z)x(\nq\"?-\'*^;~<>=|&`][+\\$%}{\r\t";
 char printableChars[PRINTABLECHARCOUNT]="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/\r\n\t0123456789";
 char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
 int charIdx(unsigned short c)
