@@ -301,8 +301,6 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
     // c->bit_stream_length>>3<48?c->bit_stream_length>>3:48);
  
     int permutation_length=range_decode_equiprobable(c,CHARCOUNT+1);
-    fprintf(stderr,"Extracting permutation (len=%d, byte0=0x%02x)\n",
-	    permutation_length,c->bit_stream[0]);
     for(i=0;i<permutation_length;i++) {
       int rank=range_decode_equiprobable(c,CHARCOUNT-i);
       int charid=0;
