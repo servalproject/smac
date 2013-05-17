@@ -334,8 +334,6 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
     // remember the address.
     
     int permutation_length=strlen(permutation)/2;
-    fprintf(stderr,"Writing permutation %d (len=%d) ",
-	    permutation_number,permutation_length);
 
     range_encode_equiprobable(c,CHARCOUNT+1,permutation_length);
 
