@@ -86,6 +86,7 @@ int lastPage=0;  // page of last unicode character seen
 int lastLastPage=0; // page of unicode character before the last one
 
 #define MAX_PERMUTATIONS 1048576
+long long permutation_bytes;
 int permutation_count;
 int permutation_addresses[MAX_PERMUTATIONS];
 char *permutations[MAX_PERMUTATIONS];
@@ -354,6 +355,7 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
 
     // conclude and advance to next byte boundary
     range_mark_and_continue(c);
+    permutation_bytes+=c->bookmark>>3;
   } 
   if (!pass) return 0;
 
@@ -514,8 +516,6 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   }
 
   int addr_bits=c->bits_used-start_bit;
-  fprintf(stderr,"thresh:freq bits:addr bits:%d:%d:%d\n",
-	  threshold,freq_bits,addr_bits);
 
   range_conclude(c);
 
@@ -564,9 +564,7 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
 	}
       }
     if (error) {
-      fprintf(stderr,"Bit stream (%d bytes):",bytes);
-      for(i=0;i<bytes;i++) fprintf(stderr," %02x",c->bit_stream[i]);
-      fprintf(stderr,"\n");
+      dump("bit stream",c->bit_stream,bytes);
       exit(-1);
     }
 #ifdef DEBUG
@@ -822,11 +820,30 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
     range_coder_free(c);
   }
 
+  fprintf(stderr,"Most frequent character: ");
+  doublet d[CHARCOUNT];
+  for(i=0;i<CHARCOUNT;i++) { d[i].a=counts1[i]; d[i].b=i; }
+  qsort(d,CHARCOUNT,sizeof(doublet),compare_doublet);
+  for(i=0;i<CHARCOUNT;i++) {
+    int c=chars[d[i].b];
+    if (c=='\t') fprintf(stderr,"\\t");
+    else if (c=='\r') fprintf(stderr,"\\r");
+    else if (c=='\n') fprintf(stderr,"\\n");
+    else if (c=='\\') fprintf(stderr,"\\\\");
+    else if (c=='\'') fprintf(stderr,"\\\'");
+    else if (c=='\"') fprintf(stderr,"\\\"");
+    else fprintf(stderr,"%c",c);
+  }
+  fprintf(stderr,"\n");
+
   /* Write compressed data out */
   permutation_count=0;
+  permutation_bytes=0;
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
 					frequencyThreshold);
+  fprintf(stderr,"Used %lld bytes to write alphabet permutation tables.\n",
+	  permutation_bytes);
 
   unsigned int unicodeAddress
     =writeUnicodeStats(out,frequencyThreshold,topNodeAddress);
