@@ -368,7 +368,20 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
       if (!range_decode_common(c,p_low,p_high,symbol)) return symbol;     
     }
 
-  fprintf(stderr,"Internal error in range_decode_equiprobable().\n");
+  // fprintf(stderr,"Internal error in range_decode_equiprobable().\n");
+
+  // This can occur if an input is equivalent to p>0x0.ffffff, since we
+  // only use p=0..0xffffff instead of p=0..1.
+  // If we see p=>0.0xffffff, it is because we have been fed bad input.
+  // So what should we do?  For now, just return the largest symbol, and 
+  // set range to p_high=1
+  if (!alphabet_size) return 0;
+  unsigned int p_low,p_high,new_low,new_high;
+  range_equiprobable_range(c,alphabet_size,alphabet_size-1,&p_low,&p_high);
+  range_calc_new_range(c,p_low,p_high,&new_low,&new_high);
+  c->low=new_low;
+  return alphabet_size-1;
+  
   
   s=v*alphabet_size/space;
   fprintf(stderr,"Estimated s=%d (0x%x)\n",s,s);
@@ -609,8 +622,8 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   // printf("in decode_symbol() about to call decode_common()\n");
   // range_status(c,1);
   if (range_decode_common(c,p_low,p_high,s)) {
-    fprintf(stderr,"range_decode_common() failed for some reason.\n");
-    exit(-1);
+    // fprintf(stderr,"range_decode_common() failed for some reason.\n");
+    return 0;
   }
   return s;
 }
