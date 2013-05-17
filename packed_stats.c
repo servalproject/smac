@@ -301,8 +301,8 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
     // c->bit_stream_length>>3<48?c->bit_stream_length>>3:48);
  
     int permutation_length=range_decode_equiprobable(c,CHARCOUNT+1);
-    // fprintf(stderr,"Extracting permutation (len=%d, byte0=0x%02x): ",
-    // permutation_length,c->bit_stream[0]);
+    fprintf(stderr,"Extracting permutation (len=%d, byte0=0x%02x)\n",
+	    permutation_length,c->bit_stream[0]);
     for(i=0;i<permutation_length;i++) {
       int rank=range_decode_equiprobable(c,CHARCOUNT-i);
       int charid=0;
@@ -318,6 +318,10 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
       for(j=0;j<CHARCOUNT;j++) if (!used[j]) break;
       charids[i]=j; used[j]=1;
     }
+  
+    // free, not range_coder_free(), because range coder didn't allocate the
+    // bit stream storage
+    free(c);
   }
 
   // Read frequencies

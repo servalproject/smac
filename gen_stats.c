@@ -334,8 +334,8 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
     // remember the address.
     
     int permutation_length=strlen(permutation)/2;
-    // fprintf(stderr,"Writing permutation %d (len=%d)\n",
-    // permutation_number,permutation_length);
+    fprintf(stderr,"Writing permutation %d (len=%d) ",
+	    permutation_number,permutation_length);
 
     range_encode_equiprobable(c,CHARCOUNT+1,permutation_length);
 
@@ -356,7 +356,7 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
     // conclude and advance to next byte boundary
     range_mark_and_continue(c);
     permutation_bytes+=c->bookmark>>3;
-  } 
+  }
   if (!pass) return 0;
 
   // Encode character permutation
@@ -491,7 +491,6 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   // Write out frequency table referencing appropriate permutation table
   curve_freq_encode(out,c,n,s,totalCountIncludingTerminations,threshold,1);
 
-  int freq_bits=c->bits_used-start_bit;
   start_bit=c->bits_used;
 
   for(i=0;i<CHARCOUNT;i++) {
@@ -515,8 +514,6 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
     }  
   }
 
-  int addr_bits=c->bits_used-start_bit;
-
   range_conclude(c);
 
   /* Unaccounted for observations are observations that terminate at this point.
@@ -536,7 +533,11 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   // addr,c->bookmark>>3,addr+(c->bookmark>>3),bytes);
   // dump("bytes",c->bit_stream,bytes<48?bytes:48);
 
-  /* Verify */
+  /* Verify.
+     XXX - Doesn't really work anymore with curve fitting modelling
+     (because permutation blocks might reference earlier permutation blocks, which
+      are not available in the dummy memory block we have here). */
+  if (0)
   {
     /* Make pretend stats handle to extract from */
     stats_handle h;
@@ -558,7 +559,7 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
 	    fprintf(stderr,"  n->count=%lld, totalCount=%lld\n",
 		    n->count,totalCount);
 	  }
-	  fprintf(stderr,"  '%c' (%d) : %d versus %d written.\n",
+	  fprintf(stderr,"  '%c' (%02x) : %d versus %d written.\n",
 		  chars[i],i,v->counts[i],getCount(n,i));
 	  error++;
 	}
@@ -880,7 +881,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   v=extractVector(ascii2utf16("http"),strlen("http"),h);
   // vectorReport("http",v,charIdx(':'));
   v=extractVector(ascii2utf16(""),strlen(""),h);
-  int *codePage=getUnicodeStatistics(h,0x0400/0x80);
+  getUnicodeStatistics(h,0x0400/0x80);  
 
   stats_handle_free(h);
 
