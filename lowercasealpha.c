@@ -132,7 +132,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
 	lastLastCodePage=lastCodePage;
 	lastCodePage=symbol-128;
 	unsigned int *counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
-	symbol=range_decode_symbol(c,counts,128);
+	symbol=range_decode_symbol(c,counts,128);	
       } 
       s[o]=lastCodePage*0x80+symbol;
       //      fprintf(stderr,"decoded unicode char: 0x%04x\n",s[o]);

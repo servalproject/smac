@@ -1,6 +1,6 @@
 CC=gcc
-COPT=-g -Wall -O3
-CFLAGS=-g -Wall -O3
+COPT=-g -Wall
+CFLAGS=-g -Wall
 DEFS=
 
 OBJS=	main.o \

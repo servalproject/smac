@@ -435,8 +435,10 @@ struct node *extractNode(unsigned short *string,int len,stats_handle *h)
   if (h->tree) {
     n=h->tree;
     for(i=len-1;i>=0;i--) {
-      if (!n->children[charIdx(string[i])]) return n;
-      n=n->children[charIdx(string[i])];
+      int charid=charIdx(string[i]);
+      if (charid==-1) return n;
+      if (!n->children[charid]) return n;
+      n=n->children[charid];
     }
     return n;
   } else {
@@ -590,7 +592,10 @@ int *getUnicodeStatistics(stats_handle *h,int codePage)
 {
   if (codePage<1||codePage>511) {
     fprintf(stderr,"Illegal code page: 0x%x\n",codePage);
-    return NULL;
+    // Substitute with a valid code page, since returning NULL will cause
+    // trouble upstream.  This should only ever occur if fed truly random
+    // data.
+    codePage=1;
   }
   if (!h->unicode_page_addresses) {
     // Load list of addresses to unicode page statistics
