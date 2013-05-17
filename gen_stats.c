@@ -87,9 +87,86 @@ int lastLastPage=0; // page of unicode character before the last one
 
 #define MAX_PERMUTATIONS 1048576
 long long permutation_bytes;
+long long frequency_bits;
 int permutation_count;
 int permutation_addresses[MAX_PERMUTATIONS];
 char *permutations[MAX_PERMUTATIONS];
+
+typedef struct doublet {
+  int a;
+  int b;
+} doublet;
+
+double calcE(double a,double b,double *nv,double *p)
+{
+  int i;
+  double e=0;
+  // double e=1;
+  double s=0;
+  for(i=0;i<CHARCOUNT;i++)
+    {
+      double f=pow((CHARCOUNT+1-(i+1)),b)/pow((i+1),a);
+      s+=f;
+    }
+  for(i=0;i<CHARCOUNT;i++)
+    {
+      double f=pow((CHARCOUNT+1-(i+1)),b)/pow((i+1),a);
+      f/=s;
+      if (p) p[i]=f;
+      
+      double thise=(f-nv[i])*(f-nv[i]);
+      if (!finite(thise)) thise=10;
+      e+=thise;
+      
+      // double thise=f/nv[i];
+      // if (thise<1) thise=1.0/thise;
+      // if (!finite(thise)) thise=10;
+      // if (f>0.001||nv[i]>0.001) e*=thise;
+
+      // fprintf(stderr,"i=%d, a=%f, b=%f, f=%f, e=%f, thise=%f\n",i,a,b,f,e,thise);
+    }
+  return e;
+}
+
+int fitParameters(doublet *v)
+{
+  double nv[CHARCOUNT];
+  int i;
+  int totalCount=0;
+  for(i=0;i<CHARCOUNT;i++) totalCount+=v[i].a;
+  for(i=0;i<CHARCOUNT;i++) nv[i]=v[i].a*1.0/totalCount;
+  
+  double a,b;
+
+  double besta,bestb;
+  double beste=-1;
+
+  int ia,ib;
+  for(ia=001;ia<400;ia+=1) 
+    {
+      // 170.03 is the limit for b; above that there isn't enough
+      // precision, and overflow occurs.
+      for(ib=100;ib<17000;ib+=100)
+	{
+	  a=ia/100.0;
+	  b=ib/100.0;
+	  double e=calcE(a,b,nv,NULL);
+	  if (e<beste||beste==-1) {
+	    besta=a; bestb=b; beste=e;
+	    // fprintf(stderr,"  a=%f, b=%f, e=%f\n",a,b,e);
+	  }
+	}
+    }
+  fprintf(stderr,"beste=%f, a=%.2f, b=%.2f\n",
+	  beste,besta,bestb);
+  double p[CHARCOUNT];
+  calcE(besta,bestb,nv,p);
+  // for(i=0;i<CHARCOUNT;i++) {
+  // fprintf(stderr,"  %02x:a%.3f:p%.3f:%.3f\n",
+  // i,nv[i],p[i],i?nv[i]/nv[i-1]:0);
+  // }
+  return 0;
+}
 
 int countUnicode(unsigned short codePoint)
 {
@@ -264,11 +341,6 @@ int countChars(unsigned short *s,int len,int maximumOrder)
   return 0;
 }
 
-typedef struct doublet {
-  int a;
-  int b;
-} doublet;
-
 int compare_tolerance=0;
 int compare_doublet(const void *a,const void *b)
 {
@@ -354,6 +426,8 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
     // conclude and advance to next byte boundary
     range_mark_and_continue(c);
     permutation_bytes+=c->bookmark>>3;
+    //    fprintf(stderr,"permutation:%d:%d:%s\n",
+    //	    permutation_count,c->bookmark>>3,permutation);
   }
   if (!pass) return 0;
 
@@ -373,7 +447,14 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
     previousCount=freqs[i].a;
     remainingCount-=freqs[i].a;
     if (!previousCount) break;
-  }  
+  }
+
+  fitParameters(freqs);
+
+  int bits=c->bits_used-c->bookmark;
+  while(bits&7) bits++;
+  frequency_bits+=bits;
+
   return 0;
 }
 
@@ -721,7 +802,7 @@ int writeUnicodeStats(FILE *out,int frequencyThreshold,int rootNodeAddress)
   fwrite(c->bit_stream,bytes,1,out);
   range_coder_free(c);
 
-  fprintf(stderr,"%d+%d bytes required to write 511 compressed unicode page statistics.\n",unicodeBytes,bytes);  
+  fprintf(stderr,"Used %d+%d bytes to write 511 compressed unicode page statistics.\n",unicodeBytes,bytes);  
   
   return unicodeAddress;
 }
@@ -819,30 +900,35 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
     range_coder_free(c);
   }
 
-  fprintf(stderr,"Most frequent character: ");
-  doublet d[CHARCOUNT];
-  for(i=0;i<CHARCOUNT;i++) { d[i].a=counts1[i]; d[i].b=i; }
-  qsort(d,CHARCOUNT,sizeof(doublet),compare_doublet);
-  for(i=0;i<CHARCOUNT;i++) {
-    int c=chars[d[i].b];
-    if (c=='\t') fprintf(stderr,"\\t");
-    else if (c=='\r') fprintf(stderr,"\\r");
-    else if (c=='\n') fprintf(stderr,"\\n");
-    else if (c=='\\') fprintf(stderr,"\\\\");
-    else if (c=='\'') fprintf(stderr,"\\\'");
-    else if (c=='\"') fprintf(stderr,"\\\"");
-    else fprintf(stderr,"%c",c);
+  if (0) {
+    fprintf(stderr,"Most frequent character: ");
+    doublet d[CHARCOUNT];
+    for(i=0;i<CHARCOUNT;i++) { d[i].a=counts1[i]; d[i].b=i; }
+    qsort(d,CHARCOUNT,sizeof(doublet),compare_doublet);
+    for(i=0;i<CHARCOUNT;i++) {
+      int c=chars[d[i].b];
+      if (c=='\t') fprintf(stderr,"\\t");
+      else if (c=='\r') fprintf(stderr,"\\r");
+      else if (c=='\n') fprintf(stderr,"\\n");
+      else if (c=='\\') fprintf(stderr,"\\\\");
+      else if (c=='\'') fprintf(stderr,"\\\'");
+      else if (c=='\"') fprintf(stderr,"\\\"");
+      else fprintf(stderr,"%c",c);
+    }
+    fprintf(stderr,"\n");
   }
-  fprintf(stderr,"\n");
 
   /* Write compressed data out */
   permutation_count=0;
   permutation_bytes=0;
+  frequency_bits=0;
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
 					frequencyThreshold);
   fprintf(stderr,"Used %lld bytes to write alphabet permutation tables.\n",
 	  permutation_bytes);
+  fprintf(stderr,"Used ~%lld bytes to encode frequency tables (%lld bits).\n",
+	  frequency_bits>>3,frequency_bits);
 
   unsigned int unicodeAddress
     =writeUnicodeStats(out,frequencyThreshold,topNodeAddress);
@@ -850,17 +936,20 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   unsigned int totalCount=0;
   for(i=0;i<CHARCOUNT;i++) totalCount+=getCount(nodeTree,i);
 
+  long long fileSize=ftello(out);
+
   /* Rewrite header bytes with final values */
   fseek(out,4,SEEK_SET);
   writeInt(out,topNodeAddress);
   writeInt(out,totalCount);
   writeInt(out,unicodeAddress);
   fputc(maximumOrder+1,out);
-
+  
   fclose(out);
 
   snprintf(filename,1024,"stats-o%d-t%d.dat",maximumOrder,frequencyThreshold);
-  fprintf(stderr,"Wrote %d nodes to '%s'\n",nodesWritten,filename);
+  fprintf(stderr,"Wrote %d nodes to '%s'.\nTotal size = %lld bytes.\n",
+	  nodesWritten,filename,fileSize);
 
   stats_handle *h=stats_new_handle(filename);
   if (!h) {
