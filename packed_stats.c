@@ -206,7 +206,9 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   if (len<(0-(int)h->maximumOrder)) {
     // We are diving deeper than the maximum order that we expected to see.
     // This indicates an error.
-    // fprintf(stderr,"len=%d, maximumOrder=0x%x\n",len,h->maximumOrder);
+    fprintf(stderr,"node addr=0x%x, len=%d, maximumOrder=0x%x\n",
+	    nodeAddress,len,h->maximumOrder);
+    exit(-1);
     return NULL;
   }
   if (nodeAddress<700) {
@@ -325,6 +327,7 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
     int minCount=remainingCount/(CHARCOUNT-i);    
     int freq=range_decode_equiprobable(c,previousCount+1-minCount)+minCount;
     n->counts[charids[i]]=freq;
+    progressiveCount+=freq;
     //    fprintf(stderr,"%d. counts[0x%02x]=%d\n",i,charids[i],freq);
     previousCount=freq;
     remainingCount-=freq;

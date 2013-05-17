@@ -434,10 +434,6 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
     }
   }
   
-  unsigned int highAddr=ftell(out);
-  unsigned int lowAddr=0;
-  if (debug) fprintf(stderr,"  lowAddr=0x%x, highAddr=0x%x\n",lowAddr,highAddr);
-
   if (debug)
     fprintf(stderr,
 	    "wrote: childCount=%d, storedChildren=%d, count=%lld, superCount=%d @ 0x%x\n",
@@ -479,6 +475,10 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   // Write out permutation table if required
   curve_freq_encode(out,c,n,s,totalCountIncludingTerminations,threshold,0);
 
+  unsigned int highAddr=ftell(out)+(c->bookmark>>3);
+  unsigned int lowAddr=0;
+  if (debug) fprintf(stderr,"  lowAddr=0x%x, highAddr=0x%x\n",lowAddr,highAddr);
+
   /* Write total count in this node */
   range_encode_equiprobable(c,totalCountIncludingTerminations+1,totalCount);
   /* Write number of children with counts */
@@ -506,6 +506,7 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
       if (debug) fprintf(stderr,":    writing addr = %d of %d (lowAddr=%d)\n",
 			 childAddresses[i]-lowAddr,highAddr-lowAddr+1,lowAddr);
       lowAddr=childAddresses[i];
+
       storedChildren--;
     } else {
       range_encode_symbol(c,&isStored,2,0);
