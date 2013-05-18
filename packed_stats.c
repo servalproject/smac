@@ -470,6 +470,31 @@ struct node *extractNode(unsigned short *string,int len,stats_handle *h)
   return n;
 }
 
+int nodeToVector(node *n,struct probability_vector *v)
+{
+  int scale=0xffffff/(n->count+CHARCOUNT);
+  if (scale==0) {
+    fprintf(stderr,"n->count+CHARCOUNT = 0x%llx > 0xffffff - this really shouldn't happen.  Your stats.dat file is probably corrupt.\n",n->count);
+    exit(-1);
+  }
+  int cumulative=0;
+  int sum=0;
+  int i;
+
+  for(i=0;i<CHARCOUNT;i++) {
+    v->v[i]=cumulative+(n->counts[i]+1)*scale;
+    cumulative=v->v[i];
+    sum+=n->counts[i]+1;
+    if (0) 
+      fprintf(stderr,"  '%c' %d : 0x%06x (%d/%lld) %d (*v)[i]=%p\n",
+	      chars[i],i,v->v[i],
+	      n->counts[i]+1,n->count+CHARCOUNT,sum,
+	      &v->v[i]);
+  }
+  return 0;
+}
+
+
 struct probability_vector *extractVector(unsigned short *string,int len,
 					 stats_handle *h)
 {
@@ -511,24 +536,7 @@ struct probability_vector *extractVector(unsigned short *string,int len,
     for(i=0;i<len;i++) fprintf(stderr,"%c",string[i]);
   }
 
-  int scale=0xffffff/(n->count+CHARCOUNT);
-  if (scale==0) {
-    fprintf(stderr,"n->count+CHARCOUNT = 0x%llx > 0xffffff - this really shouldn't happen.  Your stats.dat file is probably corrupt.\n",n->count);
-    exit(-1);
-  }
-  int cumulative=0;
-  int sum=0;
-
-  for(i=0;i<CHARCOUNT;i++) {
-    v->v[i]=cumulative+(n->counts[i]+1)*scale;
-    cumulative=v->v[i];
-    sum+=n->counts[i]+1;
-    if (0) 
-      fprintf(stderr,"  '%c' %d : 0x%06x (%d/%lld) %d (*v)[i]=%p\n",
-	      chars[i],i,v->v[i],
-	      n->counts[i]+1,n->count+CHARCOUNT,sum,
-	      &v->v[i]);
-  }
+  nodeToVector(n,v);
 
   /* Higher level nodes have already been freed, so just free this one */
   // vectorReport("extracted",v,26);

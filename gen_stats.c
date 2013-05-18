@@ -97,11 +97,16 @@ typedef struct doublet {
   int b;
 } doublet;
 
-double calcE(double a,double b,double *nv,double *p)
+double calcCurve(int curve_number,
+		 struct probability_vector *sample_curve,
+		 struct probability_vector *plotted_curve)
 {
+  // a=0..5.11 by 0.01, b=0..127 by 1
+  double a=(curve_number&511)/100.0;
+  int b=curve_number/512;
+
   int i;
   double e=0;
-  // double e=1;
   double s=0;
   for(i=0;i<CHARCOUNT;i++)
     {
@@ -111,60 +116,37 @@ double calcE(double a,double b,double *nv,double *p)
   for(i=0;i<CHARCOUNT;i++)
     {
       double f=pow((CHARCOUNT+1-(i+1)),b)/pow((i+1),a);
-      f/=s;
-      if (p) p[i]=f;
-      
-      double thise=(f-nv[i])*(f-nv[i]);
-      if (!finite(thise)) thise=10;
-      e+=thise;
-      
-      // double thise=f/nv[i];
-      // if (thise<1) thise=1.0/thise;
-      // if (!finite(thise)) thise=10;
-      // if (f>0.001||nv[i]>0.001) e*=thise;
-
-      // fprintf(stderr,"i=%d, a=%f, b=%f, f=%f, e=%f, thise=%f\n",i,a,b,f,e,thise);
+      f/=s;      
+      if (plotted_curve&&finite(f)&&f>=0&&f<1) plotted_curve->v[i]=f*0xffffff;
+      if (sample_curve) {
+	double thise=pow((f*0xffffff)-sample_curve->v[i],2);
+	if (!finite(thise)) thise=0xffffffLL*0xffffffLL;
+	e+=thise;
+      }
     }
   return e;
 }
 
-int fitParameters(doublet *v)
+int curveFit(doublet freqs[CHARCOUNT])
 {
-  double nv[CHARCOUNT];
+  struct probability_vector pv;
   int i;
   int totalCount=0;
-  for(i=0;i<CHARCOUNT;i++) totalCount+=v[i].a;
-  for(i=0;i<CHARCOUNT;i++) nv[i]=v[i].a*1.0/totalCount;
+  for(i=0;i<CHARCOUNT;i++) totalCount+=freqs[i].a;
+  for(i=0;i<CHARCOUNT;i++) pv.v[i]=freqs[i].a*0xffffffLL/totalCount;
   
-  double a,b;
-
-  double besta,bestb;
+  int bestmodel=-1;
   double beste=-1;
 
-  int ia,ib;
-  for(ia=001;ia<400;ia+=1) 
-    {
-      // 170.03 is the limit for b; above that there isn't enough
-      // precision, and overflow occurs.
-      for(ib=100;ib<17000;ib+=100)
-	{
-	  a=ia/100.0;
-	  b=ib/100.0;
-	  double e=calcE(a,b,nv,NULL);
-	  if (e<beste||beste==-1) {
-	    besta=a; bestb=b; beste=e;
-	    // fprintf(stderr,"  a=%f, b=%f, e=%f\n",a,b,e);
-	  }
-	}
+  int model;
+  for(model=0;model<=0xffff;model++) {
+    double e=calcCurve(model,&pv,NULL);
+    if (e<beste||beste==-1) {
+      bestmodel=model; beste=e;
+      // fprintf(stderr,"  a=%f, b=%f, e=%f\n",a,b,e);
     }
-  fprintf(stderr,"beste=%f, a=%.2f, b=%.2f\n",
-	  beste,besta,bestb);
-  double p[CHARCOUNT];
-  calcE(besta,bestb,nv,p);
-  // for(i=0;i<CHARCOUNT;i++) {
-  // fprintf(stderr,"  %02x:a%.3f:p%.3f:%.3f\n",
-  // i,nv[i],p[i],i?nv[i]/nv[i-1]:0);
-  // }
+  }
+  fprintf(stderr,"beste=%f, model=0x%04x\n",beste,bestmodel);
   return 0;
 }
 
@@ -435,21 +417,8 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
   range_encode_equiprobable(c,ftello(out)+1+(c->bookmark>>3),
 			    permutation_addresses[permutation_number]);
 
-  // Encode frequencies
-  // XXX - Later use a algebraic model to dramatically reduce the entropy
-  // of this part.
-  int previousCount=totalCount;
-  int remainingCount=totalCount;
-  for(i=0;i<CHARCOUNT;i++) {
-    int minCount=remainingCount/(CHARCOUNT-i);    
-    range_encode_equiprobable(c,previousCount+1-minCount,freqs[i].a-minCount);
-    
-    previousCount=freqs[i].a;
-    remainingCount-=freqs[i].a;
-    if (!previousCount) break;
-  }
-
-  fitParameters(freqs);
+  int curve_number=curveFit(freqs);
+  range_encode_equiprobable(c,0x10000,curve_number);
 
   int bits=c->bits_used-c->bookmark;
   while(bits&7) bits++;
