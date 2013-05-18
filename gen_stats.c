@@ -87,6 +87,7 @@ int lastLastPage=0; // page of unicode character before the last one
 
 #define MAX_PERMUTATIONS 1048576
 long long permutation_bytes;
+long long child_bits;
 long long frequency_bits;
 int permutation_count;
 int permutation_addresses[MAX_PERMUTATIONS];
@@ -227,6 +228,7 @@ int curveFit(doublet freqs[CHARCOUNT])
 #if 0
   calcCurve(bestmodel,&pv,&curve);
 #else
+  fprintf(stderr,"."); fflush(stderr);
   calcCurve(x+y*512,&pv,&curve);
 #endif
   // compareCurves(&curve,&pv);
@@ -497,13 +499,14 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
   if (!pass) return 0;
 
   // Encode character permutation
+  int start_bit=c->bits_used;
   range_encode_equiprobable(c,ftello(out)+1+(c->bookmark>>3),
 			    permutation_addresses[permutation_number]);
 
   int curve_number=curveFit(freqs);
   range_encode_equiprobable(c,0x10000,curve_number);
 
-  int bits=c->bits_used-c->bookmark;
+  int bits=c->bits_used-start_bit;
   while(bits&7) bits++;
   frequency_bits+=bits;
 
@@ -612,10 +615,12 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   unsigned int lowAddr=0;
   if (debug) fprintf(stderr,"  lowAddr=0x%x, highAddr=0x%x\n",lowAddr,highAddr);
 
+  // These two fields are redundant if we are storing frequencies as curves.
   /* Write total count in this node */
-  range_encode_equiprobable(c,totalCountIncludingTerminations+1,totalCount);
+  // range_encode_equiprobable(c,totalCountIncludingTerminations+1,totalCount);
   /* Write number of children with counts */
-  range_encode_equiprobable(c,CHARCOUNT+1,childCount);
+  // range_encode_equiprobable(c,CHARCOUNT+1,childCount);
+
   /* Now number of children that we are storing sub-nodes for */
   range_encode_equiprobable(c,CHARCOUNT+1,storedChildren);
 
@@ -645,6 +650,8 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
     }  
   }
 
+  child_bits+=c->bits_used-start_bit;
+  
   range_conclude(c);
 
   /* Unaccounted for observations are observations that terminate at this point.
@@ -981,6 +988,8 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 	  permutation_bytes);
   fprintf(stderr,"Used ~%lld bytes to encode frequency tables (%lld bits).\n",
 	  frequency_bits>>3,frequency_bits);
+  fprintf(stderr,"Used ~%lld bytes to encode child node addresses (%lld bits).\n",
+	  child_bits>>3,child_bits);
 
   unsigned int unicodeAddress
     =writeUnicodeStats(out,frequencyThreshold,topNodeAddress);
