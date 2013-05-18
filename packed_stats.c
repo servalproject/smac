@@ -425,10 +425,8 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   qsort(freqs,CHARCOUNT,sizeof(doublet),compare_doublet);
 
   // Copy frequencies into node structure
-  int freq=0;
   for(i=0;i<CHARCOUNT;i++) {
-    freq+=freqs[i].b;
-    n->counts[freqs[i].a]=freq;
+    n->counts[freqs[i].a]=freqs[i].b;
   }  
 
 #endif
