@@ -95,3 +95,13 @@ unsigned char *getCompressedBytes(stats_handle *h,int start,int count);
 int *getUnicodeStatistics(stats_handle *h,int codePage);
 int unicodeVectorReport(char *name,int *counts,int previousCodePage,
 			int codePage,unsigned short s);
+
+typedef struct doublet {
+  int a;
+  int b;
+} doublet;
+
+double calcCurve(int curve_number,
+		 struct probability_vector *sample_curve,
+		 struct probability_vector *plotted_curve);
+int compare_doublet(const void *a,const void *b);
