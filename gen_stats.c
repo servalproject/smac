@@ -153,7 +153,7 @@ double calcCurve(int curve_number,
 	// thise*=thise;
 	// e+=thise;
 
-	double ratio=calcRatioMetric(plotted_curve->v[i],sample_curve->v[i]);
+	double ratio=calcRatioMetric(curve->v[i],sample_curve->v[i]);
 	
 	e+=ratio;
       }
@@ -183,23 +183,53 @@ int curveFit(doublet freqs[CHARCOUNT])
   for(i=0;i<CHARCOUNT;i++) totalCount+=freqs[i].a;
   for(i=0;i<CHARCOUNT;i++) pv.v[i]=freqs[i].a*0xffffffLL/totalCount;
   
+#if 0
+  // complete search, but slow
   int bestmodel=-1;
   double beste=-1;
-
   int model;
   for(model=0;model<=0xffff;model++) {
-    struct probability_vector curve;
-    double e=calcCurve(model,&pv,&curve);
+    // struct probability_vector curve;
+    double e=calcCurve(model,&pv,NULL);
     if (e<beste||beste==-1) {
       bestmodel=model; beste=e;
       // fprintf(stderr,"  model=0x%04x, e=%f\n",model,e);
       // compareCurves(&curve,&pv);
     }
   }
-  fprintf(stderr,"beste=%f, model=0x%04x\n",beste,bestmodel);
+#else
+  // faster heuristic search
+  int x=128,y=64;
+  double e2;
+  while(1) {
+    int xx,yy;
+    int bx=-1,by=-1;
+    double be;
+    for (xx=x-2;xx<x+3;xx++)
+      for (yy=y-2;yy<y+3;yy++) 
+	if (xx>=0&&xx<512&&yy>=0&&yy<128)
+	  {	  
+	    double e=calcCurve(xx+yy*512,&pv,NULL);
+	    if (e<be||bx==-1) {
+	      be=e; bx=xx; by=yy;
+	    }
+	  }
+    // stop when found minima
+    e2=be;
+    if (x==bx&&y==by) break;
+    x=bx; y=by;
+  }
+#endif
+
+  // fprintf(stderr,"beste=%f, model=0x%04x (via method2 = 0x%04x, e=%f)\n",
+  // beste,bestmodel,x+y*512,e2);
   struct probability_vector curve;
+#if 0
   calcCurve(bestmodel,&pv,&curve);
-  compareCurves(&curve,&pv);
+#else
+  calcCurve(x+y*512,&pv,&curve);
+#endif
+  // compareCurves(&curve,&pv);
   return 0;
 }
 
