@@ -144,12 +144,14 @@ int curveFit(doublet freqs[CHARCOUNT])
   struct probability_vector curve;
 #if 0
   calcCurve(bestmodel,&pv,&curve);
+  // compareCurves(&curve,&pv);
+  return bestmodel;
 #else
   fprintf(stderr,"."); fflush(stderr);
   calcCurve(x+y*512,&pv,&curve);
-#endif
   // compareCurves(&curve,&pv);
-  return 0;
+  return x+y*512;
+#endif
 }
 
 int countUnicode(unsigned short codePoint)
