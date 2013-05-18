@@ -88,7 +88,7 @@ double calcCurve(int curve_number,
     for(i=0;i<CHARCOUNT;i++) 
       curves[curve_number]->v[i]
 	= // (i?curves[curve_number]->v[i-1]:0)+
-	pow((CHARCOUNT+1-(i+1)),b)/pow((i+1),a)/s*0xffffff;
+	pow((CHARCOUNT+1-(i+1)),b)/pow((i+1),a)/s*(0xffffff-CHARCOUNT);
   }
   struct probability_vector *curve=curves[curve_number];
   for(i=0;i<CHARCOUNT;i++)
