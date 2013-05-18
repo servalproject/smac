@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
    U is a place holder for all Unicode characters.
 */
 // char chars[CHARCOUNT]="abcdefghijklmnopqrstuvwxyz !@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/\r\n\t0U";
-char chars[CHARCOUNT]="U aetionrslhumd0cpk.gyb@:/wfvj_!,#z)x(\nq\"?-\'*^;~<>=|&`][+\\$%}{\r\t";
+char chars[CHARCOUNT]="U aetionrslhumd0cpk.gyb@:/wfvj_!,#z)x(\nq\"?-'*^;~<>=|&`][+\\$%}{\r\t";
 char printableChars[PRINTABLECHARCOUNT]="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ !@#$%^&*()_+-=~`[{]}\\|;:'\"<,>.?/\r\n\t0123456789";
 char wordChars[36]="abcdefghijklmnopqrstuvwxyz0123456789";
 int charIdx(unsigned short c)
