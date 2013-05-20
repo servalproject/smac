@@ -957,6 +957,8 @@ int main(int argc,char **argv)
   unsigned short utf16line[8192];
   int utf16len;
 
+  calcLogTable();
+
   int i,j,k;
   /* Zero statistics */
   for(i=0;i<CHARCOUNT;i++) for(j=0;j<CHARCOUNT;j++) for(k=0;k<CHARCOUNT;k++) counts3[i][j][k]=0;

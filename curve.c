@@ -47,12 +47,28 @@ int compare_doublet(const void *a,const void *b)
 struct probability_vector *curves[0x10000];
 int curves_setup=0;
 
+int logTableSetup=0;
+double *logTable;
+
+int calcLogTable()
+{
+  int a;
+  logTable=malloc(sizeof(double)*0x1000000);
+  for(a=0;a<=0xffffff;a++)
+    logTable[a]=-log((a+1)*1.0/0xffffff)/log(2);
+  logTableSetup=1;
+  return 0;
+}
+
 double calcRatioMetric(int a,int b)
 {
   // a = predicted freq
   // b = actual freq
 
   double p_b=(b+1)*1.0/0xffffff;
+
+  if (logTableSetup)
+    return p_b*(logTable[a]-logTable[b]);
 
   double bits_a=-log((a+1)*1.0/0xffffff)/log(2);
   double bits_b=-log(p_b)/log(2);
