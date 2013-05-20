@@ -887,9 +887,11 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   permutation_count=0;
   permutation_bytes=0;
   frequency_bits=0;
+  nodesWritten=0;
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
 					frequencyThreshold);
+  fprintf(stderr,"\n");
   fprintf(stderr,"Used %lld bytes to write alphabet permutation tables.\n",
 	  permutation_bytes);
   fprintf(stderr,"Used ~%lld bytes to encode frequency tables (%lld bits).\n",
