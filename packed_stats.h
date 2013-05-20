@@ -101,7 +101,10 @@ typedef struct doublet {
   int b;
 } doublet;
 
+int calcLogTable();
 double calcCurve(int curve_number,
 		 struct probability_vector *sample_curve,
 		 struct probability_vector *plotted_curve);
 int compare_doublet(const void *a,const void *b);
+int permutation_encode(range_coder *c,doublet *freqs, int permutation_length);
+

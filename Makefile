@@ -15,6 +15,7 @@ OBJS=	main.o \
 	nonalpha.o \
 	packedascii.o \
 	packed_stats.o \
+	permutations.o \
 	\
 	charset.o \
 	entropyutil.o \
@@ -38,8 +39,8 @@ arithmetic:	arithmetic.c arithmetic.h
 extract_tweets:	extract_tweets.o
 	gcc $(CFLAGS) -o extract_tweets extract_tweets.o
 
-gen_stats:	gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o curve.o
-	gcc $(CFLAGS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o curve.o
+gen_stats:	gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o curve.o permutations.o
+	gcc $(CFLAGS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o curve.o permutations.o
 
 smac:	$(OBJS)
 	gcc -g -Wall -o smac $(OBJS)
