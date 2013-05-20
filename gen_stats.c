@@ -147,7 +147,6 @@ int curveFit(doublet freqs[CHARCOUNT])
   // compareCurves(&curve,&pv);
   return bestmodel;
 #else
-  fprintf(stderr,"."); fflush(stderr);
   calcCurve(x+y*512,&pv,&curve);
   // compareCurves(&curve,&pv);
   return x+y*512;
@@ -623,6 +622,9 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   
   addr+=(c->bookmark>>3);
   range_coder_free(c);
+
+  if (!(nodesWritten&0x1ff))
+    { fprintf(stderr,"\r%d nodes written.",nodesWritten); fflush(stderr); }
 
   return addr;
 }
