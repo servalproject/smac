@@ -107,6 +107,8 @@ double calcCurve(int curve_number,
 		 struct probability_vector *sample_curve,
 		 struct probability_vector *plotted_curve);
 int compare_doublet(const void *a,const void *b);
-int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
+int permutation_encode(range_coder *c,doublet *freqs, 
+		       int alphabet_size,int permutation_length,
 		       int master_curve,int depth);
-int permutation_decode(range_coder *c,doublet *freqs,int master_curve);
+int permutation_decode(range_coder *c,doublet *freqs,
+		       int alphabet_size,int master_curve);

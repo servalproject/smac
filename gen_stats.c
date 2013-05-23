@@ -399,7 +399,7 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
       }
     }
 
-    permutation_encode(c,freqs,strlen(permutation)/2,master_curve,depth);
+    permutation_encode(c,freqs,CHARCOUNT,strlen(permutation)/2,master_curve,depth);
 
     permutation_addresses[permutation_count]=ftello(out);
     permutations[permutation_count]=strdup(permutation);

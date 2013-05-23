@@ -29,7 +29,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-
 #include <stdio.h>
 #include <strings.h>
 #include <stdlib.h>
@@ -42,59 +41,75 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 #include "unicode.h"
 
-int permutation_encode(range_coder *c,doublet *freqs, int permutation_length, 
+int permutation_build_sublist(int alphabet_size,int *used,int *range,
+			      struct probability_vector *pv_master,
+			      struct probability_vector *pv,
+			      int *charids,
+			      int i,int up,int down)
+{
+  int j;
+  long long sum=0;
+    
+  for(j=0;j<alphabet_size;j++)
+    if (!used[j]) {
+      pv->v[*range]=pv_master->v[j];
+      sum+=pv->v[*range];
+      if (range) pv->v[*range]+=pv->v[(*range)-1];
+      charids[*range]=j;
+#ifdef UPDOWN
+      if (i) {
+	if (up&&j>freqs[i-1].b) (*range)++;
+	if (down&&j<freqs[i-1].b) (*range)++;
+      } else 
+#endif
+	(*range)++;
+    }
+  
+  double scale=sum*1.0/0xffffff;
+  for(j=0;j<*range;j++) pv->v[j]/=scale;
+  if (0) fprintf(stderr,"sum=0x%llx, scale=%f\n",sum,scale);
+  
+  return 0;
+}
+
+int permutation_encode(range_coder *c,doublet *freqs,
+		       int alphabet_size,int permutation_length, 
 		       int master_curve,int depth)
 {
   int i;
-  
+  int charids[alphabet_size];
   struct probability_vector pv_master;
   calcCurve(master_curve,NULL,&pv_master);
 
   struct probability_vector pv;
 
-  range_encode_equiprobable(c,CHARCOUNT+1,permutation_length);
+  range_encode_equiprobable(c,alphabet_size+1,permutation_length);
 
 #ifdef UPDOWN
-  int p_down=(0.35*0xffffff);
+  int p_down=(UPDOWN*0xffffff);
 
   unsigned int updown[2];
   updown[0]=p_down;
   updown[1]=0xffffff; 
 #endif
 
-  int used[CHARCOUNT];
-  for(i=0;i<CHARCOUNT;i++) used[i]=0;
+  int used[alphabet_size]; for(i=0;i<alphabet_size;i++) used[i]=0;
   for(i=0;i<permutation_length;i++) {
-    int range=0,rank=0,j;
-    int charids[CHARCOUNT];
-    long long sum=0;
+    int range=0,rank=0;
 
 #ifdef UPDOWN 
     int up,down;
     if (i==0) { up=1; down=1; }
     else if (freqs[i].b>freqs[i-1].b) { up=1; down=0; } else { up=0; down=1; }
-
+    
     if (i) range_encode_symbol(c,updown,2,up);
+#else
+    int up=1,down=1;
 #endif
-   
-    for(j=0;j<CHARCOUNT;j++)
-      if (!used[j]) {
-	pv.v[range]=pv_master.v[j];
-	sum+=pv.v[range];
-	if (range) pv.v[range]+=pv.v[range-1];
-	charids[range]=j;
-#ifdef UPDOWN
-	if (i) {
-	  if (up&&j>freqs[i-1].b) range++;
-	  if (down&&j<freqs[i-1].b) range++;
-	} else 
-#endif
-	  range++;
-      }
 
-    double scale=sum*1.0/0xffffff;
-    for(j=0;j<range;j++) pv.v[j]/=scale;
-    if (0) fprintf(stderr,"sum=0x%llx, scale=%f\n",sum,scale);
+    permutation_build_sublist(alphabet_size,used,&range,
+			      &pv_master,&pv,charids,
+			      i,up,down);
 
     for(rank=0;rank<range;rank++) 
       if (charids[rank]==freqs[i].b) {
@@ -114,7 +129,8 @@ int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
   return 0;
 }
 
-int permutation_decode(range_coder *c,doublet *freqs,int master_curve)
+int permutation_decode(range_coder *c,doublet *freqs,
+		       int alphabet_size,int master_curve)
 {
   int i;
   int used[CHARCOUNT];
@@ -127,9 +143,9 @@ int permutation_decode(range_coder *c,doublet *freqs,int master_curve)
 
   int permutation_length=range_decode_equiprobable(c,CHARCOUNT+1);
 
-  int p_down=(0.35*0xffffff);
-
 #ifdef UPDOWN
+  int p_down=(UPDOWN*0xffffff);
+
   unsigned int updown[2];
   updown[0]=p_down;
   updown[1]=0xffffff;

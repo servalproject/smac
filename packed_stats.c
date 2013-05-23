@@ -302,7 +302,7 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
     // dump("permutation bitstream",c->bit_stream,
     // c->bit_stream_length>>3<48?c->bit_stream_length>>3:48);
  
-    permutation_decode(c,freqs,h->permutation_curve);
+    permutation_decode(c,freqs,CHARCOUNT,h->permutation_curve);
 
     // free, not range_coder_free(), because range coder didn't allocate the
     // bit stream storage
