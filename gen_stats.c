@@ -328,14 +328,17 @@ int countChars(unsigned short *s,int len,int maximumOrder)
 
 int dump(char *name,unsigned char *addr,int len);
 
-long long upcount=0;
-long long downcount=0;
+#define MAXDEPTH 16
+long long upcount[MAXDEPTH];
+long long downcount[MAXDEPTH];
 
 unsigned int curve_freq_encode(FILE *out,range_coder *c,
 			       struct countnode *n,char *s,
 			       int totalCountIncludingTerminations,int threshold,
 			       int pass,int master_curve)
 {
+  int depth=strlen(s);
+
   int i;
   doublet freqs[CHARCOUNT];
   long long totalCount=0;
@@ -392,11 +395,11 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
     {
       int i;
       for(i=1;i<strlen(permutation)/2;i++) {
-	if (freqs[i].b>freqs[i-1].b) upcount++; else downcount++;
+	if (freqs[i].b>freqs[i-1].b) upcount[depth]++; else downcount[depth]++;
       }
     }
 
-    permutation_encode(c,freqs,strlen(permutation)/2,master_curve);
+    permutation_encode(c,freqs,strlen(permutation)/2,master_curve,depth);
 
     permutation_addresses[permutation_count]=ftello(out);
     permutations[permutation_count]=strdup(permutation);
@@ -892,17 +895,21 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   permutation_bytes=0;
   frequency_bits=0;
   nodesWritten=0;
-  upcount=0;
-  downcount=0;
+  for(i=0;i<MAXDEPTH;i++) upcount[i]=0;
+  for(i=0;i<MAXDEPTH;i++) downcount[i]=0;
+
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
 					frequencyThreshold,
 					master_curve);
   fprintf(stderr,"\n");
-  fprintf(stderr,"Used %lld bytes to write %d alphabet permutation tables (%lld up, %lld down, split=%.2f%%, avg=%.1f bits).\n",
+  fprintf(stderr,"Used %lld bytes to write %d alphabet permutation tables (avg=%.1f bits).\n",
 	  permutation_bytes,permutation_count,
-	  upcount,downcount,upcount*100.0/(upcount+downcount),
 	  permutation_bytes*8.0/permutation_count);
+  //  for(i=0;i<MAXDEPTH;i++)
+  // fprintf(stderr,"depth %d: %lld up, %lld down, split=%.2f%%\n", 
+  // i,upcount[i],downcount[i],upcount[i]*100.0/(upcount[i]+downcount[i]));
+
   fprintf(stderr,"Used ~%lld bytes to encode frequency tables (%lld bits).\n",
 	  frequency_bits>>3,frequency_bits);
   fprintf(stderr,"Used ~%lld bytes to encode child node addresses (%lld bits).\n",
