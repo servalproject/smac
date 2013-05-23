@@ -48,17 +48,17 @@ int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
   int i;
   
   struct probability_vector pv;
+  calcCurve(master_curve,NULL,&pv);
+
+  range_encode_equiprobable(c,CHARCOUNT+1,permutation_length);
 
   int used[CHARCOUNT];
   for(i=0;i<CHARCOUNT;i++) used[i]=0;
   for(i=0;i<permutation_length;i++) {
-
     int range=0,rank=0,j;
     int charids[CHARCOUNT];
     long long sum=0;
     
-    calcCurve(master_curve,NULL,&pv);
-
     for(j=0;j<CHARCOUNT;j++)
       if (!used[freqs[j].b]) {
 	sum+=pv.v[range];
@@ -75,11 +75,6 @@ int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
 
     for(rank=0;rank<range;rank++) 
       if (charids[rank]==freqs[i].b) break;
-    // range_encode_equiprobable(c,CHARCOUNT-i,rank);
-    if (0)
-      for(j=0;j<range;j++) {
-	fprintf(stderr,"  %02x:%02x:%x\n",j,charids[j],pv.v[j]);
-      }
     if (rank==range) {
       fprintf(stderr,"This shouldn't happen: Couldn't find symbol %02x in list.\n",
 	      freqs[i].b);
@@ -101,27 +96,45 @@ int permutation_decode(range_coder *c,doublet *freqs,int permutation[CHARCOUNT],
   int used[CHARCOUNT];
   for(i=0;i<CHARCOUNT;i++) used[i]=0;
 
-  int p_down=range_decode_equiprobable(c,0x100)<<16;
-  p_down|=0xffff;
-
-  struct probability_vector pv;
-  unsigned int updown[2];
-  updown[0]=0xffffff*p_down;
-  updown[1]=0xffffff; 
-  
+  struct probability_vector pv;  
   calcCurve(master_curve,&pv,NULL);
 
   int permutation_length=range_decode_equiprobable(c,CHARCOUNT+1);
   fprintf(stderr,"permutation_length=%d\n",permutation_length);
 
-    for(i=0;i<permutation_length;i++) {
-      int up=range_decode_symbol(c,updown,2);
-      int down=1-up;
-      fprintf(stderr,"symbol %02x : up=%d, down=%d\n",i,up,down);
-      
-     	  
-    }
+  for(i=0;i<permutation_length;i++) {
+    int range=0,rank=0,j;
+    int charids[CHARCOUNT];
+    long long sum=0;
+    
+    for(j=0;j<CHARCOUNT;j++)
+      if (!used[freqs[j].b]) {
+	sum+=pv.v[range];
+	if (0) fprintf(stderr,"j=%d %02x %02x 0x%x sum=%llx\n",
+		       j,range,freqs[j].b,pv.v[range],sum);
+	if (range) pv.v[range]+=pv.v[range-1];
+	charids[range]=freqs[j].b;
+	range++;
+      }
 
+    double scale=sum*1.0/0xffffff;
+    for(j=0;j<range;j++) pv.v[j]/=scale;
+    if (0) fprintf(stderr,"sum=0x%llx, scale=%f\n",sum,scale);
+
+    for(rank=0;rank<range;rank++) 
+      if (charids[rank]==freqs[i].b) break;
+    if (rank==range) {
+      fprintf(stderr,"This shouldn't happen: Couldn't find symbol %02x in list.\n",
+	      freqs[i].b);
+      exit(-1);
+    }
+    if (0)
+      fprintf(stderr,"Encoding %d of %d for symbol %02x (perm position %d of %d)\n",
+	      rank,range,freqs[i].b,i,permutation_length);
+    rank=range_decode_symbol(c,pv.v,range);
+    used[charids[rank]]=1;
+    freqs[i].b=charids[rank];
+  }
   return 0;
 }
 
