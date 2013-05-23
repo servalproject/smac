@@ -899,9 +899,10 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 					frequencyThreshold,
 					master_curve);
   fprintf(stderr,"\n");
-  fprintf(stderr,"Used %lld bytes to write %d alphabet permutation tables (%lld up, %lld down, split=%.2f%%).\n",
+  fprintf(stderr,"Used %lld bytes to write %d alphabet permutation tables (%lld up, %lld down, split=%.2f%%, avg=%.1f bits).\n",
 	  permutation_bytes,permutation_count,
-	  upcount,downcount,upcount*100.0/(upcount+downcount));
+	  upcount,downcount,upcount*100.0/(upcount+downcount),
+	  permutation_bytes*8.0/permutation_count);
   fprintf(stderr,"Used ~%lld bytes to encode frequency tables (%lld bits).\n",
 	  frequency_bits>>3,frequency_bits);
   fprintf(stderr,"Used ~%lld bytes to encode child node addresses (%lld bits).\n",
