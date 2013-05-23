@@ -54,24 +54,28 @@ int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
 
   range_encode_equiprobable(c,CHARCOUNT+1,permutation_length);
 
+#ifdef UPDOWN
   int p_down=(0.35*0xffffff);
 
   unsigned int updown[2];
   updown[0]=p_down;
   updown[1]=0xffffff; 
- 
+#endif
+
   int used[CHARCOUNT];
   for(i=0;i<CHARCOUNT;i++) used[i]=0;
   for(i=0;i<permutation_length;i++) {
     int range=0,rank=0,j;
     int charids[CHARCOUNT];
     long long sum=0;
- 
+
+#ifdef UPDOWN 
     int up,down;
     if (i==0) { up=1; down=1; }
     else if (freqs[i].b>freqs[i-1].b) { up=1; down=0; } else { up=0; down=1; }
 
     if (i) range_encode_symbol(c,updown,2,up);
+#endif
    
     for(j=0;j<CHARCOUNT;j++)
       if (!used[j]) {
@@ -79,10 +83,13 @@ int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
 	sum+=pv.v[range];
 	if (range) pv.v[range]+=pv.v[range-1];
 	charids[range]=j;
+#ifdef UPDOWN
 	if (i) {
 	  if (up&&j>freqs[i-1].b) range++;
 	  if (down&&j<freqs[i-1].b) range++;
-	} else range++;
+	} else 
+#endif
+	  range++;
       }
 
     double scale=sum*1.0/0xffffff;
@@ -122,21 +129,25 @@ int permutation_decode(range_coder *c,doublet *freqs,int master_curve)
 
   int p_down=(0.35*0xffffff);
 
+#ifdef UPDOWN
   unsigned int updown[2];
   updown[0]=p_down;
   updown[1]=0xffffff;
+#endif
 
   for(i=0;i<permutation_length;i++) {
     int range=0,rank=0,j;
     int charids[CHARCOUNT];
     long long sum=0;
     
+#ifdef UPDOWN
     int up,down;
     if (i==0) { up=1; down=1; }
     else {
       up=range_decode_symbol(c,updown,2);
       down=1-up;
     }
+#endif
    
     for(j=0;j<CHARCOUNT;j++)
       if (!used[j]) {
@@ -144,10 +155,13 @@ int permutation_decode(range_coder *c,doublet *freqs,int master_curve)
 	sum+=pv.v[range];
 	if (range) pv.v[range]+=pv.v[range-1];
 	charids[range]=j;
+#ifdef UPDOWN
 	if (i) {
 	  if (up&&j>freqs[i-1].a) range++;
 	  if (down&&j<freqs[i-1].a) range++;
-	} else range++;
+	} else 
+#endif
+	  range++;
       }
 
     double scale=sum*1.0/0xffffff;
