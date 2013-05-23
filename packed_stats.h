@@ -109,4 +109,4 @@ double calcCurve(int curve_number,
 int compare_doublet(const void *a,const void *b);
 int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
 		       int master_curve,int depth);
-
+int permutation_decode(range_coder *c,doublet *freqs,int master_curve);

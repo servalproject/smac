@@ -47,26 +47,42 @@ int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
 {
   int i;
   
+  struct probability_vector pv_master;
+  calcCurve(master_curve,NULL,&pv_master);
+
   struct probability_vector pv;
-  calcCurve(master_curve,NULL,&pv);
 
   range_encode_equiprobable(c,CHARCOUNT+1,permutation_length);
 
+  int p_down=(0.35*0xffffff);
+
+  unsigned int updown[2];
+  updown[0]=p_down;
+  updown[1]=0xffffff; 
+ 
   int used[CHARCOUNT];
   for(i=0;i<CHARCOUNT;i++) used[i]=0;
   for(i=0;i<permutation_length;i++) {
     int range=0,rank=0,j;
     int charids[CHARCOUNT];
     long long sum=0;
-    
+ 
+    int up,down;
+    if (i==0) { up=1; down=1; }
+    else if (freqs[i].b>freqs[i-1].b) { up=1; down=0; } else { up=0; down=1; }
+
+    if (i) range_encode_symbol(c,updown,2,up);
+   
     for(j=0;j<CHARCOUNT;j++)
-      if (!used[freqs[j].b]) {
+      if (!used[j]) {
+	pv.v[range]=pv_master.v[j];
 	sum+=pv.v[range];
-	if (0) fprintf(stderr,"j=%d %02x %02x 0x%x sum=%llx\n",
-		       j,range,freqs[j].b,pv.v[range],sum);
 	if (range) pv.v[range]+=pv.v[range-1];
-	charids[range]=freqs[j].b;
-	range++;
+	charids[range]=j;
+	if (i) {
+	  if (up&&j>freqs[i-1].b) range++;
+	  if (down&&j<freqs[i-1].b) range++;
+	} else range++;
       }
 
     double scale=sum*1.0/0xffffff;
@@ -74,7 +90,9 @@ int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
     if (0) fprintf(stderr,"sum=0x%llx, scale=%f\n",sum,scale);
 
     for(rank=0;rank<range;rank++) 
-      if (charids[rank]==freqs[i].b) break;
+      if (charids[rank]==freqs[i].b) {
+	break;
+      }
     if (rank==range) {
       fprintf(stderr,"This shouldn't happen: Couldn't find symbol %02x in list.\n",
 	      freqs[i].b);
@@ -89,52 +107,64 @@ int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
   return 0;
 }
 
-int permutation_decode(range_coder *c,doublet *freqs,int permutation[CHARCOUNT],
-		       int master_curve)
+int permutation_decode(range_coder *c,doublet *freqs,int master_curve)
 {
   int i;
   int used[CHARCOUNT];
   for(i=0;i<CHARCOUNT;i++) used[i]=0;
 
-  struct probability_vector pv;  
-  calcCurve(master_curve,&pv,NULL);
+  struct probability_vector pv_master;
+  calcCurve(master_curve,NULL,&pv_master);
+
+  struct probability_vector pv;
 
   int permutation_length=range_decode_equiprobable(c,CHARCOUNT+1);
-  fprintf(stderr,"permutation_length=%d\n",permutation_length);
+
+  int p_down=(0.35*0xffffff);
+
+  unsigned int updown[2];
+  updown[0]=p_down;
+  updown[1]=0xffffff;
 
   for(i=0;i<permutation_length;i++) {
     int range=0,rank=0,j;
     int charids[CHARCOUNT];
     long long sum=0;
     
+    int up,down;
+    if (i==0) { up=1; down=1; }
+    else {
+      up=range_decode_symbol(c,updown,2);
+      down=1-up;
+    }
+   
     for(j=0;j<CHARCOUNT;j++)
-      if (!used[freqs[j].b]) {
+      if (!used[j]) {
+	pv.v[range]=pv_master.v[j];
 	sum+=pv.v[range];
-	if (0) fprintf(stderr,"j=%d %02x %02x 0x%x sum=%llx\n",
-		       j,range,freqs[j].b,pv.v[range],sum);
 	if (range) pv.v[range]+=pv.v[range-1];
-	charids[range]=freqs[j].b;
-	range++;
+	charids[range]=j;
+	if (i) {
+	  if (up&&j>freqs[i-1].a) range++;
+	  if (down&&j<freqs[i-1].a) range++;
+	} else range++;
       }
 
     double scale=sum*1.0/0xffffff;
     for(j=0;j<range;j++) pv.v[j]/=scale;
-    if (0) fprintf(stderr,"sum=0x%llx, scale=%f\n",sum,scale);
-
-    for(rank=0;rank<range;rank++) 
-      if (charids[rank]==freqs[i].b) break;
-    if (rank==range) {
-      fprintf(stderr,"This shouldn't happen: Couldn't find symbol %02x in list.\n",
-	      freqs[i].b);
-      exit(-1);
-    }
-    if (0)
-      fprintf(stderr,"Encoding %d of %d for symbol %02x (perm position %d of %d)\n",
-	      rank,range,freqs[i].b,i,permutation_length);
+    
     rank=range_decode_symbol(c,pv.v,range);
+
     used[charids[rank]]=1;
-    freqs[i].b=charids[rank];
+    freqs[i].a=charids[rank];
   }
+  // Reassemble tail
+  for(;i<CHARCOUNT;++i) {
+    int j;
+    for(j=0;j<CHARCOUNT;j++) if (!used[j]) break;
+    freqs[i].a=j; used[j]=1;
+    }
+
   return 0;
 }
 

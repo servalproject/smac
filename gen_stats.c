@@ -427,6 +427,13 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
   return 0;
 }
 
+int sign(int a)
+{
+  if (a>0) return 1;
+  if (a<0) return -1;
+  return 0;
+}
+
 int nodesWritten=0;
 unsigned int writeNode(FILE *out,struct countnode *n,char *s,
 		       /* Terminations don't get counted internally in a node,
@@ -592,8 +599,9 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   /* Verify.
      XXX - Doesn't really work anymore with curve fitting modelling
      (because permutation blocks might reference earlier permutation blocks, which
-      are not available in the dummy memory block we have here). */
-  if (0)
+      are not available in the dummy memory block we have here, and counts will
+      not be identical, although they should have the same relative order). */
+  if (1)
   {
     /* Make pretend stats handle to extract from */
     stats_handle h;
@@ -601,17 +609,24 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
     h.mmap=c->bit_stream;
     h.dummyOffset=addr;
     h.fileLength=addr+bytes;
+    h.permutation_curve=master_curve;
     if (0) fprintf(stderr,"verifying node @ 0x%x\n",addr);
     struct node *v=extractNodeAt(NULL,0,addr+(c->bookmark>>3),totalCountIncludingTerminations,&h,
 				 0 /* don't extract whole tree */,debug);
 
     int i;
     int error=0;
-    for(i=0;i<CHARCOUNT;i++)
+    for(i=1;i<CHARCOUNT;i++)
       {
-	if (v->counts[i]!=getCount(n,i)) {
+	if (sign(v->counts[i]-v->counts[i-1])
+	    &&(sign(v->counts[i]-v->counts[i-1])
+	       ==
+	       -sign(getCount(n,i)-getCount(n,i-1)))) {
 	  if (!error) {
 	    fprintf(stderr,"Verify error writing node for '%s'\n",s);
+	    fprintf(stderr,"  i=%d, signs=%d,%d\n",
+		    i,sign(v->counts[i]-v->counts[i-1]),
+		    sign(getCount(n,i)-getCount(n,i-1)));
 	    fprintf(stderr,"  n->count=%lld, totalCount=%lld\n",
 		    n->count,totalCount);
 	  }
