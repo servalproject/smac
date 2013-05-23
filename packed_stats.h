@@ -53,6 +53,7 @@ typedef struct compressed_stats_handle {
   unsigned int totalCount;
   unsigned int unicodeAddress;
   unsigned int maximumOrder;
+  unsigned short permutation_curve;
 
   /* Basic model statistics that are required.
      These are preloaded when a stats_handle is created.
@@ -106,5 +107,6 @@ double calcCurve(int curve_number,
 		 struct probability_vector *sample_curve,
 		 struct probability_vector *plotted_curve);
 int compare_doublet(const void *a,const void *b);
-int permutation_encode(range_coder *c,doublet *freqs, int permutation_length);
+int permutation_encode(range_coder *c,doublet *freqs, int permutation_length,
+		       int master_curve);
 

@@ -334,7 +334,7 @@ long long downcount=0;
 unsigned int curve_freq_encode(FILE *out,range_coder *c,
 			       struct countnode *n,char *s,
 			       int totalCountIncludingTerminations,int threshold,
-			       int pass)
+			       int pass,int master_curve)
 {
   int i;
   doublet freqs[CHARCOUNT];
@@ -347,11 +347,12 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
     if (getCount(n,i)) { hasCount++; maxCountChild=i; }
   }
 
-  // fprintf(stderr,"Node has %d non-zero elements (count=%lld).\n",
-  // hasCount,totalCount);
-
   // Sort characters by frequency
   qsort(freqs,CHARCOUNT,sizeof(doublet),compare_doublet);
+
+  // And find best matching curve
+  int curve_number=curveFit(freqs);
+
   // Build permtutation
   char permutation[CHARCOUNT*2+1];
   int tail_end=CHARCOUNT-1;
@@ -395,7 +396,7 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
       }
     }
 
-    permutation_encode(c,freqs,strlen(permutation)/2);
+    permutation_encode(c,freqs,strlen(permutation)/2,master_curve);
 
     permutation_addresses[permutation_count]=ftello(out);
     permutations[permutation_count]=strdup(permutation);
@@ -414,7 +415,6 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
   range_encode_equiprobable(c,ftello(out)+1+(c->bookmark>>3),
 			    permutation_addresses[permutation_number]);
 
-  int curve_number=curveFit(freqs);
   range_encode_equiprobable(c,0x10000,curve_number);
 
   int bits=c->bits_used-start_bit;
@@ -429,7 +429,8 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
 		       /* Terminations don't get counted internally in a node,
 			  but are used when encoding and decoding the node,
 			  so we have to pass it in here. */
-		       int totalCountIncludingTerminations,int threshold)
+		       int totalCountIncludingTerminations,int threshold,
+		       int master_curve)
 {
   nodesWritten++;
   char schild[128];
@@ -473,7 +474,8 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
     if (nn&&*nn&&(*nn)->count>=threshold) {
       if (0) fprintf(stderr,"n->children[%d]->count=%lld\n",i,(*nn)->count);
       snprintf(schild,128,"%s%c",s,chars[i]);
-      childAddresses[i]=writeNode(out,*nn,schild,totalCount,threshold);
+      childAddresses[i]=writeNode(out,*nn,schild,totalCount,threshold,
+				  master_curve);
       storedChildren++;
     }
     if (getCount(n,i)) {
@@ -520,7 +522,8 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
 #endif
 
   // Write out permutation table if required
-  curve_freq_encode(out,c,n,s,totalCountIncludingTerminations,threshold,0);
+  curve_freq_encode(out,c,n,s,totalCountIncludingTerminations,threshold,0,
+		    master_curve);
 
   unsigned int highAddr=ftell(out)+(c->bookmark>>3);
   unsigned int lowAddr=0;
@@ -536,7 +539,8 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
   range_encode_equiprobable(c,CHARCOUNT+1,storedChildren);
 
   // Write out frequency table referencing appropriate permutation table
-  curve_freq_encode(out,c,n,s,totalCountIncludingTerminations,threshold,1);
+  curve_freq_encode(out,c,n,s,totalCountIncludingTerminations,threshold,1,
+		    master_curve);
 
   start_bit=c->bits_used;
 
@@ -801,7 +805,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   }
 
   /* Keep space for our header */
-  fprintf(out,"STA1XXXXYYYYUUUUZ");
+  fprintf(out,"STA1XXXXYYYYUUUUZCC");
 
   /* Write case statistics. No way to compress these, so just write them out. */
   unsigned int tally,vv;
@@ -873,22 +877,14 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
     range_coder_free(c);
   }
 
-  if (0) {
-    fprintf(stderr,"Most frequent character: ");
+  // Calculate curve describing character frequencies.
+  // This is used to for encoding permutations
+  int master_curve;
+  {
     doublet d[CHARCOUNT];
     for(i=0;i<CHARCOUNT;i++) { d[i].a=counts1[i]; d[i].b=i; }
     qsort(d,CHARCOUNT,sizeof(doublet),compare_doublet);
-    for(i=0;i<CHARCOUNT;i++) {
-      int c=chars[d[i].b];
-      if (c=='\t') fprintf(stderr,"\\t");
-      else if (c=='\r') fprintf(stderr,"\\r");
-      else if (c=='\n') fprintf(stderr,"\\n");
-      else if (c=='\\') fprintf(stderr,"\\\\");
-      else if (c=='\'') fprintf(stderr,"\\\'");
-      else if (c=='\"') fprintf(stderr,"\\\"");
-      else fprintf(stderr,"%c",c);
-    }
-    fprintf(stderr,"\n");
+    master_curve=curveFit(d); 
   }
 
   /* Write compressed data out */
@@ -900,7 +896,8 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   downcount=0;
   unsigned int topNodeAddress=writeNode(out,nodeTree,"",
 					nodeTree->count,
-					frequencyThreshold);
+					frequencyThreshold,
+					master_curve);
   fprintf(stderr,"\n");
   fprintf(stderr,"Used %lld bytes to write %d alphabet permutation tables (%lld up, %lld down, split=%.2f%%).\n",
 	  permutation_bytes,permutation_count,
@@ -924,6 +921,8 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   writeInt(out,totalCount);
   writeInt(out,unicodeAddress);
   fputc(maximumOrder+1,out);
+  fputc(master_curve>>8,out);
+  fputc(master_curve&0xff,out);
   
   fclose(out);
 

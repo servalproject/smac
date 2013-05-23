@@ -65,6 +65,15 @@ double calcRatioMetric(int a,int b)
   // a = predicted freq
   // b = actual freq
 
+  if (a<0||a>0xffffff) {
+    fprintf(stderr,"a out of range.\n");
+    exit(-1);
+  }
+  if (b<0||b>0xffffff) {
+    fprintf(stderr,"b out of range.\n");
+    exit(-1);
+  }
+
   double p_b=(b+1)*1.0/0xffffff;
 
   if (logTableSetup)
