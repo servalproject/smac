@@ -601,7 +601,7 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
      (because permutation blocks might reference earlier permutation blocks, which
       are not available in the dummy memory block we have here, and counts will
       not be identical, although they should have the same relative order). */
-  if (1)
+  if (0)
   {
     /* Make pretend stats handle to extract from */
     stats_handle h;
