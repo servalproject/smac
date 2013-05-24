@@ -72,6 +72,73 @@ int permutation_build_sublist(int alphabet_size,int *used,int *range,
   return 0;
 }
 
+int parsehexdigit(int d)
+{
+  if (d>='0'&&d<='9') return d-'0';
+  if (d>='A'&&d<='F') return d-'A'+0xa;
+  if (d>='a'&&d<='f') return d-'a'+0xa;
+  return 0;
+}
+
+int permutation_best_delta_cost(int alphabet_size,
+				int permutation_length,doublet *freqs,
+				char **permutations,int permutation_count)
+{
+  int i,j;
+  int p;
+  int porder[alphabet_size];
+  int used[alphabet_size];
+  double best_cost;
+  int best_perm=-1;
+  for(p=0;p<permutation_count;p++)
+    {
+      double cost=0;
+      // Parse string representation of permutation
+      // fprintf(stderr,"Parsing %s\n",permutations[p]);
+      for(i=0;i<alphabet_size;i++) used[i]=0;
+      for(i=0;i<strlen(permutations[p]);i+=2) {
+	porder[i/2]=(parsehexdigit(permutations[p][i])<<4)
+		   |parsehexdigit(permutations[p][i+1]);
+	used[porder[i/2]]=1;
+	// fprintf(stderr,"[%02x]",porder[i/2]);
+      }
+      // Reassemble implied tail distribution
+      i/=2; 
+      for(j=0;j<alphabet_size;j++) {
+	if (!used[j]) { porder[i++]=j; 	
+	  /* fprintf(stderr,"{%02x}",porder[i-1]); */ }
+      }
+      // fprintf(stderr,"\n");
+
+      // Compute distance in terms of the bits required to encode it
+      int previ=0;
+      for(i=0;i<alphabet_size;i++) {
+	if (porder[i]!=freqs[i].b) {
+	  for(j=i+1;j<alphabet_size;j++) if (porder[j]==freqs[i].b) break;
+	  if (j==alphabet_size) {
+	    fprintf(stderr,"This should not happen.\n");
+	    exit(-1);
+	  }
+	  // fprintf(stderr,"  move #%d from rank %d to rank %d\n",freqs[i].b,j,i);
+	  // Move element at j to i, and shuffle the rest down.
+	  while(j>i) { porder[j]=porder[j-1]; j--; }
+	  porder[i]=freqs[i].b;
+	  // Cost of specifying position of start point of rotate
+	  cost+=log(alphabet_size-previ)/log(2);
+	  // Cost of specifying position of end point of rotate
+	  cost+=log(alphabet_size-(i-1))/log(2);
+	  previ=i;
+	}
+      }
+      if (cost<best_cost||best_perm==-1) { best_cost=cost; best_perm=p; }
+    }
+  if (best_perm!=-1) {
+    if (best_cost<200) 
+      fprintf(stderr,"Can delta code against p#%d in %.1f bits\n",best_perm,best_cost); 
+    return best_cost+1; 
+  } else return -1;
+}
+
 int permutation_encode(range_coder *c,doublet *freqs,
 		       int alphabet_size,int permutation_length, 
 		       int master_curve,int depth,
@@ -84,6 +151,10 @@ int permutation_encode(range_coder *c,doublet *freqs,
   calcCurve(master_curve,NULL,&pv_master);
 
   struct probability_vector pv;
+
+  permutation_best_delta_cost(alphabet_size,
+			      permutation_length,freqs,
+			      permutations,permutation_count);    
 
   range_encode_equiprobable(c,alphabet_size+1,permutation_length);
 
