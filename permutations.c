@@ -74,7 +74,9 @@ int permutation_build_sublist(int alphabet_size,int *used,int *range,
 
 int permutation_encode(range_coder *c,doublet *freqs,
 		       int alphabet_size,int permutation_length, 
-		       int master_curve,int depth)
+		       int master_curve,int depth,
+		       char **permutations, int *permutation_addresses,
+		       int permutation_count, off_t max_address)
 {
   int i;
   int charids[alphabet_size];
@@ -133,15 +135,15 @@ int permutation_decode(range_coder *c,doublet *freqs,
 		       int alphabet_size,int master_curve)
 {
   int i;
-  int used[CHARCOUNT];
-  for(i=0;i<CHARCOUNT;i++) used[i]=0;
+  int used[alphabet_size];
+  for(i=0;i<alphabet_size;i++) used[i]=0;
 
   struct probability_vector pv_master;
   calcCurve(master_curve,NULL,&pv_master);
 
   struct probability_vector pv;
 
-  int permutation_length=range_decode_equiprobable(c,CHARCOUNT+1);
+  int permutation_length=range_decode_equiprobable(c,alphabet_size+1);
 
 #ifdef UPDOWN
   int p_down=(UPDOWN*0xffffff);
@@ -153,7 +155,7 @@ int permutation_decode(range_coder *c,doublet *freqs,
 
   for(i=0;i<permutation_length;i++) {
     int range=0,rank=0,j;
-    int charids[CHARCOUNT];
+    int charids[alphabet_size];
     long long sum=0;
     
 #ifdef UPDOWN
@@ -163,22 +165,13 @@ int permutation_decode(range_coder *c,doublet *freqs,
       up=range_decode_symbol(c,updown,2);
       down=1-up;
     }
+#else
+    int up=1, down=1;
 #endif
-   
-    for(j=0;j<CHARCOUNT;j++)
-      if (!used[j]) {
-	pv.v[range]=pv_master.v[j];
-	sum+=pv.v[range];
-	if (range) pv.v[range]+=pv.v[range-1];
-	charids[range]=j;
-#ifdef UPDOWN
-	if (i) {
-	  if (up&&j>freqs[i-1].a) range++;
-	  if (down&&j<freqs[i-1].a) range++;
-	} else 
-#endif
-	  range++;
-      }
+
+    permutation_build_sublist(alphabet_size,used,&range,
+			      &pv_master,&pv,charids,
+			      i,up,down);
 
     double scale=sum*1.0/0xffffff;
     for(j=0;j<range;j++) pv.v[j]/=scale;

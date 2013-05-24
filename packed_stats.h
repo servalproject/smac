@@ -109,6 +109,8 @@ double calcCurve(int curve_number,
 int compare_doublet(const void *a,const void *b);
 int permutation_encode(range_coder *c,doublet *freqs, 
 		       int alphabet_size,int permutation_length,
-		       int master_curve,int depth);
+		       int master_curve,int depth,
+		       char **permutations, int *permutation_addresses,
+		       int permutation_count, off_t max_address);
 int permutation_decode(range_coder *c,doublet *freqs,
 		       int alphabet_size,int master_curve);
