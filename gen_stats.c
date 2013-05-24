@@ -360,8 +360,9 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
   char permutation[CHARCOUNT*2+1];
   // Only care about the 1st half of a permutation, since probabilities are fairly
   // flat after that.
-  int tail_end=CHARCOUNT/2;
+  int tail_end=CHARCOUNT-1;
   while (tail_end>0&&freqs[tail_end-1].b==freqs[tail_end].b-1) tail_end--;
+  if (tail_end>CHARCOUNT/2) tail_end=CHARCOUNT/2;
   for(i=0;i<=tail_end;i++) 
     if (freqs[i].a)
       sprintf(&permutation[i*2],"%02x",freqs[i].b);
@@ -621,7 +622,9 @@ unsigned int writeNode(FILE *out,struct countnode *n,char *s,
 
     int i;
     int error=0;
-    for(i=1;i<CHARCOUNT;i++)
+    // Only verify 1st half, since we only guarantee the first half of the
+    // distribution to be ordered, since after that probabilities are fairly flat.
+    for(i=1;i<CHARCOUNT/2;i++)
       {
 	if (sign(v->counts[i]-v->counts[i-1])
 	    &&(sign(v->counts[i]-v->counts[i-1])
