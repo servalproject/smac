@@ -364,6 +364,11 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
     if (freqs[i].a)
       sprintf(&permutation[i*2],"%02x",freqs[i].b);
     else break;
+
+  // Where tail elements are unordered, but have very similar frequencies, 
+  // sort them.
+  permutation_simplify(freqs,CHARCOUNT,curve_number);
+
   // See if we have seen it before.
   // (it turns out that exactly the same permutations repeat quite often, with 
   // one test showing <20% unique permutations).

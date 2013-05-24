@@ -114,3 +114,4 @@ int permutation_encode(range_coder *c,doublet *freqs,
 		       int permutation_count, off_t max_address);
 int permutation_decode(range_coder *c,doublet *freqs,
 		       int alphabet_size,int master_curve);
+int permutation_simplify(doublet *freqs,int alphabet_size, int curve_number);
