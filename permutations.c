@@ -74,9 +74,7 @@ int permutation_build_sublist(int alphabet_size,int *used,int *range,
 
 int permutation_encode(range_coder *c,doublet *freqs,
 		       int alphabet_size,int permutation_length, 
-		       int master_curve,int depth,
-		       char **permutations, int *permutation_addresses,
-		       int permutation_count, off_t max_address)
+		       int master_curve,int depth)
 {
   int i;
   int charids[alphabet_size];
