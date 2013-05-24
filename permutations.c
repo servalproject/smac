@@ -41,6 +41,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 #include "unicode.h"
 
+long long delta_savings=0;
+
 int permutation_build_sublist(int alphabet_size,int *used,int *range,
 			      struct probability_vector *pv_master,
 			      struct probability_vector *pv,
@@ -132,11 +134,9 @@ int permutation_best_delta_cost(int alphabet_size,
       }
       if (cost<best_cost||best_perm==-1) { best_cost=cost; best_perm=p; }
     }
-  if (best_perm!=-1) {
-    if (best_cost<200) 
-      fprintf(stderr,"Can delta code against p#%d in %.1f bits\n",best_perm,best_cost); 
+  if (best_perm!=-1)
     return best_cost+1; 
-  } else return -1;
+  else return -1;
 }
 
 int permutation_encode(range_coder *c,doublet *freqs,
@@ -152,9 +152,10 @@ int permutation_encode(range_coder *c,doublet *freqs,
 
   struct probability_vector pv;
 
-  permutation_best_delta_cost(alphabet_size,
-			      permutation_length,freqs,
-			      permutations,permutation_count);    
+  int best_delta=permutation_best_delta_cost(alphabet_size,
+					     permutation_length,freqs,
+					     permutations,permutation_count);
+  int coding_cost=c->bits_used;
 
   range_encode_equiprobable(c,alphabet_size+1,permutation_length);
 
@@ -198,6 +199,13 @@ int permutation_encode(range_coder *c,doublet *freqs,
 	      rank,range,freqs[i].b,i,permutation_length);
     range_encode_symbol(c,pv.v,range,rank);
     used[freqs[i].b]=1;
+  }
+
+  coding_cost=c->bits_used-coding_cost;
+  if (best_delta<coding_cost) {
+    fprintf(stderr,"Saving %d bits (%d bits instead of %d) by delta coding.\n",
+	    coding_cost-best_delta,best_delta,coding_cost);
+    delta_savings+=coding_cost-best_delta;
   }
   return 0;
 }

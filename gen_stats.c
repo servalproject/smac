@@ -93,6 +93,8 @@ int permutation_count;
 int permutation_addresses[MAX_PERMUTATIONS];
 char *permutations[MAX_PERMUTATIONS];
 
+extern long long delta_savings;
+
 int curveFit(doublet freqs[CHARCOUNT])
 {
   struct probability_vector pv;
@@ -912,6 +914,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   permutation_bytes=0;
   frequency_bits=0;
   nodesWritten=0;
+  delta_savings=0;
   for(i=0;i<MAXDEPTH;i++) upcount[i]=0;
   for(i=0;i<MAXDEPTH;i++) downcount[i]=0;
 
@@ -923,6 +926,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   fprintf(stderr,"Used %lld bytes to write %d alphabet permutation tables (avg=%.1f bits).\n",
 	  permutation_bytes,permutation_count,
 	  permutation_bytes*8.0/permutation_count);
+  fprintf(stderr,"Delta coding could save %lld bits\n",delta_savings);
   //  for(i=0;i<MAXDEPTH;i++)
   // fprintf(stderr,"depth %d: %lld up, %lld down, split=%.2f%%\n", 
   // i,upcount[i],downcount[i],upcount[i]*100.0/(upcount[i]+downcount[i]));
