@@ -166,13 +166,22 @@ int permutation_decode(range_coder *c,doublet *freqs,
       up=range_decode_symbol(c,updown,2);
       down=1-up;
     }
-#else
-    int up=1, down=1;
 #endif
-
-    permutation_build_sublist(alphabet_size,used,&range,
-			      &pv_master,&pv,charids,
-			      i,up,down);
+   
+    for(j=0;j<CHARCOUNT;j++)
+      if (!used[j]) {
+       pv.v[range]=pv_master.v[j];
+       sum+=pv.v[range];
+       if (range) pv.v[range]+=pv.v[range-1];
+       charids[range]=j;
+#ifdef UPDOWN
+       if (i) {
+         if (up&&j>freqs[i-1].a) range++;
+         if (down&&j<freqs[i-1].a) range++;
+       } else 
+#endif
+         range++;
+      }
 
     double scale=sum*1.0/0xffffff;
     for(j=0;j<range;j++) pv.v[j]/=scale;
