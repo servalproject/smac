@@ -358,16 +358,14 @@ unsigned int curve_freq_encode(FILE *out,range_coder *c,
 
   // Build permtutation
   char permutation[CHARCOUNT*2+1];
-  int tail_end=CHARCOUNT-1;
+  // Only care about the 1st half of a permutation, since probabilities are fairly
+  // flat after that.
+  int tail_end=CHARCOUNT/2;
   while (tail_end>0&&freqs[tail_end-1].b==freqs[tail_end].b-1) tail_end--;
   for(i=0;i<=tail_end;i++) 
     if (freqs[i].a)
       sprintf(&permutation[i*2],"%02x",freqs[i].b);
     else break;
-
-  // Where tail elements are unordered, but have very similar frequencies, 
-  // sort them.
-  permutation_simplify(freqs,CHARCOUNT,curve_number);
 
   // See if we have seen it before.
   // (it turns out that exactly the same permutations repeat quite often, with 

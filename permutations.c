@@ -41,53 +41,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 #include "unicode.h"
 
-// 25% difference = 0.8x or 1.25x original probability
-// this corresponds to only a fraction of a bit per symbol difference
-int closeEnough(int f1,int f2)
-{
-  if ((f1-f2)>(f2>>2)) return 0;
-  if ((f2-f1)>(f2>>2)) return 0;
-  if ((f1-f2)>(f1>>2)) return 0;
-  if ((f2-f1)>(f1>>2)) return 0;
-  return 1;
-}
-
-// Fix order of permutation where doing so does not greatly effect the probability
-// of a symbol.
-int permutation_simplify(doublet *freqs,int alphabet_size, int curve_number)
-{
-  int orig_freqs[alphabet_size];
-  struct probability_vector pv;
-  calcCurve(curve_number,NULL,&pv);
-  int i;
-
-  // Get original predicted frequency of each symbol so that we
-  // don't promote/demote symbols too far from their original frequency. 
-  for(i=0;i<alphabet_size;i++) orig_freqs[freqs[i].b]=pv.v[i];
-  
-  int swapcount=1;
-  while(swapcount) {
-    swapcount=0;
-    for(i=0;i<alphabet_size-1;i++) {
-      if (freqs[i].b>freqs[i+1].b) {
-	// Out of order symbol pair -- consider swapping
-	if (closeEnough(pv.v[i],orig_freqs[freqs[i+1].b])
-	    &&
-	    closeEnough(pv.v[i+1],orig_freqs[freqs[i].b]))
-	  {
-	    // Swap
-	    int swap=freqs[i].b;
-	    freqs[i].b=freqs[i+1].b;
-	    freqs[i+1].b=swap;
-	    swapcount++;
-	  }
-      }
-    }
-  }
-  return 0;
-}
-
-
 int permutation_build_sublist(int alphabet_size,int *used,int *range,
 			      struct probability_vector *pv_master,
 			      struct probability_vector *pv,
