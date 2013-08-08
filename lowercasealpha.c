@@ -45,6 +45,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 extern long long total_unicode_millibits;
 extern long long total_unicode_chars;
+extern long long total_digit_chars;
+extern long long total_alpha_chars;
 
 int strncmp816(char *s1,unsigned short *s2,int len)
 {
@@ -90,6 +92,8 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
     if (s[o]>='0'&&s[o]<='9') {
 #ifdef ENCODING
       range_encode_equiprobable(c,10,s[o]-'0');
+      total_digit_chars++;
+      total_alpha_chars++;
 #else
       s[o]='0'+range_decode_equiprobable(c,10);
 #endif
@@ -137,7 +141,10 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
       s[o]=lastCodePage*0x80+symbol;
       //      fprintf(stderr,"decoded unicode char: 0x%04x\n",s[o]);
 #endif
-    }
+    } 
+#ifdef ENCODING
+    else total_alpha_chars++;
+#endif
     // Record entropy for this character if requested.
     if (entropyLog) entropyLog[o]=c->entropy-previousEntropy;
   }

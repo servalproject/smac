@@ -45,6 +45,8 @@ long long total_length_bits=0;
 
 long long total_unicode_millibits=0;
 long long total_unicode_chars=0;
+long long total_digit_chars=0;
+long long total_alpha_chars=0;
 
 long long total_messages=0;
 
@@ -152,7 +154,9 @@ int main(int argc,char *argv[])
 	 total_compressed_bits*100.0/total_uncompressed_bits);
   printf("         compressed size: %f%% (byte oriented)\n",
 	 total_stats3_bytes*100.0/(total_uncompressed_bits/8.0));
-  printf("       uncompressed bits: %lld\n",total_uncompressed_bits);
+  printf("       uncompressed bits: %lld (%lld ASCII characters & %lld unicode characters)\n",
+	 total_uncompressed_bits,
+	 total_alpha_chars,total_unicode_chars);
   printf("        compressed bytes: %lld\n",total_stats3_bytes);
   printf("         compressed bits: %lld\n",total_compressed_bits);
   printf("    length-encoding bits: %lld\n",total_length_bits);
@@ -162,6 +166,8 @@ int main(int argc,char *argv[])
   if (total_unicode_chars)
   printf("   avg unicode bits/char: %.2f\n",
 	 total_unicode_millibits/total_unicode_chars/1000.0);
+  printf("     avg alpha bits/char: %.2f\n",
+	 total_alpha_bits*1.0/total_alpha_chars);
   printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
   printf("\n");
   printf("stats3 compression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
