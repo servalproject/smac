@@ -157,18 +157,18 @@ int main(int argc,char *argv[])
   printf("       uncompressed bits: %lld (%lld ASCII characters & %lld unicode characters)\n",
 	 total_uncompressed_bits,
 	 total_alpha_chars,total_unicode_chars);
-  printf("        compressed bytes: %lld\n",total_stats3_bytes);
-  printf("         compressed bits: %lld\n",total_compressed_bits);
-  printf("    length-encoding bits: %lld\n",total_length_bits);
-  printf("     model-encoding bits: %lld\n",total_model_bits);
-  printf("      case-encoding bits: %lld\n",total_case_bits);
-  printf("     alpha-encoding bits: %lld\n",total_alpha_bits);
+  printf("          compressed bytes: %lld\n",total_stats3_bytes);
+  printf("           compressed bits: %lld\n",total_compressed_bits);
+  printf("      length-encoding bits: %lld\n",total_length_bits);
+  printf("       model-encoding bits: %lld\n",total_model_bits);
+  printf("        case-encoding bits: %lld\n",total_case_bits);
+  printf("       alpha-encoding bits: %lld\n",total_alpha_bits);
   if (total_unicode_chars)
-  printf("   avg unicode bits/char: %.2f\n",
+  printf("avg unicode bits/codepoint: %.2f\n",
 	 total_unicode_millibits/total_unicode_chars/1000.0);
-  printf("     avg alpha bits/char: %.2f\n",
+  printf("       avg alpha bits/char: %.2f\n",
 	 total_alpha_bits*1.0/total_alpha_chars);
-  printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
+  printf("    nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
   printf("\n");
   printf("stats3 compression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
 	 stats3_compress_us,1000000.0/(stats3_compress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_compress_us);
