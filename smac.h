@@ -23,6 +23,37 @@ extern long long total_model_bits;
 extern long long total_length_bits;
 extern long long total_finalisation_bits;
 
+extern int lines;
+extern double worstPercent,bestPercent;
+extern long long total_compressed_bits;
+extern long long total_uncompressed_bits;
+extern long long total_alpha_bits;
+extern long long total_nonalpha_bits;
+extern long long total_case_bits;
+extern long long total_model_bits;
+extern long long total_length_millibits;
+extern long long total_finalisation_bits;
+extern long long total_length_bits;
+
+extern long long total_unicode_millibits;
+extern long long total_unicode_chars;
+extern long long total_digit_chars;
+extern long long total_alpha_chars;
+
+extern long long total_messages;
+
+extern long long total_stats3_bytes;
+
+extern long long stats3_compress_us;
+extern long long stats3_decompress_us;
+
+extern double comp_by_size_percent[104];
+extern unsigned int comp_by_size_count[104];
+extern unsigned int percent_count[104];
+
+
+
+
 int stats3_compress(unsigned char *in,int inlen,unsigned char *out, int *outlen,
 		    stats_handle *h);
 int stats3_compress_bits(range_coder *c,unsigned char *m,int len,stats_handle *h,

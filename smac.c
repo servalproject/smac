@@ -60,6 +60,34 @@ int decodeLCAlphaSpace(range_coder *c,unsigned short *s,int length,stats_handle 
 int decodePackedASCII(range_coder *c, unsigned char *m,int encodedLength);
 int encodePackedASCII(range_coder *c,unsigned char *m);
 
+int lines=0;
+double worstPercent=0,bestPercent=100;
+long long total_compressed_bits=0;
+long long total_uncompressed_bits=0;
+long long total_alpha_bits=0;
+long long total_nonalpha_bits=0;
+long long total_case_bits=0;
+long long total_model_bits=0;
+long long total_length_millibits=0;
+long long total_finalisation_bits=0;
+long long total_length_bits=0;
+
+long long total_unicode_millibits=0;
+long long total_unicode_chars=0;
+long long total_digit_chars=0;
+long long total_alpha_chars=0;
+
+long long total_messages=0;
+
+long long total_stats3_bytes=0;
+
+long long stats3_compress_us=0;
+long long stats3_decompress_us=0;
+
+double comp_by_size_percent[104];
+unsigned int comp_by_size_count[104];
+unsigned int percent_count[104];
+
 unsigned int probPackedASCII=0.05*0xffffff;
 
 int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
