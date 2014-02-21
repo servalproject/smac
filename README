@@ -14,3 +14,15 @@ CREDITS
 
 SMAC contains some code from the SMAZ project by antirez
 Small was writte by Salvatore Sanfilippo and is released under the BSD license. Check the COPYING file for more information.
+
+CITING THIS WORK
+----------------
+
+I work at a University, and that means that it helps me everytime someone cites any of my academic publications.
+Please cite the following paper if you wish to reference this software.  The paper is open-access.
+
+P. Gardner-Stephen, A. Bettison, R. Challans, J. Hampton, J. Lakeman and C. Wallis, "Improving Compression of
+Short Messages," Int'l J. of Communications, Network and System Sciences, Vol. 6 No. 12, 2013, pp. 497-504.
+doi: 10.4236/ijcns.2013.612053.
+
+Full PDF at: http://www.scirp.org/journal/PaperInformation.aspx?paperID=40783#.UwbS2UKSzk0
