@@ -346,7 +346,8 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
   unsigned int s=v*alphabet_size/space;
   
   if (c->debug)
-    fprintf(stderr,"Estimating s=%d (0x%x)\n",s,s);
+    fprintf(stderr,"decoding: alphabet size = %d, estimating s=%d (0x%x)\n",
+	    alphabet_size,s,s);
 
   int symbol;
 
@@ -354,7 +355,12 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
     {
       unsigned int p_low,p_high;
       range_equiprobable_range(c,alphabet_size,symbol,&p_low,&p_high);
-      if (!range_decode_common(c,p_low,p_high,symbol)) return symbol;     
+      if (!range_decode_common(c,p_low,p_high,symbol)) {
+	if (c->debug) 
+	  fprintf(stderr,"Decoding %d/%d p_low=0x%x, p_high=0x%x\n",
+		  symbol,alphabet_size,p_low,p_high);
+	return symbol;     
+      }
     }
 
   fprintf(stderr,"Internal error in range_decode_equiprobable().\n");

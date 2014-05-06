@@ -88,6 +88,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
    
     for(i=1;m[i-1];i++) {
       m[i]=range_decode_equiprobable(c,256);
+      printf("Read byte 0x%02x\n",m[i]);
     }
     *len_out=i-1;
     return 0;
@@ -243,13 +244,13 @@ int stats3_compress_uncompressed_append(range_coder *c,unsigned char *m_in,int m
 					stats_handle *h,double *entropyLog)
 {
   // Encode bit by bit in case range coder is not on a byte boundary.
-  int i,j;
+  int i;
   for(i=0;i<m_in_len;i++)
-    for(j=7;j>=0;j--) range_encode_equiprobable(c,2,(m_in[i]>>j)&1);
+    range_encode_equiprobable(c,256,m_in[i]);
     
-  // Add $00 byte to terminate
-  for(j=7;j>=0;j--) range_encode_equiprobable(c,2,0);
-  
+  // Add $FF byte to terminate
+  range_encode_equiprobable(c,256,255);
+
   return 0;
 }
 
@@ -274,6 +275,7 @@ int stats3_compress_append(range_coder *c,unsigned char *m_in,int m_in_len,
 
   // Unpacked (only if the first character <= 127)
   b3=(m_in_len+1)*8; // one extra character for null termination
+  b3=999999;
 
   // Compare the results and encode accordingly
   if (b1<b2&&b1<b3)
