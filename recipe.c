@@ -270,13 +270,13 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     } else
       return -1;
   case FIELDTYPE_TEXT:
-    // not implemented
     {
-      double entropyLog=0;
-      int r=stats3_compress_bits(c,(unsigned char *)value,strlen(value),stats,
-				 &entropyLog);
+      double entropyLog[1025];
+      range_coder *d=range_new_coder(1024);
+      int r=stats3_compress_bits(d,(unsigned char *)value,strlen(value),stats,
+      			 &entropyLog);
+      range_coder_free(d);
       if (r) return -1;
-      printf("Encoded '%s' in %.2g bits.\n",value,entropyLog);
       return 0;
     }
   }
@@ -317,7 +317,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
   }
 
   // Make new range coder with 1KB of space
-  range_coder *c=range_new_coder(8192);
+  range_coder *c=range_new_coder(1024);
   if (!c) {
     snprintf(recipe_error,1024,"Could not instantiate range coder.\n");
     return -1;
