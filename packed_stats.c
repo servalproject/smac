@@ -371,7 +371,7 @@ struct node *extractNode(unsigned short *string,int len,stats_handle *h)
       if (1) {
 	fprintf(stderr,"No statistics for what comes after '");
 	int j;
-	for(j=0;j<=i;j++) fprintf(stderr,"%c",string[len-j-1]);
+	for(j=0;j<=len;j++) fprintf(stderr,"%c",string[len-j-1]);
 	fprintf(stderr,"'\n");
       }
       
