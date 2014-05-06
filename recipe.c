@@ -191,7 +191,7 @@ int recipe_parse_boolean(char *b)
   }
 }
 
-int recipe_encode_field(struct recipe *recipe,range_coder *c,
+int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *c,
 			int fieldnumber,char *value)
 {
   int normalised_value;
@@ -271,7 +271,14 @@ int recipe_encode_field(struct recipe *recipe,range_coder *c,
       return -1;
   case FIELDTYPE_TEXT:
     // not implemented
-    return -1;
+    {
+      double entropyLog=0;
+      int r=stats3_compress_bits(c,(unsigned char *)value,strlen(value),stats,
+				 &entropyLog);
+      if (r) return -1;
+      printf("Encoded '%s' in %.2g bits.\n",value,entropyLog);
+      return 0;
+    }
   }
 
   return -1;
@@ -283,7 +290,8 @@ int recipe_decompress(struct recipe *recipe,unsigned char *in,int in_len, char *
   return -1;
 }
 
-int recipe_compress(struct recipe *recipe,char *in,int in_len, unsigned char *out, int out_size)
+int recipe_compress(stats_handle *h,struct recipe *recipe,
+		    char *in,int in_len, unsigned char *out, int out_size)
 {
   /*
     Eventually we want to support full skip logic, repeatable sections and so on.
@@ -366,7 +374,7 @@ int recipe_compress(struct recipe *recipe,char *in,int in_len, unsigned char *ou
       // Record that the field is present.
       range_encode_equiprobable(c,2,1);
       // Now, based on type of field, encode it.
-      if (recipe_encode_field(recipe,c,field,values[i]))
+      if (recipe_encode_field(recipe,h,c,field,values[i]))
 	{
 	  range_coder_free(c);
 	  snprintf(recipe_error,1024,"Could not record value '%s' for field '%s'\n",
@@ -388,7 +396,7 @@ int recipe_compress(struct recipe *recipe,char *in,int in_len, unsigned char *ou
 
 }
 
-int recipe_compress_file(char *recipe_file,char *input_file,char *output_file)
+int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char *output_file)
 {
   struct recipe *recipe=recipe_read_from_file(recipe_file);
   if (!recipe) return -1;
@@ -414,7 +422,7 @@ int recipe_compress_file(char *recipe_file,char *input_file,char *output_file)
   }
 
   unsigned char out_buffer[1024];
-  int r=recipe_compress(recipe,(char *)buffer,stat.st_size,out_buffer,1024);
+  int r=recipe_compress(h,recipe,(char *)buffer,stat.st_size,out_buffer,1024);
 
   munmap(buffer,stat.st_size); close(fd);
 
@@ -459,7 +467,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       fprintf(stderr,"'smac recipe compress' requires recipe, input and output files.\n");
       exit(-1);
     }
-    if (recipe_compress_file(argv[3],argv[4],argv[5])==-1) {
+    if (recipe_compress_file(h,argv[3],argv[4],argv[5])==-1) {
       fprintf(stderr,"%s",recipe_error);
       exit(-1);
     }
