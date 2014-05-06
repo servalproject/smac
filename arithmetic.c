@@ -275,7 +275,7 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 
   unsigned long long p_diff=p_high-p_low;
   unsigned long long p_range=(unsigned long long)p_diff<<(long long)SHIFTUPBITS;
-  double p=((double)p_range)/(double)0x100000000;
+  double p=((double)p_range)/(double)0x100000000LL;
   double this_entropy=-log(p)/log(2);
   if (0)
     printf("%s: entropy of range 0x%llx(p_low=0x%x, p_high=0x%x, p_diff=0x%llx) = %f, shiftupbits=%lld\n",
