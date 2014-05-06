@@ -179,6 +179,12 @@ struct recipe *recipe_read_from_file(char *filename)
   return recipe;
 }
 
+int recipe_encode_field(struct recipe *recipe,range_coder *c,
+			int fieldnumber,char *value)
+{
+  return -1;
+}
+
 int recipe_decompress(struct recipe *recipe,unsigned char *in,int in_len, char *out, int out_size)
 {
   snprintf(recipe_error,1024,"recipe_decompress() is not implemented\n");
@@ -265,9 +271,18 @@ int recipe_compress(struct recipe *recipe,char *in,int in_len, unsigned char *ou
     if (i<value_count) {
       // Field present
       printf("Found field #%d ('%s')\n",field,recipe->fields[field].name);
+      // Record that the field is present.
       range_encode_equiprobable(c,2,1);
+      // Now, based on type of field, encode it.
+      if (recipe_encode_field(recipe,c,field,values[i]))
+	{
+	  range_coder_free(c);
+	  snprintf(recipe_error,1024,"Could not record value '%s' for field '%s'\n",
+		   values[i],recipe->fields[field].name);
+	  return -1;
+	}
     } else {
-      // Field missing.
+      // Field missing: record this fact and nothing else.
       range_encode_equiprobable(c,2,0);
     }
   }
