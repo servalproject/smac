@@ -58,7 +58,7 @@ int charInWord(unsigned short c)
   int cc=c;
   if (cc<0x80) {
     cc=tolower(c);
-    for(i=0;wordChars[i];i++) if (cc==wordChars[i]) return 1;
+    for(i=0;i<36;i++) if (cc==wordChars[i]) return 1;
   }
   // all unicode characters are for now treated as word breaking.
   return 0;
