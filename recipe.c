@@ -257,7 +257,7 @@ int recipe_encode_field(struct recipe *recipe,range_coder *c,
     if (precision==16) {
       // gradicule resolution
       range_encode_equiprobable(c,182,ilat);
-      range_encode_equiprobable(c,361,ilon);
+      return range_encode_equiprobable(c,361,ilon);
     } else if (precision==0||precision==34) {
       // ~1m resolution
     ilat=lroundf(lat*112000);
@@ -266,9 +266,9 @@ int recipe_encode_field(struct recipe *recipe,range_coder *c,
     ilon+=180*112000; // range now 0..359 (for -179 to +180, inclusive)
     // encode latitude
     range_encode_equiprobable(c,182*112000,ilat);
-    range_encode_equiprobable(c,361*112000,ilon);
-    }
-    return -1;
+    return range_encode_equiprobable(c,361*112000,ilon);
+    } else
+      return -1;
   case FIELDTYPE_TEXT:
     // not implemented
     return -1;
