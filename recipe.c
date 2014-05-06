@@ -283,7 +283,8 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   return -1;
 }
 
-int recipe_decompress(struct recipe *recipe,unsigned char *in,int in_len, char *out, int out_size)
+int recipe_decompress(stats_handle *stats, struct recipe *recipe,
+		      unsigned char *in,int in_len, char *out, int out_size)
 {
   if (!recipe) {
     snprintf(recipe_error,1024,"No recipe provided.\n");
@@ -511,8 +512,8 @@ int recipe_decompress_file(stats_handle *h,char *recipe_file,char *input_file,ch
     close(fd); return -1; 
   }
 
-  unsigned char out_buffer[1024];
-  int r=recipe_decompress(h,recipe,(char *)buffer,stat.st_size,out_buffer,1024);
+  char out_buffer[1024];
+  int r=recipe_decompress(h,recipe,buffer,stat.st_size,out_buffer,1024);
 
   munmap(buffer,stat.st_size); close(fd);
 
