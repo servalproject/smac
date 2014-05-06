@@ -189,6 +189,53 @@ int recipe_compress(struct recipe *recipe,char *in,int in_len, unsigned char *ou
   return -1;
 }
 
+int recipe_compress_file(char *recipe_file,char *input_file,char *output_file)
+{
+  struct recipe *recipe=recipe_read_from_file(recipe_file);
+  if (!recipe) return -1;
+
+  unsigned char *buffer;
+
+  int fd=open(input_file,O_RDONLY);
+  if (fd==-1) {
+    snprintf(recipe_error,1024,"Could not open recipe file '%s'\n",input_file);
+    return -1;
+  }
+
+  struct stat stat;
+  if (fstat(fd, &stat) == -1) {
+    snprintf(recipe_error,1024,"Could not stat recipe file '%s'\n",input_file);
+    close(fd); return -1;
+  }
+
+  buffer=mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (buffer==MAP_FAILED) {
+    snprintf(recipe_error,1024,"Could not memory map recipe file '%s'\n",input_file);
+    close(fd); return -1; 
+  }
+
+  munmap(buffer,stat.st_size); close(fd);
+
+  unsigned char out_buffer[1024];
+  int r=recipe_compress(recipe,(char *)buffer,stat.st_size,out_buffer,1024);
+
+  if (r<0) return -1;
+  
+  FILE *f=fopen(output_file,"w");
+  if (!f) {
+    snprintf(recipe_error,1024,"Could not write compressed file '%s'\n",output_file);
+    return -1;
+  }
+  int wrote=fwrite(out_buffer,r,1,f);
+  fclose(f);
+  if (wrote!=1) {
+    snprintf(recipe_error,1024,"Could not write compressed data into '%s'\n",output_file);
+    return -1;
+  }
+
+  return r;
+}
+
 int recipe_main(int argc,char *argv[], stats_handle *h)
 {
   if (argc<=2) {
