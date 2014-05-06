@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "packed_stats.h"
 #include "smac.h"
+#include "recipe.h"
 
 int processFile(FILE *f,FILE *contentXML,stats_handle *h);
 
@@ -100,12 +101,13 @@ int main(int argc,char *argv[])
     fprintf(stderr,"Could not read stats.dat.\n");
     exit(-1);
   }
-  /* Preload tree for speed */
-  stats_load_tree(h);
 
   if (argc>1) {
     if (!strcasecmp(argv[1],"recipe")) return recipe_main(argc,argv,h);
   }
+
+  /* Preload tree for speed */
+  stats_load_tree(h);
 
   if (!argv[1]) {
     fprintf(stderr,"You didn't provide me any messages to test, so I'll make some up.\n");
