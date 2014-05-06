@@ -170,10 +170,10 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
   if (utf8toutf16(m_in,m_in_len,utf16,&len)) return -1;
 
   /* Use model instead of just packed ASCII.
-     We use 10x to indicate compressed message. This corresponds to a UTF8
-     continuation byte, which is never allowed at the start of a string, and so
-     we can use that disallowed state to indicate whether a message is compressed
-     or not.
+     We use %10x as the first three bits to indicate compressed message. 
+     This corresponds to a UTF8 continuation byte, which is never allowed at 
+     the start of a string, and so we can use that disallowed state to
+     indicate whether a message is compressed or not.
   */
   range_encode_equiprobable(c,2,1); 
   range_encode_equiprobable(c,2,0);
