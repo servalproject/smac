@@ -74,15 +74,22 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   int notRawASCII=0;
   if (b7&&(!b6)) notRawASCII=1;
   if (notRawASCII==0) {
-    /* raw bytes -- copy from input to output */
-    // printf("decoding raw bytes: bits_used=%d\n",c->bits_used);
-    for(i=0;c->bit_stream[i]&&i<1024&&i<(c->bit_stream_length>>3);i++) {
-      m[i]=c->bit_stream[i];
-      // printf("%d 0x%02x\n",i,c->bit_stream[i]);
+    /* raw bytes -- copy from input to output.
+       But use range_decode_equiprobable() so that we can decode from non-byte
+       boundaries.  We now include a null byte to terminate the string and make
+       the decoding definitive.
+    */
+    
+    // Reconstitute first byte
+    unsigned char b5to0 = range_decode_equiprobable(c,64);
+    b5to0|=(b6<<6);
+    b5to0|=(b7<<7);
+    m[0]=b5to0;
+   
+    for(i=1;m[i-1];i++) {
+      m[i]=range_decode_equiprobable(c,256);
     }
-    // printf("%d 0x%02x\n",i,c->bit_stream[i]);
-    m[i]=0;
-    *len_out=i;
+    *len_out=i-1;
     return 0;
   }
   
