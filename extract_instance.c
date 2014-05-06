@@ -44,7 +44,7 @@ int main(int argc,char **argv)
 	// got a tag name	
 	tag[taglen]=0;
 	interesting_tag=0;
-	if (tag[0]!='/'&&in_instance) {
+	if (tag[0]!='/'&&in_instance&&tag[taglen-1]!='/') {
 	  interesting_tag=1;
 	}
 	if (!strncasecmp(form_name,tag,strlen(form_name)))
@@ -67,7 +67,10 @@ int main(int argc,char **argv)
 	if (taglen<1000) tag[taglen++]=c;
       }
       if (interesting_tag) {
-	if (val_len<1000) value[val_len++]=c;
+	// exclude leading spaces from values
+	if (val_len||(c!=' ')) {
+	  if (val_len<1000) value[val_len++]=c;
+	}
       }
     }
     c= fgetc(f);
