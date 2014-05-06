@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include "charset.h"
 #include "visualise.h"
@@ -198,6 +199,8 @@ int recipe_encode_field(struct recipe *recipe,range_coder *c,
   int maximum;
   int precision;
   int h,m,s,d,y;
+  float lat,lon;
+  int ilat,ilon;
 
   precision=recipe->fields[fieldnumber].precision;
 
@@ -245,6 +248,27 @@ int recipe_encode_field(struct recipe *recipe,range_coder *c,
     }
     return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
   case FIELDTYPE_LATLONG:
+    if (sscanf(value,"%f %f",&lat,&lon)!=2) return -1;
+    if (lat<-90||lat>90||lon<-180||lon>180) return -1;
+    ilat=lroundf(lat);
+    ilon=lroundf(lon);
+    ilat+=90; // range now 0..181 (for -90 to +90, inclusive)
+    ilon+=180; // range now 0..360 (for -180 to +180, inclusive)
+    if (precision==16) {
+      // gradicule resolution
+      range_encode_equiprobable(c,182,ilat);
+      range_encode_equiprobable(c,361,ilon);
+    } else if (precision==0||precision==34) {
+      // ~1m resolution
+    ilat=lroundf(lat*112000);
+    ilon=lroundf(lon*112000);
+    ilat+=90*112000; // range now 0..181 (for -90 to +90, inclusive)
+    ilon+=180*112000; // range now 0..359 (for -179 to +180, inclusive)
+    // encode latitude
+    range_encode_equiprobable(c,182*112000,ilat);
+    range_encode_equiprobable(c,361*112000,ilon);
+    }
+    return -1;
   case FIELDTYPE_TEXT:
     // not implemented
     return -1;
