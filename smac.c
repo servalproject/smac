@@ -157,8 +157,18 @@ int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outle
   return 0;
 }
 
-int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
-			 stats_handle *h,double *entropyLog)
+int stats3_compress_radix_append(range_coder *c,unsigned char *m_in,int m_in_len,
+				 stats_handle *h,double *entropyLog)
+{
+  range_encode_equiprobable(c,2,1); // not raw ASCII
+  range_encode_equiprobable(c,2,0); 
+  range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
+  range_encode_symbol(c,(unsigned int *)h->messagelengths,1024,m_in_len);
+  return encodePackedASCII(c,m_in);       
+}
+
+int stats3_compress_model1_append(range_coder *c,unsigned char *m_in,int m_in_len,
+				  stats_handle *h,double *entropyLog)
 {
   int len;
   unsigned short utf16[1024];
@@ -195,7 +205,6 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
 
   int alpha_len=0;
   stripNonAlpha(utf16,len,alpha,&alpha_len);
-  int nonAlphaChars=len-alpha_len;
 
   //  printf("%f bits (%d emitted) to encode non-alpha\n",c->entropy-lastEntropy,c->bits_used);
   total_nonalpha_bits+=c->entropy-lastEntropy;
@@ -220,47 +229,62 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
   //  printf("%f bits (%d emitted) to encode case\n",c->entropy-lastEntropy,c->bits_used);
   total_case_bits+=c->entropy-lastEntropy;
 
+  return 0;
+}
+
+int stats3_compress_uncompressed_append(range_coder *c,unsigned char *m_in,int m_in_len,
+					stats_handle *h,double *entropyLog)
+{
+  // Encode bit by bit in case range coder is not on a byte boundary.
+  int i,j;
+  for(i=0;i<m_in_len;i++)
+    for(j=7;j>=0;j--) range_encode_equiprobable(c,2,(m_in[i]>>j)&1);
+    
+  // Add $00 byte to terminate
+  for(j=7;j>=0;j--) range_encode_equiprobable(c,2,0);
+  
+  return 0;
+}
+
+int stats3_compress_append(range_coder *c,unsigned char *m_in,int m_in_len,
+			   stats_handle *h,double *entropyLog)
+{
+  int b1,b2,b3;
+
+  /* Try the three sub-models to see which performs best. */
+
+  // Variable depth model
+  range_coder *t1=range_new_coder(1024);
+  stats3_compress_model1_append(t1,m_in,m_in_len,h,entropyLog);
+  range_conclude(t1); b1=t1->bits_used; range_coder_free(t1);
+
+  // Packed ascii (only if there are no non-ascii chars)
+  range_coder *t2=range_new_coder(1024);
+  if (stats3_compress_radix_append(t2,m_in,m_in_len,h,entropyLog)) 
+    b2=999999;
+  else { range_conclude(t2); b2=t2->bits_used; }
+  range_coder_free(t2);
+
+  // Unpacked (only if the first character <= 127)
+  b3=(m_in_len+1)*8; // one extra character for null termination
+
+  // Compare the results and encode accordingly
+  if (b1<b2&&b1<b3)
+    return stats3_compress_model1_append(c,m_in,m_in_len,h,entropyLog);
+  else if (b2<b3||(m_in[0]&0x80))
+    return stats3_compress_radix_append(c,m_in,m_in_len,h,entropyLog);
+  else
+    return stats3_compress_uncompressed_append(c,m_in,m_in_len,h,entropyLog);
+}
+
+
+int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
+			 stats_handle *h,double *entropyLog)
+{
+  if (stats3_compress_append(c,m_in,m_in_len,h,entropyLog)) return -1;
   range_conclude(c);
   // printf("%d bits actually used after concluding.\n",c->bits_used);
   total_finalisation_bits+=c->bits_used-c->entropy;
-
-  if ((!nonAlphaChars)&&c->bits_used>=7*m_in_len)
-    {
-      /* Can we code it more efficiently without statistical modelling? */
-      range_coder *c2=range_new_coder(1024*2);
-      range_encode_equiprobable(c2,2,1); // not raw ASCII
-      range_encode_equiprobable(c2,2,0); 
-      range_encode_symbol(c2,&probPackedASCII,2,0); // is packed ASCII
-      range_encode_symbol(c2,(unsigned int *)h->messagelengths,1024,m_in_len);
-      int bad=encodePackedASCII(c2,m_in);
-      range_conclude(c2);
-      if ((!bad)&&c2->bits_used<c->bits_used) {
-	range_coder_reset(c);
-	range_encode_equiprobable(c,2,1); // not raw ASCII
-	range_encode_equiprobable(c,2,0); 
-	range_encode_symbol(c,&probPackedASCII,2,0); // is packed ASCII
-	range_encode_symbol(c,(unsigned int *)h->messagelengths,1024,m_in_len);
-	encodePackedASCII(c,m_in);
-	range_conclude(c);
-	// printf("Reverting to raw non-statistical encoding: %d chars in %d bits\n",
-	//        (int)strlen((char *)m),c->bits_used);
-      }
-      range_coder_free(c2);
-    }
-  
-  if (c->bits_used>=8*m_in_len)
-    {
-      /* we can't encode it more efficiently than 8-bit raw.
-         We can only do this is MSB of first char of message is 0, as we use
-	 the first bit of the message to indicate if it is compressed or not. */
-      int i;
-      range_coder_reset(c);
-      for(i=0;i<m_in_len;i++) c->bit_stream[i]=m_in[i];
-      c->bits_used=8*i;
-      c->entropy=8*i;
-
-      // printf("Reverting to raw 8-bit encoding: used %d bits\n",c->bits_used);
-    }
 
   return 0;
 }
