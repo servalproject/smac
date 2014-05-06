@@ -213,6 +213,10 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     normalised_value=range_decode_equiprobable(c,maximum-minimum+1);
     sprintf(value,"%d",normalised_value+minimum);
     break;
+  case FIELDTYPE_BOOLEAN:
+    normalised_value=range_decode_equiprobable(c,2);
+    sprintf(value,"%d",normalised_value);
+    break;
   case FIELDTYPE_TEXT:
     r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
     return 0;
@@ -344,6 +348,8 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe,
   c->bit_stream_length=in_len*8;
   range_decode_prefetch(c);
 
+  int written=0;
+
   int field;
   for(field=0;field<recipe->field_count;field++)
     {
@@ -356,14 +362,15 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe,
 	  range_coder_free(c);
 	  return -1;
 	}
-	printf("%s=%s\n",recipe->fields[field].name,value);
+	int r2=snprintf(&out[written],out_size-written,"%s=%s\n",
+			recipe->fields[field].name,value);
+	if (r2>0) written+=r2;
       }
     }
   
   range_coder_free(c);
 
-  snprintf(recipe_error,1024,"recipe_decompress() is not implemented\n");
-  return -1;
+  return written;
 }
 
 int recipe_compress(stats_handle *h,struct recipe *recipe,
@@ -421,7 +428,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
       // Process key=value line
       line[l]=0; 
       if ((l>0)&&(line[0]!='#')) {
-	if (sscanf(line,"%[^=]=%s",key,value)==2) {
+	if (sscanf(line,"%[^=]=%[^\n]",key,value)==2) {
 	  keys[value_count]=strdup(key);
 	  values[value_count]=strdup(value);
 	  value_count++;
