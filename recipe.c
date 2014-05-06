@@ -272,8 +272,10 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_TEXT:
     {
       double entropyLog[1025];
+      int before=c->bits_used;
       int r=stats3_compress_append(c,(unsigned char *)value,strlen(value),stats,
 				   &entropyLog);
+      printf("'%s' encoded in %d bits\n",value,c->bits_used-before);
       if (r) return -1;
       return 0;
     }
@@ -385,13 +387,21 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
     }
   }
 
+  // Get result and store it, unless it is too big for the output buffer
   range_conclude(c);
-  printf("Used %d bits.\n",c->bits_used);
+  int bytes=(c->bits_used/8)+((c->bits_used&7)?1:0);
+  if (bytes>out_size) {
+    range_coder_free(c);
+    snprintf(recipe_error,1024,"Compressed data too big for output buffer\n");
+    return -1;
+  }
+  
+  bcopy(c->bit_stream,out,bytes);
   range_coder_free(c);
 
-  snprintf(recipe_error,1024,"recipe_compress() is not implemented\n");
-  return -1;
+  printf("Used %d bits (%d bytes).\n",c->bits_used,bytes);
 
+  return bytes;
 }
 
 int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char *output_file)
@@ -434,7 +444,7 @@ int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char
   int wrote=fwrite(out_buffer,r,1,f);
   fclose(f);
   if (wrote!=1) {
-    snprintf(recipe_error,1024,"Could not write compressed data into '%s'\n",output_file);
+    snprintf(recipe_error,1024,"Could not write %d bytes of compressed data into '%s'\n",r,output_file);
     return -1;
   }
 
