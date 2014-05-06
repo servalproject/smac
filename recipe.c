@@ -179,7 +179,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
   }
 
   if (!strcasecmp(argv[2],"parse")) {
-    if (argc<3) {
+    if (argc<=3) {
       fprintf(stderr,"'smac recipe parse' requires name of recipe to load.\n");
       exit(-1);
     }
