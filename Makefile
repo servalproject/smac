@@ -7,6 +7,7 @@ OBJS=	main.o \
 	\
 	smac.o \
 	\
+	recipe.o \
 	unicode.o \
 	case.o \
 	length.o \
@@ -23,7 +24,7 @@ OBJS=	main.o \
 	\
 	visualise.o
 
-HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h Makefile
+HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h Makefile
 
 all: smac arithmetic gsinterpolative gen_stats
 

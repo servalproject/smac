@@ -103,6 +103,10 @@ int main(int argc,char *argv[])
   /* Preload tree for speed */
   stats_load_tree(h);
 
+  if (argc>1) {
+    if (!strcasecmp(argv[1],"recipe")) return recipe_main(argc,argv,h);
+  }
+
   if (!argv[1]) {
     fprintf(stderr,"You didn't provide me any messages to test, so I'll make some up.\n");
     range_coder *c=range_new_coder(2048);

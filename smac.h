@@ -32,4 +32,3 @@ int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outle
 int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
 			   stats_handle *h,double *entropyLog);
 
-

@@ -190,7 +190,7 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   if (len<(0-(int)h->maximumOrder)) {
     // We are diving deeper than the maximum order that we expected to see.
     // This indicates an error.
-    fprintf(stderr,"len=%d, maximumOrder=0x%x\n",len,h->maximumOrder);
+    // fprintf(stderr,"len=%d, maximumOrder=0x%x\n",len,h->maximumOrder);
     return NULL;
   }
   if (nodeAddress<700) {
