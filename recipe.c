@@ -207,11 +207,17 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   precision=recipe->fields[fieldnumber].precision;
 
   switch (recipe->fields[fieldnumber].type) {
+  case FIELDTYPE_INTEGER:
+    minimum=recipe->fields[fieldnumber].minimum;
+    maximum=recipe->fields[fieldnumber].maximum;
+    normalised_value=range_decode_equiprobable(c,maximum-minimum+1);
+    sprintf(value,"%d",normalised_value+minimum);
+    break;
   case FIELDTYPE_TEXT:
     r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
-    printf("text value = '%s'\n",value);
     return 0;
   default:
+    snprintf(recipe_error,1024,"Attempting decompression of unsupported field type %d.\n",recipe->fields[fieldnumber].type);
     return -1;
   }
 
@@ -343,13 +349,14 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe,
     {
       int field_present=range_decode_equiprobable(c,2);
       if (field_present) {
-	printf("Decompressing value for '%s'\n",recipe->fields[field].name);
+	// printf("Decompressing value for '%s'\n",recipe->fields[field].name);
 	char value[1024];
 	int r=recipe_decode_field(recipe,h,c,field,value,1024);
 	if (r) {
 	  range_coder_free(c);
 	  return -1;
 	}
+	printf("%s=%s\n",recipe->fields[field].name,value);
       }
     }
   
