@@ -94,13 +94,13 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
     if (l>1000) { 
       snprintf(recipe_error,1024,"line:%d:Line too long.\n",line_number);
       recipe_free(recipe); return NULL; }
-    if (i==buffer_size||buffer[i]=='\n'||buffer[i]=='\r') {
+    if ((i==buffer_size)||(buffer[i]=='\n')||(buffer[i]=='\r')) {
       if (recipe->field_count>1000) {
 	snprintf(recipe_error,1024,"line:%d:Too many field definitions (must be <=1000).\n",line_number);
 	recipe_free(recipe); return NULL;
       }
       // Process recipe line
-      line[l]=0; l=0;
+      line[l]=0; 
       if ((l>0)&&(line[0]!='#')) {
 	if (sscanf(line,"%[^:]:%[^:]:%d:%d:%d",
 		   name,type,&min,&max,&precision)==5) {
@@ -122,7 +122,7 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
 	  recipe_free(recipe); return NULL;
 	}
       }
-      line_number++;
+      line_number++; l=0;
     } else {
       line[l++]=buffer[i];
     }
@@ -159,7 +159,7 @@ struct recipe *recipe_read_from_file(char *filename)
   munmap(buffer,stat.st_size);
   close(fd);
   
-  if (recipe->field_count==0) {
+  if (recipe&&recipe->field_count==0) {
     recipe_free(recipe);
     snprintf(recipe_error,1024,"Recipe contains no field definitions\n");
     return NULL;
@@ -198,4 +198,5 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     printf("recipe=%p\n",recipe);
     printf("recipe->field_count=%d\n",recipe->field_count);
   }
+  return 0;
 }
