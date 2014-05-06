@@ -158,6 +158,12 @@ struct recipe *recipe_read_from_file(char *filename)
 
   munmap(buffer,stat.st_size);
   close(fd);
+  
+  if (recipe->field_count==0) {
+    recipe_free(recipe);
+    snprintf(recipe_error,1024,"Recipe contains no field definitions\n");    
+  }
+
   return recipe;
 }
 
@@ -188,5 +194,6 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       fprintf(stderr,"%s",recipe_error);
       exit(-1);
     } 
+    printf("recipe=%p\n",recipe);
   }
 }
