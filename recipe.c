@@ -271,10 +271,9 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       return -1;
   case FIELDTYPE_TEXT:
     {
-      double entropyLog[1025];
       int before=c->bits_used;
       int r=stats3_compress_append(c,(unsigned char *)value,strlen(value),stats,
-				   &entropyLog);
+				   NULL);
       printf("'%s' encoded in %d bits\n",value,c->bits_used-before);
       if (r) return -1;
       return 0;
@@ -286,6 +285,42 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 
 int recipe_decompress(struct recipe *recipe,unsigned char *in,int in_len, char *out, int out_size)
 {
+  if (!recipe) {
+    snprintf(recipe_error,1024,"No recipe provided.\n");
+    return -1;
+  }
+  if (!in) {
+    snprintf(recipe_error,1024,"No input provided.\n");
+    return -1;
+  }
+  if (!out) {
+    snprintf(recipe_error,1024,"No output buffer provided.\n");
+    return -1;
+  }
+  if (in_len>=1024) {
+    snprintf(recipe_error,1024,"Input must be <1KB.\n");
+    return -1;
+  }
+
+  // Make new range coder with 1KB of space
+  range_coder *c=range_new_coder(1024);
+
+  // Point range coder bit stream to input buffer
+  bcopy(in,c->bit_stream,in_len);
+  c->bit_stream_length=in_len*8;
+  range_decode_prefetch(c);
+
+  int field;
+  for(field=0;field<recipe->field_count;field++)
+    {
+      int field_present=range_decode_equiprobable(c,2);
+      if (field_present) {
+	printf("Decompressing value for '%s'\n",recipe->fields[field].name);
+      }
+    }
+  
+  range_coder_free(c);
+
   snprintf(recipe_error,1024,"recipe_decompress() is not implemented\n");
   return -1;
 }
