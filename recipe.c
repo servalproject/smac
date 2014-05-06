@@ -191,6 +191,12 @@ int recipe_parse_boolean(char *b)
   }
 }
 
+int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *c,
+			int fieldnumber,char *value,int value_size)
+{
+  return 0;
+}
+
 int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *c,
 			int fieldnumber,char *value)
 {
@@ -283,7 +289,7 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   return -1;
 }
 
-int recipe_decompress(stats_handle *stats, struct recipe *recipe,
+int recipe_decompress(stats_handle *h, struct recipe *recipe,
 		      unsigned char *in,int in_len, char *out, int out_size)
 {
   if (!recipe) {
@@ -317,6 +323,12 @@ int recipe_decompress(stats_handle *stats, struct recipe *recipe,
       int field_present=range_decode_equiprobable(c,2);
       if (field_present) {
 	printf("Decompressing value for '%s'\n",recipe->fields[field].name);
+	char value[1024];
+	int r=recipe_decode_field(recipe,h,c,field,value,1024);
+	if (r) {
+	  range_coder_free(c);
+	  return -1;
+	}
       }
     }
   
