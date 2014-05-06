@@ -210,6 +210,13 @@ int recipe_compress(struct recipe *recipe,char *in,int in_len, unsigned char *ou
     return -1;
   }
 
+  // Make new range coder with 1KB of space
+  range_coder *c=range_new_coder(8192);
+  if (!c) {
+    snprintf(recipe_error,1024,"Could not instantiate range coder.\n");
+    return -1;
+  }
+
   char *keys[1024];
   char *values[1024];
   int value_count=0;
@@ -247,6 +254,27 @@ int recipe_compress(struct recipe *recipe,char *in,int in_len, unsigned char *ou
     }
   }
   printf("Read %d data lines.\n",value_count);
+
+  int field;
+
+  for(field=0;field<recipe->field_count;field++) {
+    // look for this field in keys[] 
+    for (i=0;i<value_count;i++) {
+      if (!strcasecmp(keys[i],recipe->fields[field].name)) break;
+    }
+    if (i<value_count) {
+      // Field present
+      printf("Found field #%d ('%s')\n",field,recipe->fields[field].name);
+      range_encode_equiprobable(c,2,1);
+    } else {
+      // Field missing.
+      range_encode_equiprobable(c,2,0);
+    }
+  }
+
+  range_conclude(c);
+  printf("Used %d bits.\n",c->bits_used);
+  range_coder_free(c);
 
   snprintf(recipe_error,1024,"recipe_compress() is not implemented\n");
   return -1;
