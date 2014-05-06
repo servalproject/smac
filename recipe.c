@@ -194,6 +194,27 @@ int recipe_parse_boolean(char *b)
 int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *c,
 			int fieldnumber,char *value,int value_size)
 {
+  int normalised_value;
+  int minimum;
+  int maximum;
+  int precision;
+  int h,m,s,d,y;
+  float lat,lon;
+  int ilat,ilon;
+
+  int r;
+  
+  precision=recipe->fields[fieldnumber].precision;
+
+  switch (recipe->fields[fieldnumber].type) {
+  case FIELDTYPE_TEXT:
+    r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
+    printf("text value = '%s'\n",value);
+    return 0;
+  default:
+    return -1;
+  }
+
   return 0;
 }
 
