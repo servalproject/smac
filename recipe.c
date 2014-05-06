@@ -448,19 +448,19 @@ int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char
 
   int fd=open(input_file,O_RDONLY);
   if (fd==-1) {
-    snprintf(recipe_error,1024,"Could not open recipe file '%s'\n",input_file);
+    snprintf(recipe_error,1024,"Could not open uncompressed file '%s'\n",input_file);
     return -1;
   }
 
   struct stat stat;
   if (fstat(fd, &stat) == -1) {
-    snprintf(recipe_error,1024,"Could not stat recipe file '%s'\n",input_file);
+    snprintf(recipe_error,1024,"Could not stat uncompressed file '%s'\n",input_file);
     close(fd); return -1;
   }
 
   buffer=mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer==MAP_FAILED) {
-    snprintf(recipe_error,1024,"Could not memory map recipe file '%s'\n",input_file);
+    snprintf(recipe_error,1024,"Could not memory map uncompressed file '%s'\n",input_file);
     close(fd); return -1; 
   }
 
@@ -473,13 +473,13 @@ int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char
   
   FILE *f=fopen(output_file,"w");
   if (!f) {
-    snprintf(recipe_error,1024,"Could not write compressed file '%s'\n",output_file);
+    snprintf(recipe_error,1024,"Could not write succinct data compressed file '%s'\n",output_file);
     return -1;
   }
   int wrote=fwrite(out_buffer,r,1,f);
   fclose(f);
   if (wrote!=1) {
-    snprintf(recipe_error,1024,"Could not write %d bytes of compressed data into '%s'\n",r,output_file);
+    snprintf(recipe_error,1024,"Could not write %d bytes of compressed succinct data into '%s'\n",r,output_file);
     return -1;
   }
 
