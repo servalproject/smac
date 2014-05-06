@@ -187,8 +187,70 @@ int recipe_decompress(struct recipe *recipe,unsigned char *in,int in_len, char *
 
 int recipe_compress(struct recipe *recipe,char *in,int in_len, unsigned char *out, int out_size)
 {
+  /*
+    Eventually we want to support full skip logic, repeatable sections and so on.
+    For now we will allow skip sections by indicating missing fields.
+    This approach lets us specify fields implictly by their order in the recipe
+    (NOT in the completed form).
+    This entails parsing the completed form, and then iterating through the RECIPE
+    and considering each field in turn.  A single bit per field will be used to
+    indicate whether it is present.  This can be optimised later.
+  */
+
+  if (!recipe) {
+    snprintf(recipe_error,1024,"No recipe provided.\n");
+    return -1;
+  }
+  if (!in) {
+    snprintf(recipe_error,1024,"No input provided.\n");
+    return -1;
+  }
+  if (!out) {
+    snprintf(recipe_error,1024,"No output buffer provided.\n");
+    return -1;
+  }
+
+  char *keys[1024];
+  char *values[1024];
+  int value_count=0;
+
+    int i;
+  int l=0;
+  int line_number=1;
+  char line[1024];
+  char key[1024],value[1024];
+
+  for(i=0;i<=in_len;i++) {
+    if (l>1000) { 
+      snprintf(recipe_error,1024,"line:%d:Data line too long.\n",line_number);
+      return -1; }
+    if ((i==in_len)||(in[i]=='\n')||(in[i]=='\r')) {
+      if (value_count>1000) {
+	snprintf(recipe_error,1024,"line:%d:Too many data lines (must be <=1000).\n",line_number);
+	return -1;
+      }
+      // Process key=value line
+      line[l]=0; 
+      if ((l>0)&&(line[0]!='#')) {
+	if (sscanf(line,"%[^=]=%s",key,value)==2) {
+	  keys[value_count]=strdup(key);
+	  values[value_count]=strdup(value);
+	  value_count++;
+	} else {
+	  snprintf(recipe_error,1024,"line:%d:Malformed data line.\n",line_number);
+	  return -1;
+	}
+      }
+      line_number++; l=0;
+    } else {
+      line[l++]=in[i];
+    }
+  }
+  printf("Read %d data lines.\n",value_count);
+
   snprintf(recipe_error,1024,"recipe_compress() is not implemented\n");
   return -1;
+
 }
 
 int recipe_compress_file(char *recipe_file,char *input_file,char *output_file)
@@ -216,10 +278,10 @@ int recipe_compress_file(char *recipe_file,char *input_file,char *output_file)
     close(fd); return -1; 
   }
 
-  munmap(buffer,stat.st_size); close(fd);
-
   unsigned char out_buffer[1024];
   int r=recipe_compress(recipe,(char *)buffer,stat.st_size,out_buffer,1024);
+
+  munmap(buffer,stat.st_size); close(fd);
 
   if (r<0) return -1;
   
