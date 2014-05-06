@@ -161,7 +161,8 @@ struct recipe *recipe_read_from_file(char *filename)
   
   if (recipe->field_count==0) {
     recipe_free(recipe);
-    snprintf(recipe_error,1024,"Recipe contains no field definitions\n");    
+    snprintf(recipe_error,1024,"Recipe contains no field definitions\n");
+    return NULL;
   }
 
   return recipe;
@@ -195,5 +196,6 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       exit(-1);
     } 
     printf("recipe=%p\n",recipe);
+    printf("recipe->field_count=%d\n",recipe->field_count);
   }
 }
