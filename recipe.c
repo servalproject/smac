@@ -181,11 +181,13 @@ struct recipe *recipe_read_from_file(char *filename)
 
 int recipe_decompress(struct recipe *recipe,unsigned char *in,int in_len, char *out, int out_size)
 {
+  snprintf(recipe_error,1024,"recipe_decompress() is not implemented\n");
   return -1;
 }
 
 int recipe_compress(struct recipe *recipe,char *in,int in_len, unsigned char *out, int out_size)
 {
+  snprintf(recipe_error,1024,"recipe_compress() is not implemented\n");
   return -1;
 }
 
@@ -255,6 +257,20 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     } 
     printf("recipe=%p\n",recipe);
     printf("recipe->field_count=%d\n",recipe->field_count);
+  } else if (!strcasecmp(argv[2],"compress")) {
+    if (argc<=5) {
+      fprintf(stderr,"'smac recipe compress' requires recipe, input and output files.\n");
+      exit(-1);
+    }
+    if (recipe_compress_file(argv[3],argv[4],argv[5])==-1) {
+      fprintf(stderr,"%s",recipe_error);
+      exit(-1);
+    }
+    else return 0;
+  } else {
+    fprintf(stderr,"unknown 'smac recipe' sub-command '%s'.\n",argv[2]);
+      exit(-1);
   }
+
   return 0;
 }
