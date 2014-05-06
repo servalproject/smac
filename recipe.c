@@ -486,6 +486,54 @@ int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char
   return r;
 }
 
+int recipe_decompress_file(stats_handle *h,char *recipe_file,char *input_file,char *output_file)
+{
+  struct recipe *recipe=recipe_read_from_file(recipe_file);
+  if (!recipe) return -1;
+
+  unsigned char *buffer;
+
+  int fd=open(input_file,O_RDONLY);
+  if (fd==-1) {
+    snprintf(recipe_error,1024,"Could not open succinct data file '%s'\n",input_file);
+    return -1;
+  }
+
+  struct stat stat;
+  if (fstat(fd, &stat) == -1) {
+    snprintf(recipe_error,1024,"Could not stat succinct data file '%s'\n",input_file);
+    close(fd); return -1;
+  }
+
+  buffer=mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (buffer==MAP_FAILED) {
+    snprintf(recipe_error,1024,"Could not memory map succinct data file '%s'\n",input_file);
+    close(fd); return -1; 
+  }
+
+  unsigned char out_buffer[1024];
+  int r=recipe_decompress(h,recipe,(char *)buffer,stat.st_size,out_buffer,1024);
+
+  munmap(buffer,stat.st_size); close(fd);
+
+  if (r<0) return -1;
+  
+  FILE *f=fopen(output_file,"w");
+  if (!f) {
+    snprintf(recipe_error,1024,"Could not write decompressed file '%s'\n",output_file);
+    return -1;
+  }
+  int wrote=fwrite(out_buffer,r,1,f);
+  fclose(f);
+  if (wrote!=1) {
+    snprintf(recipe_error,1024,"Could not write %d bytes of decompressed data into '%s'\n",r,output_file);
+    return -1;
+  }
+
+  return r;
+}
+
+
 int recipe_main(int argc,char *argv[], stats_handle *h)
 {
   if (argc<=2) {
@@ -511,6 +559,16 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       exit(-1);
     }
     if (recipe_compress_file(h,argv[3],argv[4],argv[5])==-1) {
+      fprintf(stderr,"%s",recipe_error);
+      exit(-1);
+    }
+    else return 0;
+  } else if (!strcasecmp(argv[2],"decompress")) {
+    if (argc<=5) {
+      fprintf(stderr,"'smac recipe decompress' requires recipe, input and output files.\n");
+      exit(-1);
+    }
+    if (recipe_decompress_file(h,argv[3],argv[4],argv[5])==-1) {
       fprintf(stderr,"%s",recipe_error);
       exit(-1);
     }
