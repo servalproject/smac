@@ -1,3 +1,5 @@
+# this is the kind of thing we need to extract
+# from a form instance.
 street_number=15
 address=Northumberland, NEV
 head_of_household=Harrington

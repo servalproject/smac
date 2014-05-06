@@ -1,3 +1,5 @@
+# This is the kind of thing we need to extract from
+# a form specification
 street_number:text:0:40:40
 address:text:0:160:160
 head_of_household:text:0:40:20
