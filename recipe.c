@@ -272,10 +272,8 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_TEXT:
     {
       double entropyLog[1025];
-      range_coder *d=range_new_coder(1024);
-      int r=stats3_compress_bits(d,(unsigned char *)value,strlen(value),stats,
-      			 &entropyLog);
-      range_coder_free(d);
+      int r=stats3_compress_append(c,(unsigned char *)value,strlen(value),stats,
+				   &entropyLog);
       if (r) return -1;
       return 0;
     }
