@@ -179,9 +179,77 @@ struct recipe *recipe_read_from_file(char *filename)
   return recipe;
 }
 
+int recipe_parse_boolean(char *b)
+{
+  if (!b) return 0;
+  switch(b[0]) {
+  case 'y': case 'Y': case 't': case 'T': case '1':
+    return 1;
+  default:
+    return 0;
+  }
+}
+
 int recipe_encode_field(struct recipe *recipe,range_coder *c,
 			int fieldnumber,char *value)
 {
+  int normalised_value;
+  int minimum;
+  int maximum;
+  int precision;
+  int h,m,s,d,y;
+
+  precision=recipe->fields[fieldnumber].precision;
+
+  switch (recipe->fields[fieldnumber].type) {
+  case FIELDTYPE_INTEGER:
+    normalised_value=atoi(value)-recipe->fields[fieldnumber].minimum;
+    minimum=recipe->fields[fieldnumber].minimum;
+    maximum=recipe->fields[fieldnumber].maximum;
+    return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+  case FIELDTYPE_FLOAT:
+  case FIELDTYPE_FIXEDPOINT:
+  case FIELDTYPE_BOOLEAN:
+    normalised_value=recipe_parse_boolean(value);
+    minimum=0;
+    maximum=1;
+    return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+  case FIELDTYPE_TIMEOFDAY:
+    if (sscanf(value,"%d:%d.%d",&h,&m,&s)<2) return -1;
+    // XXX - We don't support leap seconds
+    if (h<0||h>23||m<0||m>59||s<0||s>59) return -1;
+    normalised_value=h*3600+m*60+s;
+    minimum=0;
+    maximum=24*60*60;
+    if (precision==0) precision=17; // 2^16 < 24*60*60 < 2^17
+    if (precision<17) {
+      normalised_value=normalised_value >> (17 - precision);
+      minimum=minimum >> (17 - precision);
+      maximum=maximum >> (17 - precision);
+      maximum+=1; // make sure that normalised_value cannot = maximum
+    }
+    return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+  case FIELDTYPE_DATE:
+    if (sscanf(value,"%d/%d/%d",&y,&m,&d)!=3) return -1;
+    // XXX Not as efficient as it could be (assumes all months have 31 days)
+    if (y<1||y>9999||m<1||m>12||d<1||d>31) return -1;
+    normalised_value=y*372+(m-1)*31+(d-1);
+    minimum=0;
+    maximum=10000*372;
+    if (precision==0) precision=22; // 2^21 < maximum < 2^22
+    if (precision<22) {
+      normalised_value=normalised_value >> (22 - precision);
+      minimum=minimum >> (22 - precision);
+      maximum=maximum >> (22 - precision);
+      maximum+=1; // make sure that normalised_value cannot = maximum
+    }
+    return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+  case FIELDTYPE_LATLONG:
+  case FIELDTYPE_TEXT:
+    // not implemented
+    return -1;
+  }
+
   return -1;
 }
 
