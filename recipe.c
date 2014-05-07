@@ -363,13 +363,13 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_TIMEDATE:
     {
       struct tm tm;
-      int tzh,tzm;
+      int tzh=0,tzm=0;
       int r;
       bzero(&tm,sizeof(tm));
       if ((r=sscanf(value,"%d-%d-%dT%d:%d:%d.%*d+%d:%d",
 		 &tm.tm_year,&tm.tm_mon,&tm.tm_mday,
 		 &tm.tm_hour,&tm.tm_min,&tm.tm_sec,
-		    &tzh,&tzm))!=8) {
+		    &tzh,&tzm))<6) {
 	printf("r=%d\n",r);
 	return -1;
       }
