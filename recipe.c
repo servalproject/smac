@@ -236,6 +236,19 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   return 0;
 }
 
+int parseHexDigit(int c)
+{
+  if (c>='0'&&c<='9') return c-'0';
+  if (c>='A'&&c<='F') return c-'A'+1;
+  if (c>='a'&&c<='f') return c-'a'+1;
+  return 0;
+}
+
+int parseHexByte(char *hex)
+{
+  return (parseHexDigit(hex[0])<<4)|parseHexDigit(hex[1]);
+}
+
 int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *c,
 			int fieldnumber,char *value)
 {
@@ -347,6 +360,30 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 				   NULL);
       printf("'%s' encoded in %d bits\n",value,c->bits_used-before);
       if (r) return -1;
+      return 0;
+    }
+  case FIELDTYPE_UUID:
+    {
+      // Parse out the 128 bits (=16 bytes) of UUID, and encode as much as we have been asked.
+      // XXX Will accept all kinds of rubbish
+      int i,j=0;
+      unsigned char uuid[16];
+      i=0;
+      if (!strncasecmp(value,"uuid:",5)) i=5;
+      for(;value[i];i++) {
+	if (j==16) {j=17; break; }
+	if (value[i]!='-') {
+	  uuid[j++]=parseHexByte(&value[i]);
+	  i++;
+	}
+      }
+      if (j!=16) {
+	sprintf(recipe_error,"Malformed UUID field.\n");
+	return -1;
+      }
+      // write appropriate number of bytes
+      for(i=0;i<recipe->fields[fieldnumber].precision;i++)
+	range_encode_equiprobable(c,256,uuid[i]);
       return 0;
     }
   }
