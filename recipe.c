@@ -260,11 +260,12 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     }
   case FIELDTYPE_UUID:
     {
-      int i,j=0;      
+      int i,j=5;      
+      sprintf(value,"uuid:");
       for(i=0;i<16;i++)
 	{
 	  int b=0;
-	  if (recipe->fields[fieldnumber].precision)
+	  if (i<recipe->fields[fieldnumber].precision)
 	    b=range_decode_equiprobable(c,256);
 	  switch(i) {
 	  case 4: case 6: case 8: case 10:
@@ -308,8 +309,8 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 int parseHexDigit(int c)
 {
   if (c>='0'&&c<='9') return c-'0';
-  if (c>='A'&&c<='F') return c-'A'+1;
-  if (c>='a'&&c<='f') return c-'a'+1;
+  if (c>='A'&&c<='F') return c-'A'+10;
+  if (c>='a'&&c<='f') return c-'a'+10;
   return 0;
 }
 
@@ -451,8 +452,9 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	return -1;
       }
       // write appropriate number of bytes
-      for(i=0;i<recipe->fields[fieldnumber].precision;i++)
+      for(i=0;i<recipe->fields[fieldnumber].precision;i++) {
 	range_encode_equiprobable(c,256,uuid[i]);
+      }
       return 0;
     }
   }
