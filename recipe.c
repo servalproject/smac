@@ -40,6 +40,9 @@
 // min,max refer to size limits of text field.
 // precision refers to minimum number of characters to encode if we run short of space.
 #define FIELDTYPE_TEXT 7
+// precision is the number of bits of the UUID
+// we just pull bits from the left of the UUID
+#define FIELDTYPE_UUID 8
 
 int recipe_parse_fieldtype(char *name)
 {
@@ -53,6 +56,7 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"date")) return FIELDTYPE_DATE;
   if (!strcasecmp(name,"latlong")) return FIELDTYPE_LATLONG;
   if (!strcasecmp(name,"text")) return FIELDTYPE_TEXT;
+  if (!strcasecmp(name,"uuid")) return FIELDTYPE_UUID;
   
   return -1;
 }
