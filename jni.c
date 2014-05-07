@@ -10,10 +10,16 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_xml2succinct
   const char *recipefile= (*env)->GetStringUTFChars(env,recipename,0);
   const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
   
+  char stripped[8192];
   unsigned char succinct[1024];
   int succinct_len=0;
 
-  // Trans
+  // Transform XML to stripped data first.
+
+  int stripped_len=xml2stripped(recipefile,xmldata,strlen(xmldata),stripped,8192);
+
+  if (stripped_len>0) {
+  }
   
   jbyteArray result=(*env)->NewByteArray(env, succinct_len);
 
@@ -21,3 +27,4 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_xml2succinct
   
   return result;  
 }
+
