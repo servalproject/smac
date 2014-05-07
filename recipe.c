@@ -65,6 +65,24 @@ int recipe_parse_fieldtype(char *name)
   return -1;
 }
 
+char *recipe_field_type_name(int f)
+{
+  switch(f) {
+  case FIELDTYPE_INTEGER: return    "integer";
+  case FIELDTYPE_FLOAT: return    "float";
+  case FIELDTYPE_FIXEDPOINT: return    "fixedpoint";
+  case FIELDTYPE_BOOLEAN: return    "boolean";
+  case FIELDTYPE_TIMEOFDAY: return    "timeofday";
+  case FIELDTYPE_TIMEDATE: return    "timestamp";
+  case FIELDTYPE_DATE: return    "date";
+  case FIELDTYPE_LATLONG: return    "latlong";
+  case FIELDTYPE_TEXT: return    "text";
+  case FIELDTYPE_UUID: return    "uuid";
+  default: return "unknown";
+  }
+}
+
+
 struct field {
   char *name;
   int type;
@@ -246,7 +264,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       for(i=0;i<16;i++)
 	{
 	  int b=0;
-	  if (irecipe->fields[fieldnumber].precision)
+	  if (recipe->fields[fieldnumber].precision)
 	    b=range_decode_equiprobable(c,256);
 	  switch(i) {
 	  case 4: case 6: case 8: case 10:
@@ -258,7 +276,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       return 0;
     }
   default:
-    snprintf(recipe_error,1024,"Attempting decompression of unsupported field type %d.\n",recipe->fields[fieldnumber].type);
+    snprintf(recipe_error,1024,"Attempting decompression of unsupported field type of '%s'.\n",recipe_field_type_name(recipe->fields[fieldnumber].type));
     return -1;
   }
 
