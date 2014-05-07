@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <jni.h>
 
-JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_xml2succinct
+JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinct
 (JNIEnv * env, jobject jobj,
  jstring xmlforminstance,
  jstring recipename,
