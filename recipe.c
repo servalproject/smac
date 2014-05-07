@@ -242,11 +242,18 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     }
   case FIELDTYPE_UUID:
     {
-      int i;
+      int i,j=0;      
       for(i=0;i<recipe->fields[fieldnumber].precision;i++)
 	{
 	  int b=range_decode_equiprobable(c,256);
+	  switch(i) {
+	  case 4: case 6: case 8: case 10:
+	    value[j++]='-';
+	  }
+	  sprintf(&value[j],"%02x",b); j+=2;
+	  value[j]=0;
 	}
+      return 0;
     }
   default:
     snprintf(recipe_error,1024,"Attempting decompression of unsupported field type %d.\n",recipe->fields[fieldnumber].type);
