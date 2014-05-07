@@ -8,6 +8,8 @@ OBJS=	main.o \
 	smac.o \
 	\
 	recipe.o \
+	dexml.o \
+	\
 	unicode.o \
 	case.o \
 	length.o \
