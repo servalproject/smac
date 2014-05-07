@@ -1,103 +1,101 @@
 #include <expat.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 //Creation specification stripped file from ODK XML
 //FieldName,Type,Minimum,Maximum,Precision
-
-/* Keep track of the current level in the XML tree */
-int in_bind = 0;
 
 #define MAXCHARS 1000000
 
 void
 start(void *data, const char *el, const char **attr)
-{
-    char *form_name = (char *)data;
+{   
+    char *node_name = "", *node_type = "", *node_constraint = "";
+	int i ;
     
     //Looking for bind elements
 	if ((!strncasecmp("bind",el,strlen("bind")))||(!strncasecmp("xf:bind",el,strlen("xf:bind")))) {
-		in_bind++;
-
-		//printf("%s", el); //Element name
-
-		//Attributes
-		char *node_name = "", *node_type = "", *node_constraint = "";
 		
-		
-		int i ;
+		//We found a bind element, look for attributes
 		for (i = 0; attr[i]; i += 2) {
-			//printf(" %s='%s'", attr[i], attr[i + 1]); //Display attributes
+			
+			//Display attributes
+			/*printf(" %s='%s'", attr[i], attr[i + 1]); */
 			
 			//Looking for attribute nodeset
 			if (!strncasecmp("nodeset",attr[i],strlen("nodeset"))) {
 					char *last_slash = strrchr(attr[i+1], '/');
 					node_name  = calloc (strlen(last_slash), sizeof(char*));
 					memcpy (node_name, last_slash+1, strlen(last_slash));
-					//printf("%s||", attr[i + 1]);
-					//printf("%s", node_name);
-
 			}
+			
 			//Looking for attribute type
 			if (!strncasecmp("type",attr[i],strlen("type"))) {
 					node_type  = calloc (strlen(attr[i + 1]), sizeof(char*));
 					memcpy (node_type, attr[i + 1], strlen(attr[i + 1]));
-					//printf(":%s", node_type);
 			}
 			
 			//Looking for attribute constraint
 			if (!strncasecmp("constraint",attr[i],strlen("constraint"))) {
 					node_constraint  = calloc (strlen(attr[i + 1]), sizeof(char*));
 					memcpy (node_constraint, attr[i + 1], strlen(attr[i + 1]));
-					//printf(":%s", node_constraint);
 			}
 
 		}
+		
+		//Now write output Name and Type
 		printf("%s:%s", node_name,node_type);
-		if (strlen(node_constraint)) {
-			printf(":%s",node_constraint);
+		
+		//Now write output Constraint depends on the type (decimal & int) and if constraint exists
+		if (strlen(node_constraint)&&((!strncasecmp("decimal",node_type,strlen("decimal")))||(!strncasecmp("int",node_type,strlen("int"))))) {
+			char *ptr = node_constraint;
+			int a, b;
+			
+			//We look for 0 to 2 digits
+			while( ! isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
+			a = atoi(ptr);
+			while( isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
+			while( ! isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
+			b = atoi(ptr);
+			
+			printf(":%d:%d:0", MIN(a, b), MAX(a, b));
 		} else {
-			printf(":0");
+			printf(":0:0:0");
 		}
 		printf("\n");
 	}
     
-}   			/* End of start handler */
-
-void
-characterdata(void *data, const char *el, int len)
-{
-	if (in_bind){  
-		
-		//Warning, can be dangerous with buffer overflow attack
-		/*int i;
-		for(i=0;i<len;i++){
-			if ((el[i] != ' ')&&(el[i] != '\n')) printf("%c",el[i]);
-		}*/
-		
-		//printf("%.*s", len, el);
-		//printf("\n");
-	}
 }
 
-void
-end(void *data, const char *el)
+/*void characterdata(void *data, const char *el, int len)
 {
-    //Not in a bind element anymore    
-	if ((!strncasecmp("bind",el,strlen("bind")))||(!strncasecmp("xf:bind",el,strlen("xf:bind")))) {
-		in_bind--;
+			
+	//Warning, can be dangerous with buffer overflow attack
+	int i;
+	for(i=0;i<len;i++){
+		if ((el[i] != ' ')&&(el[i] != '\n')) printf("%c",el[i]);
 	}
-}   			/* End of end handler */
+	//printf("%.*s", len, el);
 
-int
-main(int argc, char **argv)
+}*/
+
+void end(void *data, const char *el)
+{
+    //Nothing to do anymore
+}  
+
+int main(int argc, char **argv)
 {
 	if (argc != 3) {
     	fprintf(stderr, "Usage: %s formname,filename\n", argv[0]);
     	return (1);
     }
 	
-    char *form_name=argv[1];
+    char *form_name=argv[1]; //!!! Not needed anymore
     FILE *f=fopen(argv[2],"r");
     XML_Parser parser;
     size_t size;
@@ -114,7 +112,7 @@ main(int argc, char **argv)
     // Tell expat to use functions start() and end() each times it encounters the start or end of an element.
     XML_SetElementHandler(parser, start, end);
     // Tell expat to use function characterdata() each times it encounters the element data
-    XML_SetCharacterDataHandler(parser, characterdata);
+    //XML_SetCharacterDataHandler(parser, characterdata);
     // Set UserData to the form_name
     XML_SetUserData(parser, form_name);
     
@@ -134,7 +132,7 @@ main(int argc, char **argv)
     //Close
     fclose(f);
     XML_ParserFree(parser);
-    fprintf(stdout, "Successfully parsed %i characters !\n", size);
+    fprintf(stdout, "Successfully parsed %i characters !\n", (int)size);
     return (0);
 }
 
