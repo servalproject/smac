@@ -25,9 +25,13 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
   if (stripped_len>0) {
   }
   
-  jbyteArray result=(*env)->NewByteArray(env, succinct_len);
+  // jbyteArray result=(*env)->NewByteArray(env, succinct_len);
+  // (*env)->SetByteArrayRegion(env, result, 0, succinct_len, succinct);
 
-  (*env)->SetByteArrayRegion(env, result, 0, succinct_len, succinct);
+  jbyteArray result=(*env)->NewByteArray(env, stripped_len);
+
+  (*env)->SetByteArrayRegion(env, result, 0, stripped_len, stripped);
+
   
   return result;  
 }
