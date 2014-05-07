@@ -71,5 +71,5 @@ int xml2stripped(char *form_name, char *xml,int xml_len,char *stripped,int strip
     }
     c= xml[xmlofs++];
   }
-  return 0;  
+  return stripped_ofs;  
 }
