@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <strings.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <jni.h>
 
 JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_xml2succinct
