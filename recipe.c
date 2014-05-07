@@ -228,6 +228,26 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_TEXT:
     r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
     return 0;
+  case FIELDTYPE_TIMEDATE:
+    // time is 32-bit seconds since 1970.
+    // Format as yyyy-mm-ddThh:mm:ss+hh:mm
+    {
+      time_t t=range_decode_equiprobable(c,0x7fffffff);
+      struct tm tm;
+      gmtime_r(&t,&tm);
+      sprintf(value,"%04d-%02d-%02dT%02d:%02d:%02d+00:00",
+	      tm.tm_year+1900,tm.tm_mon+1,tm.tm_mday,
+	      tm.tm_hour,tm.tm_hour,tm.tm_min);
+      return 0;
+    }
+  case FIELDTYPE_UUID:
+    {
+      int i;
+      for(i=0;i<recipe->fields[fieldnumber].precision;i++)
+	{
+	  int b=range_decode_equiprobable(c,256);
+	}
+    }
   default:
     snprintf(recipe_error,1024,"Attempting decompression of unsupported field type %d.\n",recipe->fields[fieldnumber].type);
     return -1;
