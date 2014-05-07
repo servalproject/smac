@@ -275,6 +275,28 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	}
       return 0;
     }
+  case FIELDTYPE_LATLONG:
+    {
+      int ilat,ilon;
+      double lat,lon;
+      switch(recipe->fields[fieldnumber].precision) {
+      case 0: case 34:
+	ilat=range_decode_equiprobable(c,182*112000); ilat-=90*112000;
+	ilon=range_decode_equiprobable(c,361*112000); ilon-=180*112000;
+	lat=ilat/112000.0; lon=ilon/112000.0;
+	break;
+      case 16:
+	ilat=range_decode_equiprobable(c,182); ilat-=90;
+	ilon=range_decode_equiprobable(c,361); ilon-=180;
+	lat=ilat; lon=ilon;
+	break;
+      default:
+	sprintf(recipe_error,"Illegal LATLONG precision of %d bits.  Should be 16 or 34.\n",recipe->fields[fieldnumber].precision);
+	return -1;
+      }
+      sprintf(value,"%.5f %.5f",lat,lon);
+      return 0;
+    }
   default:
     snprintf(recipe_error,1024,"Attempting decompression of unsupported field type of '%s'.\n",recipe_field_type_name(recipe->fields[fieldnumber].type));
     return -1;
