@@ -14,6 +14,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <math.h>
+#include <time.h>
 
 #include "charset.h"
 #include "visualise.h"
@@ -43,6 +44,8 @@
 // precision is the number of bits of the UUID
 // we just pull bits from the left of the UUID
 #define FIELDTYPE_UUID 8
+// Like time of day, but takes a particular string format of date
+#define FIELDTYPE_TIMEDATE 9
 
 int recipe_parse_fieldtype(char *name)
 {
@@ -53,6 +56,7 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"boolean")) return FIELDTYPE_BOOLEAN;
   if (!strcasecmp(name,"bool")) return FIELDTYPE_BOOLEAN;
   if (!strcasecmp(name,"timeofday")) return FIELDTYPE_TIMEOFDAY;
+  if (!strcasecmp(name,"timestamp")) return FIELDTYPE_TIMEDATE;
   if (!strcasecmp(name,"date")) return FIELDTYPE_DATE;
   if (!strcasecmp(name,"latlong")) return FIELDTYPE_LATLONG;
   if (!strcasecmp(name,"text")) return FIELDTYPE_TEXT;
@@ -273,8 +277,32 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       maximum+=1; // make sure that normalised_value cannot = maximum
     }
     return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+  case FIELDTYPE_TIMEDATE:
+    {
+      struct tm tm;
+      int tzh,tzm;
+      int r;
+      bzero(&tm,sizeof(tm));
+      if ((r=sscanf(value,"%d-%d-%dT%d:%d:%d.%*d+%d:%d",
+		 &tm.tm_year,&tm.tm_mon,&tm.tm_mday,
+		 &tm.tm_hour,&tm.tm_min,&tm.tm_sec,
+		    &tzh,&tzm))!=8) {
+	printf("r=%d\n",r);
+	return -1;
+      }
+      tm.tm_gmtoff=tzm*60+tzh*3600;
+      tm.tm_year-=1900;
+      tm.tm_mon-=1;
+      time_t t = mktime(&tm);
+      minimum=1;
+      maximum=0x7fffffff;
+      normalised_value=t;
+      return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+    }
+
   case FIELDTYPE_DATE:
     if (sscanf(value,"%d/%d/%d",&y,&m,&d)!=3) return -1;
+		 
     // XXX Not as efficient as it could be (assumes all months have 31 days)
     if (y<1||y>9999||m<1||m>12||d<1||d>31) return -1;
     normalised_value=y*372+(m-1)*31+(d-1);
@@ -313,6 +341,8 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_TEXT:
     {
       int before=c->bits_used;
+      if (strlen(value)>recipe->fields[fieldnumber].precision)
+	value[recipe->fields[fieldnumber].precision]=0;
       int r=stats3_compress_append(c,(unsigned char *)value,strlen(value),stats,
 				   NULL);
       printf("'%s' encoded in %d bits\n",value,c->bits_used-before);
