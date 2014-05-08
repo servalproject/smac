@@ -3,6 +3,66 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+/*
+  Re-constitute a form to XML (or other format) by reading a template of the output
+  format and substituting the values in.
+*/
+int stripped2xml(char *stripped,int stripped_len,char *template,int template_len,char *xml,int xml_size)
+{
+  int xml_ofs=0;
+  int state=0;
+  int i,j,k;
+
+  char *fieldnames[1024];
+  char *values[1024];
+  int field_count=0;
+  
+  char field[1024];
+  int field_len=0;
+
+  char value[1024];
+  int value_len=0;
+  
+  // Read fields from stripped.
+  
+
+  // Read template, substituting $FIELD$ with the value of the field.
+  // $$ substitutes to a single $ character.
+  for(i=0;i<template_len;i++) {
+    if (template[i]=='$') {
+      if (state==1) {
+	// end of variable
+	for(j=0;j<field_count;j++)
+	  if (!strcasecmp(field,fieldnames[j])) {
+	    // write out field value
+	    for(k=0;values[j][k];k++) {
+	      xml[xml_ofs++]=values[j][k];
+	      if (xml_ofs==xml_size) return -1;
+	    }
+	    break;
+	  }
+	state=0;
+      } else {
+	// start of variable stubstitution
+	state=1;
+      }
+    } else {
+      if (state==1) {
+	// accumulate field name
+	if (field_len<1023) {
+	  field[field_len++]=stripped[i];
+	  field[field_len]=0;
+	}
+      } else {
+	// natural character
+	xml[xml_ofs++]=stripped[i];
+	if (xml_ofs==xml_size) return -1;
+      }
+    }
+  }
+  return xml_ofs;
+}
+
 int xml2stripped(char *form_name, char *xml,int xml_len,char *stripped,int stripped_size)
 {
 
