@@ -51,6 +51,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     // Produce succinct data
 
     // Get stats handle
+    char filename[1024];
     snprintf(filename,1024,"%s/smac.dat",path);
     stats_handle *h=stats_new_handle(filename);
 
@@ -78,7 +79,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
       return result;
     }
   } else {
-      LOGI("Failed to strip XML.",recipefile);
+      LOGI("Failed to strip XML using recipe file %s.",filename);
       recipe_free(recipe);
       jbyteArray result=(*env)->NewByteArray(env, 1);
       unsigned char ret=4;
