@@ -188,11 +188,17 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
 		  recipe->fields[recipe->field_count].enum_values[en]
 		    =strdup(enum_value);
 		  en++;
+		  e=0;
 		} else {
 		  // next character of field
 		  enum_value[e++]=enumvalues[i];
 		}
 	      }
+	      if (en<1) {
+		snprintf(recipe_error,1024,"line:%d:Malformed enum field definition: must contain at least one value option.\n",line_number);
+		recipe_free(recipe); return NULL;
+	      }
+	      recipe->fields[recipe->field_count].enum_count=en;
 	    }
 
 	    recipe->field_count++;
@@ -289,6 +295,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     normalised_value=range_decode_equiprobable(c,recipe->fields[fieldnumber]
 					       .enum_count);
     sprintf(value,"%s",recipe->fields[fieldnumber].enum_values[normalised_value]);
+    printf("value=%s\n",value);
     break;
   case FIELDTYPE_TEXT:
     r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
