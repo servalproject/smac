@@ -46,12 +46,14 @@
 #define FIELDTYPE_UUID 8
 // Like time of day, but takes a particular string format of date
 #define FIELDTYPE_TIMEDATE 9
+#define FIELDTYPE_ENUM 10
 
 int recipe_parse_fieldtype(char *name)
 {
   if (!strcasecmp(name,"integer")) return FIELDTYPE_INTEGER;
   if (!strcasecmp(name,"int")) return FIELDTYPE_INTEGER;
   if (!strcasecmp(name,"float")) return FIELDTYPE_FLOAT;
+  if (!strcasecmp(name,"decimal")) return FIELDTYPE_FIXEDPOINT;
   if (!strcasecmp(name,"fixedpoint")) return FIELDTYPE_FIXEDPOINT;
   if (!strcasecmp(name,"boolean")) return FIELDTYPE_BOOLEAN;
   if (!strcasecmp(name,"bool")) return FIELDTYPE_BOOLEAN;
@@ -63,6 +65,7 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"geopoint")) return FIELDTYPE_LATLONG;
   if (!strcasecmp(name,"text")) return FIELDTYPE_TEXT;
   if (!strcasecmp(name,"uuid")) return FIELDTYPE_UUID;
+  if (!strcasecmp(name,"enum")) return FIELDTYPE_ENUM;
   
   return -1;
 }
@@ -91,6 +94,8 @@ struct field {
   int minimum;
   int maximum;
   int precision; // meaning differs based on field type
+  char *enum_values[32];
+  int enum_count;
 };
 
 struct recipe {
@@ -129,6 +134,7 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
   char line[1024];
   char name[1024],type[1024];
   int min,max,precision;
+  char enumvalues[1024]="";
 
   for(i=0;i<=buffer_size;i++) {
     if (l>1000) { 
@@ -142,8 +148,8 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
       // Process recipe line
       line[l]=0; 
       if ((l>0)&&(line[0]!='#')) {
-	if (sscanf(line,"%[^:]:%[^:]:%d:%d:%d",
-		   name,type,&min,&max,&precision)==5) {
+	if (sscanf(line,"%[^:]:%[^:]:%d:%d:%d:%[^\n]",
+		   name,type,&min,&max,&precision,&enumvalues)>=5) {
 	  int fieldtype=recipe_parse_fieldtype(type);
 	  if (fieldtype==-1) {
 	    snprintf(recipe_error,1024,"line:%d:Unknown or misspelled field type '%s'.\n",line_number,type);
@@ -155,6 +161,11 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
 	    recipe->fields[recipe->field_count].minimum=min;
 	    recipe->fields[recipe->field_count].maximum=max;
 	    recipe->fields[recipe->field_count].precision=precision;
+
+	    if (fieldtype==FIELDTYPE_ENUM) {
+	      
+	    }
+
 	    recipe->field_count++;
 	  }
 	} else {
