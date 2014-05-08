@@ -630,7 +630,7 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 	    snprintf(recipe_path,1024,"%s/%s",recipe_dir,de->d_name);
 	    struct recipe *r=recipe_read_from_file(recipe_path);
 	    if (r) {
-	      if (!bcmp(formhash,r->formhash,6))
+	      if (!memcmp(formhash,r->formhash,6))
 		return r;
 	      recipe_free(r);
 	    }
