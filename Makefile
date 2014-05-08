@@ -9,6 +9,7 @@ OBJS=	main.o \
 	\
 	recipe.o \
 	dexml.o \
+	md5.o \
 	\
 	unicode.o \
 	case.o \

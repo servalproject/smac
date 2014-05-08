@@ -22,6 +22,7 @@
 #include "packed_stats.h"
 #include "smac.h"
 #include "recipe.h"
+#include "md5.h"
 
 // min,max set inclusive bound
 #define FIELDTYPE_INTEGER 0
@@ -92,6 +93,7 @@ char *recipe_field_type_name(int f)
 
 struct field {
   char *name;
+
   int type;
   int minimum;
   int maximum;
@@ -101,6 +103,9 @@ struct field {
 };
 
 struct recipe {
+  char *formname;
+  unsigned char formhash[6];
+
   struct field fields[1024];
   int field_count;
 };
@@ -124,7 +129,34 @@ void recipe_free(struct recipe *recipe)
   free(recipe);
 }
 
-struct recipe *recipe_read(char *buffer,int buffer_size)
+int recipe_form_hash(char *recipe_file,unsigned char *formhash)
+{
+  MD5_CTX md5;
+  unsigned char hash[16];
+  
+  // Get basename of form for computing hash
+  char recipe_name[1024];
+  int start=0;
+  int end=strlen(recipe_file);
+  int i;    
+  // Cut path from filename
+  for(i=0;recipe_file[i];i++) if (recipe_file[i]=='/') start=i+1;
+  // Cut .recipe from filename
+  if (end>strlen(".recipe"))
+    if (!strcasecmp(".recipe",&recipe_file[end-strlen(".recipe")]))
+      end=end-strlen(".recipe")-1;
+  int j=0;
+  for(i=start;i<=end;i++) recipe_name[j++]=recipe_file[i];
+  
+  MD5_Init(&md5);
+  MD5_Update(&md5,recipe_name,strlen(recipe_name));
+  MD5_Final(hash,&md5);
+  
+  bcopy(hash,formhash,6);
+  return 0;
+}
+
+struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 {
   if (buffer_size<1||buffer_size>1048576) {
     snprintf(recipe_error,1024,"Recipe file empty or too large (>1MB).\n");
@@ -136,6 +168,11 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
     snprintf(recipe_error,1024,"Allocation of recipe structure failed.\n");
     return NULL;
   }
+
+  strcpy(recipe->formname,formname);
+
+  // Get recipe hash
+  recipe_form_hash(formname,recipe->formhash);
 
   int i;
   int l=0;
@@ -277,7 +314,7 @@ struct recipe *recipe_read_from_file(char *filename)
     close(fd); return NULL; 
   }
 
-  recipe=recipe_read((char *)buffer,stat.st_size);
+  recipe=recipe_read(filename,(char *)buffer,stat.st_size);
 
   munmap(buffer,stat.st_size);
   close(fd);
@@ -945,3 +982,4 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
 
   return 0;
 }
+
