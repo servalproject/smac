@@ -42,9 +42,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
 
     if (!h) {
       LOGI("Could not read SMAC stats file %s",filename);
-      jbyteArray result=(*env)->NewByteArray(env, 3);
-      succinct[0]=99; succinct[1]=99; succinct[2]=2;
-      (*env)->SetByteArrayRegion(env, result, 0, 3, succinct);
+      jbyteArray result=(*env)->NewByteArray(env, 0);
       return result;
     }
 
@@ -54,9 +52,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     
     if (!recipe) {
       LOGI("Could not read recipe file %s",filename);
-      jbyteArray result=(*env)->NewByteArray(env, 3);
-      succinct[0]=99; succinct[1]=99; succinct[2]=1;
-      (*env)->SetByteArrayRegion(env, result, 0, 3, succinct);
+      jbyteArray result=(*env)->NewByteArray(env, 0);
       return result;
     }
 
