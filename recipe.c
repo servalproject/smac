@@ -463,6 +463,24 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     return range_encode_equiprobable(c,361*112000,ilon);
     } else
       return -1;
+  case FIELDTYPE_ENUM:
+    {
+      for(normalised_value=0;
+	  normalised_value<recipe->fields[fieldnumber].enum_count;
+	  normalised_value++) {
+	if (!strcasecmp(value,
+			recipe->fields[fieldnumber].enum_values[normalised_value]))
+	  break;
+      }
+      if (normalised_value>=recipe->fields[fieldnumber].enum_count) {
+	sprintf(recipe_error,"Value '%s' is not in enum list for '%s'.\n",
+		value,
+		recipe->fields[fieldnumber].name);
+	return -1;
+      }
+      maximum=recipe->fields[fieldnumber].enum_count;
+      return range_encode_equiprobable(c,maximum,normalised_value);
+    }
   case FIELDTYPE_TEXT:
     {
       int before=c->bits_used;
