@@ -21,5 +21,5 @@ struct recipe {
 int recipe_main(int argc,char *argv[],stats_handle *h);
 struct recipe *recipe_read_from_file(char *filename);
 int stripped2xml(char *stripped,int stripped_len,char *template,int template_len,char *xml,int xml_size);
-int xml2stripped(char *form_name, char *xml,int xml_len,char *stripped,int stripped_size);
+int xml2stripped(const char *form_name, const char *xml,int xml_len,char *stripped,int stripped_size);
 
