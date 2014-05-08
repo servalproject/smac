@@ -42,7 +42,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
 
     if (!h) {
       LOGI("Could not read SMAC stats file %s",filename);
-      jbyteArray result=(*env)->NewByteArray(env, 0);
+      jbyteArray result=(*env)->NewByteArray(env, 1);
+      unsigned char ret=1;
+      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
       return result;
     }
 
@@ -52,7 +54,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     
     if (!recipe) {
       LOGI("Could not read recipe file %s",filename);
-      jbyteArray result=(*env)->NewByteArray(env, 0);
+      jbyteArray result=(*env)->NewByteArray(env, 1);
+      unsigned char ret=2;
+      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
       return result;
     }
 
@@ -65,7 +69,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
 
     if (succinct_len<0) {
       LOGI("recipe_compess failed for recipename=%s.",recipefile);
-      jbyteArray result=(*env)->NewByteArray(env, 0);
+      jbyteArray result=(*env)->NewByteArray(env, 1);
+      unsigned char ret=3;
+      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
       return result;
     }
   }
