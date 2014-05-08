@@ -466,8 +466,11 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_TEXT:
     {
       int before=c->bits_used;
-      if (strlen(value)>recipe->fields[fieldnumber].precision)
-	value[recipe->fields[fieldnumber].precision]=0;
+      // Trim to precision specified length if non-zero
+      if (recipe->fields[fieldnumber].precision>0) {
+	if (strlen(value)>recipe->fields[fieldnumber].precision)
+	  value[recipe->fields[fieldnumber].precision]=0;
+      }
       int r=stats3_compress_append(c,(unsigned char *)value,strlen(value),stats,
 				   NULL);
       printf("'%s' encoded in %d bits\n",value,c->bits_used-before);
