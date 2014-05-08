@@ -111,6 +111,13 @@ void recipe_free(struct recipe *recipe)
   for(i=0;i<recipe->field_count;i++) {
     if (recipe->fields[i].name) free(recipe->fields[i].name);
     recipe->fields[i].name=NULL;
+    int e;
+    for(e=0;e<recipe->fields[i].enum_count;e++) {
+      if (recipe->fields[i].enum_values[e]) {
+	free(recipe->fields[i].enum_values[e]);
+	recipe->fields[i].enum_values[e]=NULL;
+      }
+    }
   }
   free(recipe);
 }
@@ -149,7 +156,7 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
       line[l]=0; 
       if ((l>0)&&(line[0]!='#')) {
 	if (sscanf(line,"%[^:]:%[^:]:%d:%d:%d:%[^\n]",
-		   name,type,&min,&max,&precision,&enumvalues)>=5) {
+		   name,type,&min,&max,&precision,enumvalues)>=5) {
 	  int fieldtype=recipe_parse_fieldtype(type);
 	  if (fieldtype==-1) {
 	    snprintf(recipe_error,1024,"line:%d:Unknown or misspelled field type '%s'.\n",line_number,type);
@@ -163,7 +170,27 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
 	    recipe->fields[recipe->field_count].precision=precision;
 
 	    if (fieldtype==FIELDTYPE_ENUM) {
-	      
+	      char enum_value[1024];
+	      int e=0;
+	      int en=0;
+	      int i;
+	      for(i=0;i<=strlen(enumvalues);i++) {
+		if ((enumvalues[i]==',')||(enumvalues[i]==0)) {
+		  // End of field
+		  enum_value[e]=0;
+		  if (en>=32) {
+		    snprintf(recipe_error,1024,"line:%d:enum has too many values (max=32)\n",line_number);
+		    recipe_free(recipe);
+		    return NULL;
+		  }
+		  recipe->fields[recipe->field_count].enum_values[en]
+		    =strdup(enum_value);
+		  en++;
+		} else {
+		  // next character of field
+		  enum_value[e++]=enumvalues[i];
+		}
+	      }
 	    }
 
 	    recipe->field_count++;
