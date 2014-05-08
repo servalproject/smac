@@ -60,3 +60,7 @@ test:	gsinterpolative arithmetic
 out.odt:	content.xml
 	cp content.xml odt-shell/
 	cd odt-shell ; zip -r ../out.odt *
+
+extract_instance_with_library:	extract_instance_with_library.c Makefile
+	$(CC) $(CFLAGS) -o extract_instance_with_library extract_instance_with_library.c -lexpat
+
