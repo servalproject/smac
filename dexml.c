@@ -24,7 +24,28 @@ int stripped2xml(char *stripped,int stripped_len,char *template,int template_len
   int value_len=0;
   
   // Read fields from stripped.
-  
+  for(i=0;i<stripped_len;i++) {
+    if (stripped[i]=='='&&(state==0)) {
+      state=1;
+    } else if (stripped[i]<'\n') {
+      if (state==1) {
+	// record field=value pair
+	field[field_len]=0;
+	value[value_len]=0;
+	fieldnames[field_count]=strdup(field);
+	values[field_count]=strdup(value);
+	field_count++;
+	printf("%s=%s\n",field,value);
+      }
+      state=0;
+      field_len=0;
+      value_len=0;
+    } else {
+      if (field_len>1000||value_len>1000) return -1;
+      if (state==0) field[field_len++]=stripped[i];
+      else value[value_len++]=stripped[i];
+    }
+  }
 
   // Read template, substituting $FIELD$ with the value of the field.
   // $$ substitutes to a single $ character.

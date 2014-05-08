@@ -21,6 +21,7 @@
 #include "arithmetic.h"
 #include "packed_stats.h"
 #include "smac.h"
+#include "recipe.h"
 
 // min,max set inclusive bound
 #define FIELDTYPE_INTEGER 0
@@ -214,6 +215,42 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
     }
   }
   return recipe;
+}
+
+int recipe_load_file(char *filename,char *out,int out_size)
+{
+  unsigned char *buffer;
+
+  int fd=open(filename,O_RDONLY);
+  if (fd==-1) {
+    snprintf(recipe_error,1024,"Could not open file '%s'\n",filename);
+    return -1;
+  }
+
+  struct stat stat;
+  if (fstat(fd, &stat) == -1) {
+    snprintf(recipe_error,1024,"Could not stat file '%s'\n",filename);
+    close(fd); return -1;
+  }
+
+  if (stat.st_size>out_size) {
+    snprintf(recipe_error,1024,"File '%s' is too long (must be <= %d bytes)\n",
+	     filename,out_size);
+    close(fd); return -1;
+  }
+
+  buffer=mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (buffer==MAP_FAILED) {
+    snprintf(recipe_error,1024,"Could not memory map file '%s'\n",filename);
+    close(fd); return -1; 
+  }
+
+  bcopy(buffer,out,stat.st_size);
+
+  munmap(buffer,stat.st_size);
+  close(fd);
+
+  return stat.st_size;
 }
 
 struct recipe *recipe_read_from_file(char *filename)
@@ -838,6 +875,33 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       exit(-1);
     }
     else return 0;
+  } else if (!strcasecmp(argv[2],"strip")) {
+    char stripped[8192];
+    char xml_data[65536];
+    int xml_len=0;
+    if (argc<5) {
+      fprintf(stderr,"usage: smac recipe strip <formname> <xml input> [stripped output].\n");
+      exit(-1);
+    }
+    xml_len=recipe_load_file(argv[4],xml_data,sizeof(xml_data));
+    int stripped_len=xml2stripped(argv[3],xml_data,xml_len,stripped,sizeof(stripped));
+    if (stripped_len<0) {
+      fprintf(stderr,"Failed to strip '%s'\n",argv[4]);
+      exit(-1);
+    }
+    if (argv[5]==NULL) printf("%s",stripped);
+    else {
+      FILE *f=fopen(argv[5],"w");
+      if (!f) {
+	fprintf(stderr,"Failed to write stripped output to '%s'\n",argv[5]);
+	exit(-1);
+      }
+      fprintf(f,"%s",stripped);
+      fclose(f);
+      return 0;
+    }
+  } else if (!strcasecmp(argv[2],"rexml")) {
+    
   } else {
     fprintf(stderr,"unknown 'smac recipe' sub-command '%s'.\n",argv[2]);
       exit(-1);
