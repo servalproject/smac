@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <time.h>
+#include <dirent.h>
 
 #include "charset.h"
 #include "visualise.h"
@@ -103,7 +104,7 @@ struct field {
 };
 
 struct recipe {
-  char *formname;
+  char formname[1024];
   unsigned char formhash[6];
 
   struct field fields[1024];
@@ -611,13 +612,39 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   return -1;
 }
 
-int recipe_decompress(stats_handle *h, struct recipe *recipe,
+struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
+{
+  DIR *dir=opendir(recipe_dir);
+  struct dirent *de;
+  if (!dir) return NULL;
+  while((de=readdir(dir))!=NULL)
+    {
+      if (strlen(de->d_name)>strlen(".recipe")) {
+	if (!strcasecmp(&de->d_name[strlen(de->d_name)-strlen(".recipe")],
+			".recipe"))
+	  {
+	    char recipe_path[1024];
+	    snprintf(recipe_path,1024,"%s/%s",recipe_dir,de->d_name);
+	    struct recipe *r=recipe_read_from_file(recipe_path);
+	    if (r) {
+	      if (!bcmp(formhash,r->formhash,6))
+		return r;
+	      recipe_free(r);
+	    }
+	  }
+      }
+    }
+  return NULL;
+}
+
+int recipe_decompress(stats_handle *h, char *recipe_dir,
 		      unsigned char *in,int in_len, char *out, int out_size)
 {
-  if (!recipe) {
-    snprintf(recipe_error,1024,"No recipe provided.\n");
+  if (!recipe_dir) {
+    snprintf(recipe_error,1024,"No recipe directory provided.\n");
     return -1;
   }
+
   if (!in) {
     snprintf(recipe_error,1024,"No input provided.\n");
     return -1;
@@ -638,9 +665,23 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe,
   bcopy(in,c->bit_stream,in_len);
   c->bit_stream_length=in_len*8;
   range_decode_prefetch(c);
+  
+  // Read form id hash from the succinct data stream.
+  unsigned char formhash[6];
+  int i;
+  for(i=0;i<6;i++) formhash[i]=range_decode_equiprobable(c,256);
+  printf("formhash = %02x%02x%02x%02x%02x%02x\n",
+	 formhash[0],formhash[1],formhash[2],
+	 formhash[3],formhash[4],formhash[5]);
+
+  struct recipe *recipe=recipe_find_recipe(recipe_dir,formhash);
+
+  if (!recipe) {
+    snprintf(recipe_error,1024,"No recipe provided.\n");
+    return -1;
+  }
 
   int written=0;
-
   int field;
   for(field=0;field<recipe->field_count;field++)
     {
@@ -699,6 +740,13 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 
   // Write form hash first
   int i;
+  printf("form hash = %02x%02x%02x%02x%02x%02x\n",
+	 recipe->formhash[0],
+	 recipe->formhash[1],
+	 recipe->formhash[2],
+	 recipe->formhash[3],
+	 recipe->formhash[4],
+	 recipe->formhash[5]);
   for(i=0;i<sizeof(recipe->formhash);i++)
     range_encode_equiprobable(c,256,recipe->formhash[i]);
 
@@ -829,10 +877,10 @@ int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char
   return r;
 }
 
-int recipe_decompress_file(stats_handle *h,char *recipe_file,char *input_file,char *output_file)
+int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,char *output_file)
 {
-  struct recipe *recipe=recipe_read_from_file(recipe_file);
-  if (!recipe) return -1;
+  // struct recipe *recipe=recipe_read_from_file(recipe_file);
+  // if (!recipe) return -1;
 
   unsigned char *buffer;
 
@@ -855,7 +903,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_file,char *input_file,ch
   }
 
   char out_buffer[1024];
-  int r=recipe_decompress(h,recipe,buffer,stat.st_size,out_buffer,1024);
+  int r=recipe_decompress(h,recipe_dir,buffer,stat.st_size,out_buffer,1024);
 
   munmap(buffer,stat.st_size); close(fd);
 
