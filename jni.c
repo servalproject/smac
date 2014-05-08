@@ -58,11 +58,16 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
 
     // Compress stripped data to form succinct data
     succinct_len=recipe_compress(h,recipe,stripped,stripped_len,succinct,sizeof(succinct));
-    if (succinct_len<0) succinct_len=0;
 
     // Clean up after ourselves
     stats_handle_free(h);
     recipe_free(recipe);
+
+    if (succinct_len<0) {
+      LOGI("recipe_compess failed for recipename=%s.",recipefile);
+      jbyteArray result=(*env)->NewByteArray(env, 0);
+      return result;
+    }
   }
   
   jbyteArray result=(*env)->NewByteArray(env, succinct_len);
