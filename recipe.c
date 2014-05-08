@@ -285,6 +285,11 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     normalised_value=range_decode_equiprobable(c,2);
     sprintf(value,"%d",normalised_value);
     break;
+  case FIELDTYPE_ENUM:
+    normalised_value=range_decode_equiprobable(c,recipe->fields[fieldnumber]
+					       .enum_count);
+    sprintf(value,"%s",recipe->fields[fieldnumber].enum_values[normalised_value]);
+    break;
   case FIELDTYPE_TEXT:
     r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
     return 0;
