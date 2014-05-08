@@ -67,7 +67,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     stats_handle_free(h);
     recipe_free(recipe);
 
-    if (succinct_len<0) {
+    if (succinct_len<1) {
       LOGI("recipe_compess failed for recipename=%s.",recipefile);
       jbyteArray result=(*env)->NewByteArray(env, 1);
       unsigned char ret=3;
