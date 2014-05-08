@@ -901,6 +901,42 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       return 0;
     }
   } else if (!strcasecmp(argv[2],"rexml")) {
+    char stripped[8192];
+    int stripped_len=0;
+    char template[65536];
+    int template_len=0;
+    char xml[65536];
+    if (argc<5) {
+      fprintf(stderr,"usage: smac recipe rexml <stripped> <template> [xml output].\n");
+      exit(-1);
+    }
+    stripped_len=recipe_load_file(argv[3],stripped,sizeof(stripped));
+    if (stripped_len<0) {
+      fprintf(stderr,"Failed to read '%s'\n",argv[3]);
+      exit(-1);
+    }
+    template_len=recipe_load_file(argv[4],template,sizeof(template));
+    if (template_len<0) {
+      fprintf(stderr,"Failed to read '%s'\n",argv[4]);
+      exit(-1);
+    }
+    int xml_len=stripped2xml(stripped,stripped_len,template,template_len,
+			     xml,sizeof(xml));
+    if (xml_len<0) {
+      fprintf(stderr,"Failed to rexml '%s'\n",argv[3]);
+      exit(-1);
+    }
+    if (argv[5]==NULL) printf("%s",xml);
+    else {
+      FILE *f=fopen(argv[5],"w");
+      if (!f) {
+	fprintf(stderr,"Failed to write rexml output to '%s'\n",argv[5]);
+	exit(-1);
+      }
+      fprintf(f,"%s",xml);
+      fclose(f);
+      return 0;
+    }
     
   } else {
     fprintf(stderr,"unknown 'smac recipe' sub-command '%s'.\n",argv[2]);

@@ -27,7 +27,7 @@ int stripped2xml(char *stripped,int stripped_len,char *template,int template_len
   for(i=0;i<stripped_len;i++) {
     if (stripped[i]=='='&&(state==0)) {
       state=1;
-    } else if (stripped[i]<'\n') {
+    } else if (stripped[i]<' ') {
       if (state==1) {
 	// record field=value pair
 	field[field_len]=0;
@@ -35,7 +35,6 @@ int stripped2xml(char *stripped,int stripped_len,char *template,int template_len
 	fieldnames[field_count]=strdup(field);
 	values[field_count]=strdup(value);
 	field_count++;
-	printf("%s=%s\n",field,value);
       }
       state=0;
       field_len=0;
@@ -49,10 +48,12 @@ int stripped2xml(char *stripped,int stripped_len,char *template,int template_len
 
   // Read template, substituting $FIELD$ with the value of the field.
   // $$ substitutes to a single $ character.
+  state=0; field_len=0;
   for(i=0;i<template_len;i++) {
     if (template[i]=='$') {
       if (state==1) {
 	// end of variable
+	field[field_len]=0; field_len=0;
 	for(j=0;j<field_count;j++)
 	  if (!strcasecmp(field,fieldnames[j])) {
 	    // write out field value
@@ -71,12 +72,12 @@ int stripped2xml(char *stripped,int stripped_len,char *template,int template_len
       if (state==1) {
 	// accumulate field name
 	if (field_len<1023) {
-	  field[field_len++]=stripped[i];
+	  field[field_len++]=template[i];
 	  field[field_len]=0;
 	}
       } else {
 	// natural character
-	xml[xml_ofs++]=stripped[i];
+	xml[xml_ofs++]=template[i];
 	if (xml_ofs==xml_size) return -1;
       }
     }
