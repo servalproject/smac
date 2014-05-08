@@ -110,7 +110,8 @@ void recipe_free(struct recipe *recipe)
   free(recipe);
 }
 
-int recipe_form_hash(char *recipe_file,unsigned char *formhash)
+int recipe_form_hash(char *recipe_file,unsigned char *formhash,
+		     char *formname)
 {
   MD5_CTX md5;
   unsigned char hash[16];
@@ -134,6 +135,8 @@ int recipe_form_hash(char *recipe_file,unsigned char *formhash)
   MD5_Final(hash,&md5);
   
   bcopy(hash,formhash,6);
+
+  if (formname) strcpy(formname,recipe_name);
   return 0;
 }
 
@@ -150,10 +153,8 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
     return NULL;
   }
 
-  strcpy(recipe->formname,formname);
-
   // Get recipe hash
-  recipe_form_hash(formname,recipe->formhash);
+  recipe_form_hash(formname,recipe->formhash,recipe->formname);
 
   int i;
   int l=0;
@@ -621,7 +622,8 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 }
 
 int recipe_decompress(stats_handle *h, char *recipe_dir,
-		      unsigned char *in,int in_len, char *out, int out_size)
+		      unsigned char *in,int in_len, char *out, int out_size,
+		      char *recipe_name)
 {
   if (!recipe_dir) {
     snprintf(recipe_error,1024,"No recipe directory provided.\n");
@@ -663,6 +665,7 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
     snprintf(recipe_error,1024,"No recipe provided.\n");
     return -1;
   }
+  snprintf(recipe_name,1024,"%s",recipe->formname);
 
   int written=0;
   int field;
@@ -860,7 +863,7 @@ int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char
   return r;
 }
 
-int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,char *output_file)
+int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,char *output_directory)
 {
   // struct recipe *recipe=recipe_read_from_file(recipe_file);
   // if (!recipe) return -1;
@@ -885,13 +888,35 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
     close(fd); return -1; 
   }
 
+  char recipe_name[1024]="";
   char out_buffer[1024];
-  int r=recipe_decompress(h,recipe_dir,buffer,stat.st_size,out_buffer,1024);
+  int r=recipe_decompress(h,recipe_dir,buffer,stat.st_size,out_buffer,1024,
+			  recipe_name);
 
   munmap(buffer,stat.st_size); close(fd);
 
   if (r<0) return -1;
   
+  char stripped_name[80];
+  MD5_CTX md5;
+  unsigned char hash[16];
+  char output_file[1024];
+
+  MD5_Init(&md5);
+  MD5_Update(&md5,out_buffer,r);
+  MD5_Final(hash,&md5);
+  snprintf(stripped_name,80,"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+	   out_buffer[0],out_buffer[1],out_buffer[2],out_buffer[3],out_buffer[4],
+	   out_buffer[5],out_buffer[6],out_buffer[7],out_buffer[8],out_buffer[9]);
+
+  // make form directory if required
+  snprintf(output_file,1024,"%s/%s",output_directory,recipe_name);
+  mkdir(output_file,0777);
+
+  // now write stripped file out
+  snprintf(output_file,1024,"%s/%s/%s.stripped",
+	   output_directory,recipe_name,stripped_name);
+
   FILE *f=fopen(output_file,"w");
   if (!f) {
     snprintf(recipe_error,1024,"Could not write decompressed file '%s'\n",output_file);
@@ -939,7 +964,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     else return 0;
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
-      fprintf(stderr,"'smac recipe decompress' requires recipe, input and output files.\n");
+      fprintf(stderr,"usage: smac recipe decompress <succinct data message> <recipe directory> <output directory>\n");
       exit(-1);
     }
     if (recipe_decompress_file(h,argv[3],argv[4],argv[5])==-1) {
