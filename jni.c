@@ -28,9 +28,21 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
   unsigned char succinct[1024];
   int succinct_len=0;
 
-  // Transform XML to stripped data first.
+  // Read recipe file
+  snprintf(filename,1024,"%s/%s.recipe",path,recipefile);
+  LOGI("Opening recipe file %s",filename);
+  struct recipe *recipe=recipe_read_from_file(filename);
+  
+  if (!recipe) {
+    LOGI("Could not read recipe file %s",filename);
+    jbyteArray result=(*env)->NewByteArray(env, 1);
+    unsigned char ret=2;
+    (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
+    return result;
+  }
 
-  int stripped_len=xml2stripped(recipefile,xmldata,strlen(xmldata),stripped,8192);
+  // Transform XML to stripped data first.
+  int stripped_len=xml2stripped(filename,xmldata,strlen(xmldata),stripped,8192);
 
   if (stripped_len>0) {
     // Produce succinct data
@@ -44,18 +56,6 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
       LOGI("Could not read SMAC stats file %s",filename);
       jbyteArray result=(*env)->NewByteArray(env, 1);
       unsigned char ret=1;
-      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
-      return result;
-    }
-
-    // Read recipe file
-    snprintf(filename,1024,"%s/%s.recipe",path,recipefile);
-    struct recipe *recipe=recipe_read_from_file(filename);
-    
-    if (!recipe) {
-      LOGI("Could not read recipe file %s",filename);
-      jbyteArray result=(*env)->NewByteArray(env, 1);
-      unsigned char ret=2;
       (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
       return result;
     }
@@ -74,6 +74,12 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
       (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
       return result;
     }
+  } else {
+      LOGI("Failed to strip XML.",recipefile);
+      jbyteArray result=(*env)->NewByteArray(env, 1);
+      unsigned char ret=4;
+      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
+      return result;
   }
   
   jbyteArray result=(*env)->NewByteArray(env, succinct_len);
