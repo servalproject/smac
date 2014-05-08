@@ -91,26 +91,6 @@ char *recipe_field_type_name(int f)
   }
 }
 
-
-struct field {
-  char *name;
-
-  int type;
-  int minimum;
-  int maximum;
-  int precision; // meaning differs based on field type
-  char *enum_values[32];
-  int enum_count;
-};
-
-struct recipe {
-  char formname[1024];
-  unsigned char formhash[6];
-
-  struct field fields[1024];
-  int field_count;
-};
-
 char recipe_error[1024]="No error.\n";
 
 void recipe_free(struct recipe *recipe)
