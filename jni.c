@@ -29,6 +29,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
   int succinct_len=0;
 
   // Read recipe file
+  char filename[1024];
   snprintf(filename,1024,"%s/%s.recipe",path,recipefile);
   LOGI("Opening recipe file %s",filename);
   struct recipe *recipe=recipe_read_from_file(filename);
@@ -48,7 +49,6 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     // Produce succinct data
 
     // Get stats handle
-    char filename[1024];
     snprintf(filename,1024,"%s/smac.dat",path);
     stats_handle *h=stats_new_handle(filename);
 
