@@ -10,10 +10,12 @@
 //		: Ameliorer le traitement de la contrainte, afficher erreur si non pris en compte
 //
 //Creation specification stripped file from ODK XML
-//FieldName,Type,Minimum,Maximum,Precision
+//FieldName:Type:Minimum:Maximum:Precision,Select1,Select2,...,SelectN
+
 char    *selects[1024];
 char    *selectElem = NULL;
 int     selectsLen = 0;
+int     selectFirst = 1;
 int     in_value = 0;
 
 #define MAXCHARS 1000000
@@ -29,8 +31,7 @@ start(void *data, const char *el, const char **attr)
     {
         for (i = 0; attr[i]; i += 2) //Found a bind element, look for attributes
         { 
-			//printf(" %s='%s'", attr[i], attr[i + 1]); //Display attributes
-			
+
 			//Looking for attribute nodeset
 			if (!strncasecmp("nodeset",attr[i],strlen("nodeset"))) {
 					char *last_slash = strrchr(attr[i+1], '/');
@@ -59,7 +60,7 @@ start(void *data, const char *el, const char **attr)
             selects[selectsLen] = node_name;
             strcat (selects[selectsLen] ,":");
             strcat (selects[selectsLen] ,node_type);
-            strcat (selects[selectsLen] ,":0:0:0");
+            strcat (selects[selectsLen] ,":0:0:0:");
             selectsLen++;
 		} 
 		else if ((!strcasecmp(node_type,"decimal"))||(!strcasecmp(node_type,"int"))) // Integers and decimal
@@ -100,7 +101,7 @@ start(void *data, const char *el, const char **attr)
         }
         selectElem  = calloc (strlen(node_name), sizeof(char*));
 		memcpy (selectElem, node_name, strlen(node_name));
-        
+        selectFirst = 1; 
     }
     
     else if ((selectElem)&&((!strcasecmp("value",el))||(!strcasecmp("xf:value",el)))) 
@@ -125,7 +126,11 @@ void characterdata(void *data, const char *el, int len)
         for (i = 0; i<selectsLen; i++)
         { 
 			if (!strncasecmp(selectElem,selects[i],strlen(selectElem))) {
-                    strcat (selects[i] ,",");
+                    if (selectFirst) {
+                        selectFirst = 0; 
+                    }else{
+                        strcat (selects[i] ,",");
+                    }
                     strcat (selects[i] ,x);
 			}
         }
