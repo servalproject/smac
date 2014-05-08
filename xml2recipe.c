@@ -12,22 +12,49 @@
 //Creation specification stripped file from ODK XML
 //FieldName:Type:Minimum:Maximum:Precision,Select1,Select2,...,SelectN
 
+char    *in_instanceTxt[1024];
+int      in_instanceTxtLen = 0;
+int      in_instance = 0;
+
 char    *selects[1024];
+int      selectsLen = 0;
 char    *selectElem = NULL;
-int     selectsLen = 0;
-int     selectFirst = 1;
-int     in_value = 0;
+int      selectFirst = 1;
+int      in_value = 0;
+
+
 
 #define MAXCHARS 1000000
 
 void
 start(void *data, const char *el, const char **attr)
 {   
-    char    *node_name = "", *node_type = "", *node_constraint = "";
+    char    *node_name = "", *node_type = "", *node_constraint = "", *str = "";
 	int     i ;
     
+    if (in_instance) { // We are between <instance> tags, we want to get everything
+        str = calloc (4096, sizeof(char*));
+        strcpy (str, "<");
+        strcat (str, el);
+        for (i = 0; attr[i]; i += 2) { 
+             strcat (str, " ");
+            strcat (str, attr[i]);
+            strcat (str, "=\"");
+            strcat (str, attr[i+1]);
+            strcat (str, "\"");
+        }
+        strcat (str, ">");
+        if (!strcasecmp("start",el)) strcat (str, "$start$");
+        if (!strcasecmp("end",el)) strcat (str, "$end$");
+        if (!strcasecmp("deviceid",el)) strcat (str, "$deviceid$");
+        if (!strcasecmp("instanceid",el)) strcat (str, "$instanceid$");
+        in_instanceTxt[in_instanceTxtLen++] = str;
+        
+
+    }
+    
     //Looking for bind elements
-	if ((!strncasecmp("bind",el,strlen("bind")))||(!strncasecmp("xf:bind",el,strlen("xf:bind")))) 
+	else if ((!strcasecmp("bind",el))||(!strcasecmp("xf:bind",el))) 
     {
         for (i = 0; attr[i]; i += 2) //Found a bind element, look for attributes
         { 
@@ -108,6 +135,10 @@ start(void *data, const char *el, const char **attr)
     {
         in_value = 1;
     }
+    else if (!strcasecmp("instance",el)) 
+    {
+        in_instance = 1;
+    }
      
     
 }
@@ -143,12 +174,26 @@ void characterdata(void *data, const char *el, int len)
 
 void end(void *data, const char *el)
 {
+    char *str = "";
+    
     if (selectElem && ((!strcasecmp("select1",el))||(!strcasecmp("select",el))))  {
        selectElem = NULL;
     }
     
     if (in_value && ((!strcasecmp("value",el))||(!strcasecmp("xf:value",el))))  {
        in_value = 0;
+    }
+    
+    if (in_instance &&(!strcasecmp("instance",el))) {
+        in_instance = 0;
+    }
+    
+     if (in_instance) { // We are between <instance> tags, we want to get everything
+        str = calloc (4096, sizeof(char*));
+        strcpy (str, "</");
+        strcat (str, el);
+        strcat (str, ">");
+        in_instanceTxt[in_instanceTxtLen++] = str;
     }
 }  
 
@@ -190,12 +235,18 @@ int main(int argc, char **argv)
     
     //Finish treatment for selects
     for(i=0;i<selectsLen;i++){
-        fprintf(stderr, "%s\n",selects[i]);
+        fprintf(stdout, "%s\n",selects[i]);
     }
+    
+    //Finish treatment for selects
+    for(i=0;i<in_instanceTxtLen;i++){
+        fprintf(stderr, "%s",in_instanceTxt[i]);
+    }
+    
     //Close
     fclose(f);
     XML_ParserFree(parser);
-    fprintf(stderr, "Successfully parsed %i characters !\n", (int)size);
+    fprintf(stderr, "\n\nSuccessfully parsed %i characters !\n", (int)size);
     return (0);
 }
 
