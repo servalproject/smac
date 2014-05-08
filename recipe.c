@@ -697,11 +697,15 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
     return -1;
   }
 
+  // Write form hash first
+  int i;
+  for(i=0;i<sizeof(recipe->formhash);i++)
+    range_encode_equiprobable(c,256,recipe->formhash[i]);
+
   char *keys[1024];
   char *values[1024];
   int value_count=0;
 
-    int i;
   int l=0;
   int line_number=1;
   char line[1024];
