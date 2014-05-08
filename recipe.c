@@ -141,7 +141,7 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
   char line[1024];
   char name[1024],type[1024];
   int min,max,precision;
-  char enumvalues[1024]="";
+  char enumvalues[1024];
 
   for(i=0;i<=buffer_size;i++) {
     if (l>1000) { 
@@ -155,6 +155,7 @@ struct recipe *recipe_read(char *buffer,int buffer_size)
       // Process recipe line
       line[l]=0; 
       if ((l>0)&&(line[0]!='#')) {
+	enumvalues[0]=0;
 	if (sscanf(line,"%[^:]:%[^:]:%d:%d:%d:%[^\n]",
 		   name,type,&min,&max,&precision,enumvalues)>=5) {
 	  int fieldtype=recipe_parse_fieldtype(type);
