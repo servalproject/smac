@@ -22,8 +22,8 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
  jstring succinctpath)
 {
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
-  const char *formname= (*env)->GetStringUTFChars(env,formname,0);
-  const char *formversion= (*env)->GetStringUTFChars(env,formversion,0);
+  const char *formname_c= (*env)->GetStringUTFChars(env,formname,0);
+  const char *formversion_c= (*env)->GetStringUTFChars(env,formversion,0);
   const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
   
   char stripped[8192];
@@ -32,7 +32,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
 
   // Read recipe file
   char filename[1024];
-  snprintf(filename,1024,"%s/%s.%s.recipe",path,formname,formversion);
+  snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
   LOGI("Opening recipe file %s",filename);
   struct recipe *recipe=recipe_read_from_file(filename);
   
@@ -45,7 +45,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
   }
 
   // Transform XML to stripped data first.
-  int stripped_len=xml2stripped(formname,xmldata,strlen(xmldata),stripped,8192);
+  int stripped_len=xml2stripped(formname_c,xmldata,strlen(xmldata),stripped,8192);
 
   if (stripped_len>0) {
     // Produce succinct data
@@ -56,6 +56,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
 
     if (!h) {
       LOGI("Could not read SMAC stats file %s",filename);
+      recipe_free(recipe);
       jbyteArray result=(*env)->NewByteArray(env, 1);
       unsigned char ret=1;
       (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
@@ -78,6 +79,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     }
   } else {
       LOGI("Failed to strip XML.",recipefile);
+      recipe_free(recipe);
       jbyteArray result=(*env)->NewByteArray(env, 1);
       unsigned char ret=4;
       (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
