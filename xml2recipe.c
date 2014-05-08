@@ -47,26 +47,29 @@ start(void *data, const char *el, const char **attr)
 
 		}
 		
-		//Now write output Name and Type
-		printf("%s:%s", node_name,node_type);
-		
-		//Now write output Constraint depends on the type (decimal & int) and if constraint exists
-		if (strlen(node_constraint)&&((!strncasecmp("decimal",node_type,strlen("decimal")))||(!strncasecmp("int",node_type,strlen("int"))))) {
-			char *ptr = node_constraint;
-			int a, b;
-			
-			//We look for 0 to 2 digits
-			while( ! isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
-			a = atoi(ptr);
-			while( isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
-			while( ! isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
-			b = atoi(ptr);
-			
-			printf(":%d:%d:0", MIN(a, b), MAX(a, b));
-		} else {
-			printf(":0:0:0");
+		// Ignore binary fields in succinct data
+		if (strcasecmp(node_type,"binary")){
+		  //Now write output Name and Type
+		  printf("%s:%s", node_name,node_type);
+		  
+		  //Now write output Constraint depends on the type (decimal & int) and if constraint exists
+		  if (strlen(node_constraint)&&((!strncasecmp("decimal",node_type,strlen("decimal")))||(!strncasecmp("int",node_type,strlen("int"))))) {
+		    char *ptr = node_constraint;
+		    int a, b;
+		    
+		    //We look for 0 to 2 digits
+		    while( ! isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
+		    a = atoi(ptr);
+		    while( isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
+		    while( ! isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
+		    b = atoi(ptr);
+		    
+		    printf(":%d:%d:0", MIN(a, b), MAX(a, b));
+		  } else {
+		    printf(":0:0:0");
+		  }
+		  printf("\n");
 		}
-		printf("\n");
 	}
     
 }
@@ -90,13 +93,12 @@ void end(void *data, const char *el)
 
 int main(int argc, char **argv)
 {
-	if (argc != 3) {
-    	fprintf(stderr, "Usage: %s formname,filename\n", argv[0]);
+	if (argc != 2) {
+    	fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
     	return (1);
     }
 	
-    char *form_name=argv[1]; //!!! Not needed anymore
-    FILE *f=fopen(argv[2],"r");
+    FILE *f=fopen(argv[1],"r");
     XML_Parser parser;
     size_t size;
     char *xmltext;
@@ -110,12 +112,7 @@ int main(int argc, char **argv)
     }
     
     // Tell expat to use functions start() and end() each times it encounters the start or end of an element.
-    XML_SetElementHandler(parser, start, end);
-    // Tell expat to use function characterdata() each times it encounters the element data
-    //XML_SetCharacterDataHandler(parser, characterdata);
-    // Set UserData to the form_name
-    XML_SetUserData(parser, form_name);
-    
+    XML_SetElementHandler(parser, start, end);    
     
     //Open Xml File
     xmltext = malloc(MAXCHARS);
@@ -132,7 +129,7 @@ int main(int argc, char **argv)
     //Close
     fclose(f);
     XML_ParserFree(parser);
-    fprintf(stdout, "Successfully parsed %i characters !\n", (int)size);
+    fprintf(stderr, "Successfully parsed %i characters !\n", (int)size);
     return (0);
 }
 

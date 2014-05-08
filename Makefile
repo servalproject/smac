@@ -64,3 +64,6 @@ out.odt:	content.xml
 extract_instance_with_library:	extract_instance_with_library.c Makefile
 	$(CC) $(CFLAGS) -o extract_instance_with_library extract_instance_with_library.c -lexpat
 
+xml2recipe:	xml2recipe.c Makefile
+	$(CC) $(CFLAGS) -o xml2recipe xml2recipe.c -lexpat
+
