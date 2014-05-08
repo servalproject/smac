@@ -394,7 +394,8 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       for(i=0;i<16;i++)
 	{
 	  int b=0;
-	  if (i<recipe->fields[fieldnumber].precision)
+	  if ((!recipe->fields[fieldnumber].precision)
+	      ||(i<recipe->fields[fieldnumber].precision))
 	    b=range_decode_equiprobable(c,256);
 	  switch(i) {
 	  case 4: case 6: case 8: case 10:
@@ -602,7 +603,9 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	return -1;
       }
       // write appropriate number of bytes
-      for(i=0;i<recipe->fields[fieldnumber].precision;i++) {
+      int precision=recipe->fields[fieldnumber].precision;
+      if (precision<1||precision>16) precision=16;
+      for(i=0;i<precision;i++) {
 	range_encode_equiprobable(c,256,uuid[i]);
       }
       return 0;
