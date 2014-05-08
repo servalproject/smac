@@ -17,11 +17,13 @@
 JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinct
 (JNIEnv * env, jobject jobj,
  jstring xmlforminstance,
- jstring recipename,
+ jstring formname,
+ jstring formversion,
  jstring succinctpath)
 {
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
-  const char *recipefile= (*env)->GetStringUTFChars(env,recipename,0);
+  const char *formname= (*env)->GetStringUTFChars(env,formname,0);
+  const char *formversion= (*env)->GetStringUTFChars(env,formversion,0);
   const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
   
   char stripped[8192];
@@ -30,7 +32,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
 
   // Read recipe file
   char filename[1024];
-  snprintf(filename,1024,"%s/%s.recipe",path,recipefile);
+  snprintf(filename,1024,"%s/%s.%s.recipe",path,formname,formversion);
   LOGI("Opening recipe file %s",filename);
   struct recipe *recipe=recipe_read_from_file(filename);
   
@@ -43,7 +45,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
   }
 
   // Transform XML to stripped data first.
-  int stripped_len=xml2stripped(filename,xmldata,strlen(xmldata),stripped,8192);
+  int stripped_len=xml2stripped(formname,xmldata,strlen(xmldata),stripped,8192);
 
   if (stripped_len>0) {
     // Produce succinct data
