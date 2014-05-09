@@ -929,6 +929,37 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
     return -1;
   }
 
+  // now produce the XML.
+  // We need to give it the template file.  Fortunately, we know the recipe name, 
+  // so we can build the template path from that.
+  char template_file[1024];
+  snprintf(template_file,1024,"%s/%s.template",recipe_dir,recipe_name);
+  char template[65536];
+  int template_len=recipe_load_file(template_file,template,sizeof(template));
+  if (template_len<1) {
+    snprintf(recipe_error,1024,"Could not read template file '%s'\n",template_file);
+    return -1;    
+  }
+  char xml[65536];
+  
+  int x=stripped2xml(out_buffer,r,template,template_len,xml,sizeof(xml));
+
+  char xml_file[1024];
+  snprintf(xml_file,1024,"%s/%s/%s.xml",
+	   output_directory,recipe_name,stripped_name);
+  f=fopen(xml_file,"w");
+  if (!f) {
+    snprintf(recipe_error,1024,"Could not write xml file '%s'\n",xml_file);
+    return -1;
+  }
+  wrote=fwrite(xml,x,1,f);
+  fclose(f);
+  if (wrote!=1) {
+    snprintf(recipe_error,1024,"Could not write %d bytes of XML data into '%s'\n",x,xml_file);
+    return -1;
+  }
+
+
   return r;
 }
 
