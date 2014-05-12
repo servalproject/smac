@@ -12,9 +12,17 @@
 //Creation specification stripped file from ODK XML
 //FieldName:Type:Minimum:Maximum:Precision,Select1,Select2,...,SelectN
 
-char    *in_instanceTxt[1024];
-int      in_instanceTxtLen = 0;
+char     *formName = "", *formVersion = "";
+
+char    *xml2template[1024];
+int      xml2templateLen = 0;
+char    *xml2recipe[1024];
+int      xml2recipeLen = 0;
+
+
 int      in_instance = 0;
+int      in_instance_first = 0;
+
 
 char    *selects[1024];
 int      selectsLen = 0;
@@ -32,7 +40,7 @@ start(void *data, const char *el, const char **attr)
     char    *node_name = "", *node_type = "", *node_constraint = "", *str = "";
 	int     i ;
     
-    if (in_instance) { // We are between <instance> tags, we want to get everything
+    if (in_instance) { // We are between <instance> tags, we want to get everything for template file
         str = calloc (4096, sizeof(char*));
         strcpy (str, "<");
         strcat (str, el);
@@ -48,12 +56,23 @@ start(void *data, const char *el, const char **attr)
         if (!strcasecmp("end",el)) strcat (str, "$end$");
         if (!strcasecmp("deviceid",el)) strcat (str, "$deviceid$");
         if (!strcasecmp("instanceid",el)) strcat (str, "$instanceid$");
-        in_instanceTxt[in_instanceTxtLen++] = str;
+        xml2template[xml2templateLen++] = str;
         
+        if (in_instance_first) { // First node since we are in instance, it's the Form Name
+            in_instance_first = 0;
+            formName  = calloc (strlen(el), sizeof(char*));
+            memcpy (formName, el,strlen(el));
+            for (i = 0; attr[i]; i += 2) { 
+                if (!strcasecmp("version",attr[i])) {
+                    formVersion = calloc (strlen(attr[i+1]), sizeof(char*));
+					memcpy (formVersion, attr[i+1], strlen(attr[i+1]));
+                }
+            }
+        }
 
     }
     
-    //Looking for bind elements
+    //Looking for bind elements for the recipe file
 	else if ((!strcasecmp("bind",el))||(!strcasecmp("xf:bind",el))) 
     {
         for (i = 0; attr[i]; i += 2) //Found a bind element, look for attributes
@@ -82,7 +101,7 @@ start(void *data, const char *el, const char **attr)
         //Now we got node_name, node_type, node_constraint
         //Lets build output
         
-		if ((!strcasecmp(node_type,"select"))||(!strcasecmp(node_type,"select1"))) // Select
+		if ((!strcasecmp(node_type,"select"))||(!strcasecmp(node_type,"select1"))) // Select, special case we need to wait later to get all informations (ie the range)
 		{
             selects[selectsLen] = node_name;
             strcat (selects[selectsLen] ,":");
@@ -92,9 +111,14 @@ start(void *data, const char *el, const char **attr)
 		} 
 		else if ((!strcasecmp(node_type,"decimal"))||(!strcasecmp(node_type,"int"))) // Integers and decimal
         {
-            printf("%s:%s", node_name,node_type);  
+            //printf("%s:%s", node_name,node_type);  
+            xml2recipe[xml2recipeLen] = node_name;
+            strcat (xml2recipe[xml2recipeLen] ,":");
+            strcat (xml2recipe[xml2recipeLen] ,node_type);
+            
             if (strlen(node_constraint)) {
                 char *ptr = node_constraint;
+                char str[15];
                 int a, b;
 		    
                 //We look for 0 to 2 digits
@@ -103,19 +127,33 @@ start(void *data, const char *el, const char **attr)
                 while( isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
                 while( ! isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
                 b = atoi(ptr);
-                printf(":%d:%d:0", MIN(a, b), MAX(a, b));
+                //printf(":%d:%d:0", MIN(a, b), MAX(a, b));
+                strcat (xml2recipe[xml2recipeLen] ,":");
+                sprintf(str, "%d", MIN(a, b));
+                strcat (xml2recipe[xml2recipeLen] ,str);
+                strcat (xml2recipe[xml2recipeLen] ,":");
+                sprintf(str, "%d", MAX(a, b));
+                strcat (xml2recipe[xml2recipeLen] ,str);
+                strcat (xml2recipe[xml2recipeLen] ,":0");
             } else {
-                printf(":0:0:0");
+                //printf(":0:0:0");
+                strcat (xml2recipe[xml2recipeLen] ,":0:0:0");
             }
-		  printf("\n");
+            xml2recipeLen++;
+		  
 		}
 		else if (strcasecmp(node_type,"binary")) // All others type except binary (ignore binary fields in succinct data)
         {
-            printf("%s:%s:0:0:0\n", node_name,node_type);
+            //printf("%s:%s:0:0:0\n", node_name,node_type);
+            xml2recipe[xml2recipeLen] = node_name;
+            strcat (xml2recipe[xml2recipeLen] ,":");
+            strcat (xml2recipe[xml2recipeLen] ,node_type);
+            strcat (xml2recipe[xml2recipeLen] ,":0:0:0");
+            xml2recipeLen++;
 		}
 	}
     
-    //Now look for selects specifications
+    //Now look for selects specifications, we wait until to find a select node
     else if ((!strcasecmp("select1",el))||(!strcasecmp("select",el))) 
     {
         for (i = 0; attr[i]; i += 2) //Found a select element, look for attributes
@@ -131,13 +169,17 @@ start(void *data, const char *el, const char **attr)
         selectFirst = 1; 
     }
     
+    //We are in a select node and we need to find a value element
     else if ((selectElem)&&((!strcasecmp("value",el))||(!strcasecmp("xf:value",el)))) 
     {
         in_value = 1;
     }
+    
+    //We reached an instance element, means we have to take everything in it for the .template
     else if (!strcasecmp("instance",el)) 
     {
         in_instance = 1;
+        in_instance_first = 1;
     }
      
     
@@ -193,7 +235,7 @@ void end(void *data, const char *el)
         strcpy (str, "</");
         strcat (str, el);
         strcat (str, ">");
-        in_instanceTxt[in_instanceTxtLen++] = str;
+        xml2template[xml2templateLen++] = str;
     }
 }  
 
@@ -205,6 +247,7 @@ int main(int argc, char **argv)
     }
 	
     FILE *f=fopen(argv[1],"r");
+    char filename[512] = "";
     XML_Parser parser;
     size_t size;
     char *xmltext;
@@ -233,18 +276,38 @@ int main(int argc, char **argv)
     	return (1);
     }
     
-    //Finish treatment for selects
-    for(i=0;i<selectsLen;i++){
-        fprintf(stdout, "%s\n",selects[i]);
+    //Create output files
+    strcpy(filename,formName);
+    strcat(filename,".");
+    strcat(filename,formVersion);
+    strcat(filename,".recipe");
+    FILE *fRecipe=fopen(filename,"w+");
+    if (fRecipe != NULL) {
+        for(i=0;i<xml2recipeLen;i++){
+            fprintf(fRecipe, "%s\n",xml2recipe[i]);
+        }
+        for(i=0;i<selectsLen;i++){
+            fprintf(fRecipe, "%s\n",selects[i]);
+        }
+    } else {
+        printf("Unable to open file .recipe\n");
     }
-    
-    //Finish treatment for selects
-    for(i=0;i<in_instanceTxtLen;i++){
-        fprintf(stderr, "%s",in_instanceTxt[i]);
+    strcpy(filename,formName);
+    strcat(filename,".");
+    strcat(filename,formVersion);
+    strcat(filename,".template");
+    FILE *fTemplate=fopen(filename,"w+");
+    if (fTemplate != NULL) {
+        for(i=0;i<xml2templateLen;i++){
+            fprintf(fTemplate, "%s",xml2template[i]);
+        }
+    } else {
+        printf("Unable to open file .template\n");
     }
-    
     //Close
     fclose(f);
+    fclose(fTemplate);
+    fclose(fRecipe);
     XML_ParserFree(parser);
     fprintf(stderr, "\n\nSuccessfully parsed %i characters !\n", (int)size);
     return (0);
