@@ -144,10 +144,15 @@ start(void *data, const char *el, const char **attr)
 		}
 		else if (strcasecmp(node_type,"binary")) // All others type except binary (ignore binary fields in succinct data)
         {
-            //printf("%s:%s:0:0:0\n", node_name,node_type);
-            xml2recipe[xml2recipeLen] = node_name;
-            strcat (xml2recipe[xml2recipeLen] ,":");
-            strcat (xml2recipe[xml2recipeLen] ,node_type);
+            if (!strcasecmp(node_name,"instanceID")) {
+                xml2recipe[xml2recipeLen] = node_name;
+                strcat (xml2recipe[xml2recipeLen] ,":");
+                strcat (xml2recipe[xml2recipeLen] ,"uuid");
+            }else{    
+                xml2recipe[xml2recipeLen] = node_name;
+                strcat (xml2recipe[xml2recipeLen] ,":");
+                strcat (xml2recipe[xml2recipeLen] ,node_type);
+            }
             strcat (xml2recipe[xml2recipeLen] ,":0:0:0");
             xml2recipeLen++;
 		}
