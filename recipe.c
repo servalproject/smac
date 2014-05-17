@@ -448,6 +448,7 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     normalised_value=atoi(value)-recipe->fields[fieldnumber].minimum;
     minimum=recipe->fields[fieldnumber].minimum;
     maximum=recipe->fields[fieldnumber].maximum;
+    if (maximum<=minimum) return -1;
     return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
   case FIELDTYPE_FLOAT:
   case FIELDTYPE_FIXEDPOINT:
