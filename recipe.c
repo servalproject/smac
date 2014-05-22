@@ -996,7 +996,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     else return 0;
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
-      fprintf(stderr,"usage: smac recipe decompress <succinct data message> <recipe directory> <output directory>\n");
+      fprintf(stderr,"usage: smac recipe decompress <recipe directory> <succinct data message> <output directory>\n");
       exit(-1);
     }
     if (recipe_decompress_file(h,argv[3],argv[4],argv[5])==-1) {
