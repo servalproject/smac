@@ -882,13 +882,13 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
     return -1;
   }
 
-  struct stat stat;
-  if (fstat(fd, &stat) == -1) {
+  struct stat st;
+  if (fstat(fd, &st) == -1) {
     snprintf(recipe_error,1024,"Could not stat succinct data file '%s'\n",input_file);
     close(fd); return -1;
   }
 
-  buffer=mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  buffer=mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer==MAP_FAILED) {
     snprintf(recipe_error,1024,"Could not memory map succinct data file '%s'\n",input_file);
     close(fd); return -1; 
@@ -896,10 +896,10 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 
   char recipe_name[1024]="";
   char out_buffer[1024];
-  int r=recipe_decompress(h,recipe_dir,buffer,stat.st_size,out_buffer,1024,
+  int r=recipe_decompress(h,recipe_dir,buffer,st.st_size,out_buffer,1024,
 			  recipe_name);
 
-  munmap(buffer,stat.st_size); close(fd);
+  munmap(buffer,st.st_size); close(fd);
 
   if (r<0) return -1;
   
@@ -922,6 +922,20 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   // now write stripped file out
   snprintf(output_file,1024,"%s/%s/%s.stripped",
 	   output_directory,recipe_name,stripped_name);
+
+  if (stat(output_file,&st)) {
+    // Stripped file does not yet exist, so append line to CSV file.
+    char line[8192];
+    if (!recipe_stripped_to_csv_line(recipe_name,out_buffer,r,line,8192))
+      {
+	char csv_file[1024];
+	snprintf(csv_file,1024,"%s/%s/%s.csv",output_directory,
+		 recipe_name,recipe_name);
+	FILE *f=fopen(csv_file,"a");
+	int wrote=fwrite(line,strlen(line),1,f);
+	fclose(f);
+      }
+  }
 
   FILE *f=fopen(output_file,"w");
   if (!f) {
@@ -1014,9 +1028,9 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       // Directory: so process each file inside
       DIR *dir=opendir(argv[4]);
       struct dirent *de=NULL;
+      char filename[1024];
       int e=0;
       while ((de=readdir(dir))!=NULL) {
-	char filename[1024];
 	snprintf(filename,1024,"%s/%s",argv[4],de->d_name);
 	if (recipe_decompress_file(h,argv[3],filename,argv[5])==-1) {
 	  fprintf(stderr,"Error decompressing %s: %s",filename,recipe_error);
