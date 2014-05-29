@@ -14,6 +14,27 @@
 #include "smac.h"
 #include "recipe.h"
 
+JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
+(JNIEnv * env, jobject jobj,
+ jstring statsfile,
+ jstring recipedir,
+ jstring succinctdatamessagedir,
+ jstring outputdir)
+{
+  const char *stats_file= (*env)->GetStringUTFChars(env,statsfile,0);
+  const char *recipe_dir= (*env)->GetStringUTFChars(env,recipedir,0);
+  const char *succinctdatamessage_dir= (*env)->GetStringUTFChars(env,succincdatamessagedir,0);
+  const char *output_dir= (*env)->GetStringUTFChars(env,outputdir,0);
+
+  stats_handle *h=stats_new_handle(stats_file);
+
+  recipe_main(6,{"smac","recipe","decompress",recipe_dir,succinctdatamessage_dir,output_dir,NULL},h);
+
+  stats_handle_free(h);
+
+  return;
+}
+
 JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinct
 (JNIEnv * env, jobject jobj,
  jstring xmlforminstance,
