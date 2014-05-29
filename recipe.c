@@ -16,6 +16,8 @@
 #include <math.h>
 #include <time.h>
 #include <dirent.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 #include "charset.h"
 #include "visualise.h"
@@ -612,6 +614,9 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 	    snprintf(recipe_path,1024,"%s/%s",recipe_dir,de->d_name);
 	    struct recipe *r=recipe_read_from_file(recipe_path);
 	    if (r) {
+	      fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
+		      r->formhash[0],r->formhash[1],r->formhash[2],
+		      r->formhash[3],r->formhash[4],r->formhash[5]);
 	      if (!memcmp(formhash,r->formhash,6))
 		return r;
 	      recipe_free(r);
@@ -999,11 +1004,34 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       fprintf(stderr,"usage: smac recipe decompress <recipe directory> <succinct data message> <output directory>\n");
       exit(-1);
     }
-    if (recipe_decompress_file(h,argv[3],argv[4],argv[5])==-1) {
-      fprintf(stderr,"%s",recipe_error);
+    // If succinct data message is a directory, try decompressing all files in it.
+    struct stat st;
+    if (stat(argv[4],&st)) {
+      perror("Could not stat succinct data file/directory.");
       exit(-1);
     }
-    else return 0;
+    if (st.st_mode&S_IFDIR) {
+      // Directory: so process each file inside
+      DIR *dir=opendir(argv[4]);
+      struct dirent *de=NULL;
+      int e=0;
+      while ((de=readdir(dir))!=NULL) {
+	char filename[1024];
+	snprintf(filename,1024,"%s/%s",argv[4],de->d_name);
+	if (recipe_decompress_file(h,argv[3],filename,argv[5])==-1) {
+	  fprintf(stderr,"Error decompressing %s: %s",filename,recipe_error);
+	  e++;
+	}
+      }
+      closedir(dir);
+      if (e) return 1; else return 0;
+    } else {
+      if (recipe_decompress_file(h,argv[3],argv[4],argv[5])==-1) {
+	fprintf(stderr,"%s",recipe_error);
+	exit(-1);
+      }    
+      else return 0;
+    }
   } else if (!strcasecmp(argv[2],"strip")) {
     char stripped[8192];
     char xml_data[65536];
