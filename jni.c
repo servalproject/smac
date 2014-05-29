@@ -16,15 +16,18 @@
 
 JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
 (JNIEnv * env, jobject jobj,
- jstring statsfile,
- jstring recipedir,
- jstring succinctdatamessagedir,
+ jstring succinctpath,
+ jstring rxspooldir,
  jstring outputdir)
 {
-  const char *stats_file= (*env)->GetStringUTFChars(env,statsfile,0);
-  const char *recipe_dir= (*env)->GetStringUTFChars(env,recipedir,0);
-  const char *succinctdatamessage_dir= (*env)->GetStringUTFChars(env,succincdatamessagedir,0);
+  const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
+  const char *succinctdatamessage_dir= (*env)->GetStringUTFChars(env,rxspooldir,0);
   const char *output_dir= (*env)->GetStringUTFChars(env,outputdir,0);
+
+  char stats_file[1024];  
+  snprintf(stats_file,1024,"%s/smac.dat",path);
+  char recipe_dir[1024];  
+  snprintf(stats_file,1024,"%s/recipes",path);
 
   stats_handle *h=stats_new_handle(stats_file);
 
