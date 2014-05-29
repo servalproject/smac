@@ -869,6 +869,80 @@ int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char
   return r;
 }
 
+int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
+				char *output_dir,
+				char *stripped,int stripped_data_len,
+				char *csv_out,int csv_out_size)
+{
+  // Read recipe, CSV encode each field if present, append fields to line,
+  // return.
+  char recipe_file[1024];
+  snprintf(recipe_file,1024,"%s/%s.recipe",recipe_dir,recipe_name);
+  fprintf(stderr,"Reading recipe from '%s' for CSV generation.\n",recipe_file);
+
+  if (csv_out_size<8192) return -1;
+
+  int state=0;
+  int i;
+
+  char *fieldnames[1024];
+  char *values[1024];
+  int field_count=0;
+  
+  char field[1024];
+  int field_len=0;
+
+  char value[1024];
+  int value_len=0;
+  
+  // Read fields from stripped.
+  for(i=0;i<stripped_data_len;i++) {
+    if (stripped[i]=='='&&(state==0)) {
+      state=1;
+    } else if (stripped[i]<' ') {
+      if (state==1) {
+	// record field=value pair
+	field[field_len]=0;
+	value[value_len]=0;
+	fieldnames[field_count]=strdup(field);
+	values[field_count]=strdup(value);
+	field_count++;
+      }
+      state=0;
+      field_len=0;
+      value_len=0;
+    } else {
+      if (field_len>1000||value_len>1000) return -1;
+      if (state==0) field[field_len++]=stripped[i];
+      else value[value_len++]=stripped[i];
+    }
+  }
+
+
+  struct recipe *r = recipe_read_from_file(recipe_file);
+  if (!r) return -1;
+
+  int n=0;
+  int f;
+  
+  for(f=0;f<r->field_count;f++) {
+    char *v="";
+    for(i=0;i<field_count;i++) {
+      if (!strcasecmp(fieldnames[i],r->fields[f].name)) {
+	v=values[i];
+      }
+      
+      n+=snprintf(&csv_out[n],8192-n,"%s%s",f?":":"",v);
+    }
+  }
+  recipe_free(r);
+
+  csv_out[n]=0;
+    
+  return 0;
+}
+
+
 int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,char *output_directory)
 {
   // struct recipe *recipe=recipe_read_from_file(recipe_file);
@@ -926,7 +1000,8 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   if (stat(output_file,&st)) {
     // Stripped file does not yet exist, so append line to CSV file.
     char line[8192];
-    if (!recipe_stripped_to_csv_line(recipe_name,out_buffer,r,line,8192))
+    if (!recipe_stripped_to_csv_line(recipe_dir,recipe_name,output_directory,
+				     out_buffer,r,line,8192))
       {
 	char csv_file[1024];
 	snprintf(csv_file,1024,"%s/%s/%s.csv",output_directory,
