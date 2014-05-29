@@ -991,7 +991,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 	   out_buffer[0],out_buffer[1],out_buffer[2],out_buffer[3],out_buffer[4],
 	   out_buffer[5],out_buffer[6],out_buffer[7],out_buffer[8],out_buffer[9]);
 
-  // make form directory if required
+  // make directories if required
   snprintf(output_file,1024,"%s/%s",output_directory,recipe_name);
   mkdir(output_file,0777);
 
@@ -1006,8 +1006,10 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 				     out_buffer,r,line,8192))
       {
 	char csv_file[1024];
-	snprintf(csv_file,1024,"%s/%s/%s.csv",output_directory,
-		 recipe_name,recipe_name);
+	snprintf(csv_file,1024,"%s/csv",output_directory);
+	mkdir(csv_file,0777);
+	snprintf(csv_file,1024,"%s/csv/%s.csv",output_directory,
+		 recipe_name);
 	FILE *f=fopen(csv_file,"a");
 	int wrote=fwrite(line,strlen(line),1,f);
 	fclose(f);
