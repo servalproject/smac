@@ -1073,35 +1073,35 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
   if (!strcasecmp(argv[2],"parse")) {
     if (argc<=3) {
       fprintf(stderr,"'smac recipe parse' requires name of recipe to load.\n");
-      exit(-1);
+      return(-1);
     }
     struct recipe *recipe = recipe_read_from_file(argv[3]);
     if (!recipe) {
       fprintf(stderr,"%s",recipe_error);
-      exit(-1);
+      return(-1);
     } 
     printf("recipe=%p\n",recipe);
     printf("recipe->field_count=%d\n",recipe->field_count);
   } else if (!strcasecmp(argv[2],"compress")) {
     if (argc<=5) {
       fprintf(stderr,"'smac recipe compress' requires recipe, input and output files.\n");
-      exit(-1);
+      return(-1);
     }
     if (recipe_compress_file(h,argv[3],argv[4],argv[5])==-1) {
       fprintf(stderr,"%s",recipe_error);
-      exit(-1);
+      return(-1);
     }
     else return 0;
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
       fprintf(stderr,"usage: smac recipe decompress <recipe directory> <succinct data message> <output directory>\n");
-      exit(-1);
+      return(-1);
     }
     // If succinct data message is a directory, try decompressing all files in it.
     struct stat st;
     if (stat(argv[4],&st)) {
       perror("Could not stat succinct data file/directory.");
-      exit(-1);
+      return(-1);
     }
     if (st.st_mode&S_IFDIR) {
       // Directory: so process each file inside
@@ -1121,7 +1121,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     } else {
       if (recipe_decompress_file(h,argv[3],argv[4],argv[5])==-1) {
 	fprintf(stderr,"%s",recipe_error);
-	exit(-1);
+	return(-1);
       }    
       else return 0;
     }
