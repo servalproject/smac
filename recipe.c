@@ -928,15 +928,17 @@ int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
   for(f=0;f<r->field_count;f++) {
     char *v="";
     for(i=0;i<field_count;i++) {
+      fprintf(stderr,"field '%s' vs '%s'\n",
+	      fieldnames[i],r->fields[f].name);
       if (!strcasecmp(fieldnames[i],r->fields[f].name)) {
-	v=values[i];
+	v=values[i]; break;
       }
-      
-      n+=snprintf(&csv_out[n],8192-n,"%s%s",f?":":"",v);
     }
+    n+=snprintf(&csv_out[n],8192-n,"%s%s",f?":":"",v);
   }
   recipe_free(r);
 
+  csv_out[n++]='\n';
   csv_out[n]=0;
     
   return 0;
