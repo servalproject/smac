@@ -1,3 +1,24 @@
+/*
+(C) Paul Gardner-Stephen 2012.
+* 
+* Create specification stripped file from an ODK XML form
+* Generate .recipe and .template files 
+*/
+
+/*
+Copyright (C) 2012 Paul Gardner-Stephen
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+*/
 #include <expat.h>
 #include <stdio.h>
 #include <string.h>
@@ -5,9 +26,10 @@
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
-//TODO 	: Afficher une erreur si deux fois le meme nom de field
-//		: Proteger et ajouter des tests
-//		: Ameliorer le traitement de la contrainte, afficher erreur si non pris en compte
+
+//TODO 30.05.2014 	: Handle if there are two fields with same name
+//		            : Add tests
+//		            : Improve constraints work
 //
 //Creation specification stripped file from ODK XML
 //FieldName:Type:Minimum:Maximum:Precision,Select1,Select2,...,SelectN
@@ -34,13 +56,15 @@ int      in_value = 0;
 
 #define MAXCHARS 1000000
 
+
+
 void
-start(void *data, const char *el, const char **attr)
+start(void *data, const char *el, const char **attr) //This function is called  by the XML library each time it sees a new tag 
 {   
     char    *node_name = "", *node_type = "", *node_constraint = "", *str = "";
 	int     i ;
     
-    if (in_instance) { // We are between <instance> tags, we want to get everything for template file
+    if (in_instance) { // We are between <instance> tags, so we want to get everything to create template file
         str = calloc (4096, sizeof(char*));
         strcpy (str, "<");
         strcat (str, el);
@@ -58,7 +82,7 @@ start(void *data, const char *el, const char **attr)
         if (!strcasecmp("instanceid",el)) strcat (str, "$instanceid$");
         xml2template[xml2templateLen++] = str;
         
-        if (in_instance_first) { // First node since we are in instance, it's the Form Name
+        if (in_instance_first) { // First node since we are in instance, it's the Form Name that we want to get
             in_instance_first = 0;
             formName  = calloc (strlen(el), sizeof(char*));
             memcpy (formName, el,strlen(el));
@@ -72,7 +96,7 @@ start(void *data, const char *el, const char **attr)
 
     }
     
-    //Looking for bind elements for the recipe file
+    //Looking for bind elements to create the recipe file
 	else if ((!strcasecmp("bind",el))||(!strcasecmp("xf:bind",el))) 
     {
         for (i = 0; attr[i]; i += 2) //Found a bind element, look for attributes
@@ -190,7 +214,7 @@ start(void *data, const char *el, const char **attr)
     
 }
 
-void characterdata(void *data, const char *el, int len)
+void characterdata(void *data, const char *el, int len) //This function is called  by the XML library each time we got data in a tag
 {
 	int i;
    
@@ -219,7 +243,7 @@ void characterdata(void *data, const char *el, int len)
 
 }
 
-void end(void *data, const char *el)
+void end(void *data, const char *el) //This function is called  by the XML library each time it sees an ending of a tag
 {
     char *str = "";
     
@@ -281,7 +305,7 @@ int main(int argc, char **argv)
     	return (1);
     }
     
-    //Create output files
+    //Create output for RECIPE
     strcpy(filename,formName);
     strcat(filename,".");
     strcat(filename,formVersion);
@@ -297,6 +321,8 @@ int main(int argc, char **argv)
     } else {
         printf("Unable to open file .recipe\n");
     }
+    
+    //Create output for TEMPLATE
     strcpy(filename,formName);
     strcat(filename,".");
     strcat(filename,formVersion);
