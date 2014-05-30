@@ -31,7 +31,10 @@ JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
 
   stats_handle *h=stats_new_handle(stats_file);
 
-  recipe_main(6,{"smac","recipe","decompress",recipe_dir,succinctdatamessage_dir,output_dir,NULL},h);
+  char *args[]={"smac","recipe","decompress",recipe_dir,
+		(char *)succinctdatamessage_dir,(char *)output_dir,NULL};
+
+  recipe_main(6,args,h);
 
   stats_handle_free(h);
 
