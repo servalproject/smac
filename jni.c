@@ -20,24 +20,32 @@ JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
  jstring rxspooldir,
  jstring outputdir)
 {
-
+  LOGI("Line %d",__LINE__);
   const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
   const char *succinctdatamessage_dir= (*env)->GetStringUTFChars(env,rxspooldir,0);
   const char *output_dir= (*env)->GetStringUTFChars(env,outputdir,0);
 
+  LOGI("Line %d",__LINE__);
   char stats_file[1024];  
   snprintf(stats_file,1024,"%s/smac.dat",path);
   char recipe_dir[1024];  
   snprintf(recipe_dir,1024,"%s/recipes",path);
 
+  LOGI("Line %d",__LINE__);
+
   stats_handle *h=stats_new_handle(stats_file);
+
+  LOGI("Line %d: h=%p from '%s'",__LINE__,h,stats_file);
 
   char *args[]={"smac","recipe","decompress",recipe_dir,
 		(char *)succinctdatamessage_dir,(char *)output_dir,NULL};
 
+  LOGI("Line %d",__LINE__);
   recipe_main(6,args,h);
+  LOGI("Line %d",__LINE__);
 
   stats_handle_free(h);
+  LOGI("Line %d",__LINE__);
 
   return;
 }
