@@ -99,7 +99,7 @@ int main(int argc,char *argv[])
   // XXX - Evil, evil hack.  Should pass in the path to the stats file for
   // all invocations.
 #ifdef ANDROID
-  stats_handle *h=stats_new_handle("/sdcard/servalproject/sam/succinct_configs/smac.dat");
+  stats_handle *h=stats_new_handle("/sdcard/servalproject/sam/succinct_recipes/smac.dat");
 #else
   stats_handle *h=stats_new_handle("stats.dat");
 #endif
