@@ -1,12 +1,12 @@
 /*
-(C) Paul Gardner-Stephen 2012.
+(C) Paul Gardner-Stephen 2012-4.
 * 
-* Create specification stripped file from an ODK XML form
-* Generate .recipe and .template files 
+* CREATE specification stripped file from an ODK XML form
+* Generate .recipe and .template files
 */
 
 /*
-Copyright (C) 2012 Paul Gardner-Stephen
+Copyright (C) 2012-4 Paul Gardner-Stephen
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 2
@@ -123,17 +123,16 @@ start(void *data, const char *el, const char **attr) //This function is called  
 		}
 		
         //Now we got node_name, node_type, node_constraint
-        //Lets build output
-        
-		if ((!strcasecmp(node_type,"select"))||(!strcasecmp(node_type,"select1"))) // Select, special case we need to wait later to get all informations (ie the range)
+        //Lets build output        
+	if ((!strcasecmp(node_type,"select"))||(!strcasecmp(node_type,"select1"))) // Select, special case we need to wait later to get all informations (ie the range)
 		{
             selects[selectsLen] = node_name;
             strcat (selects[selectsLen] ,":");
-            strcat (selects[selectsLen] ,node_type);
+            strcat (selects[selectsLen] ,"enum");
             strcat (selects[selectsLen] ,":0:0:0:");
             selectsLen++;
 		} 
-		else if ((!strcasecmp(node_type,"decimal"))||(!strcasecmp(node_type,"int"))) // Integers and decimal
+	else if ((!strcasecmp(node_type,"decimal"))||(!strcasecmp(node_type,"int"))) // Integers and decimal
         {
             //printf("%s:%s", node_name,node_type);  
             xml2recipe[xml2recipeLen] = node_name;
@@ -327,6 +326,7 @@ int main(int argc, char **argv)
     strcat(filename,".");
     strcat(filename,formVersion);
     strcat(filename,".template");
+    fprintf(stderr,"Writing template to '%s'\n",filename);
     FILE *fTemplate=fopen(filename,"w+");
     if (fTemplate != NULL) {
         for(i=0;i<xml2templateLen;i++){
