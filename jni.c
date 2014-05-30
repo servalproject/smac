@@ -20,6 +20,7 @@ JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
  jstring rxspooldir,
  jstring outputdir)
 {
+
   const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
   const char *succinctdatamessage_dir= (*env)->GetStringUTFChars(env,rxspooldir,0);
   const char *output_dir= (*env)->GetStringUTFChars(env,outputdir,0);
@@ -27,7 +28,7 @@ JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
   char stats_file[1024];  
   snprintf(stats_file,1024,"%s/smac.dat",path);
   char recipe_dir[1024];  
-  snprintf(stats_file,1024,"%s/recipes",path);
+  snprintf(recipe_dir,1024,"%s/recipes",path);
 
   stats_handle *h=stats_new_handle(stats_file);
 
