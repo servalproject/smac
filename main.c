@@ -96,14 +96,14 @@ int main(int argc,char *argv[])
     percent_count[i]=0;
   }
 
+  if (argc>1) {
+    if (!strcasecmp(argv[1],"recipe")) return recipe_main(argc,argv,h);
+  }
+
   stats_handle *h=stats_new_handle("stats.dat");
   if (!h) {
     fprintf(stderr,"Could not read stats.dat.\n");
     exit(-1);
-  }
-
-  if (argc>1) {
-    if (!strcasecmp(argv[1],"recipe")) return recipe_main(argc,argv,h);
   }
 
   /* Preload tree for speed */

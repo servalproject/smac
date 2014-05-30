@@ -29,7 +29,7 @@ JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
   char stats_file[1024];  
   snprintf(stats_file,1024,"%s/smac.dat",path);
   char recipe_dir[1024];  
-  snprintf(recipe_dir,1024,"%s/recipes",path);
+  snprintf(recipe_dir,1024,"%s",path);
 
   LOGI("Line %d",__LINE__);
 
@@ -40,7 +40,9 @@ JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
   char *args[]={"smac","recipe","decompress",recipe_dir,
 		(char *)succinctdatamessage_dir,(char *)output_dir,NULL};
 
-  LOGI("Line %d",__LINE__);
+  LOGI("Line %d: args: %s %s %s %s %s %s",__LINE__,
+       args[0],args[1],args[2],args[3],args[4],args[5]
+       );
   recipe_main(6,args,h);
   LOGI("Line %d",__LINE__);
 

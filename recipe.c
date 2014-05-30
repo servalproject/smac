@@ -18,6 +18,14 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#ifdef ANDROID
+#include <jni.h>
+#include <android/log.h>
+ 
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "libsmac", __VA_ARGS__))
+#else
+#define LOGI(...)
+#endif
 
 #include "charset.h"
 #include "visualise.h"
@@ -617,6 +625,10 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 	      fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
 		      r->formhash[0],r->formhash[1],r->formhash[2],
 		      r->formhash[3],r->formhash[4],r->formhash[5]);
+	      LOGI("libsmac",
+		   "Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
+		   r->formhash[0],r->formhash[1],r->formhash[2],
+		   r->formhash[3],r->formhash[4],r->formhash[5]);
 	      if (!memcmp(formhash,r->formhash,6))
 		return r;
 	      recipe_free(r);
