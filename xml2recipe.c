@@ -150,6 +150,7 @@ start(void *data, const char *el, const char **attr) //This function is called  
                 while( isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
                 while( ! isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
                 b = atoi(ptr);
+		if (b<=a) b=a+999;
                 //printf(":%d:%d:0", MIN(a, b), MAX(a, b));
                 strcat (xml2recipe[xml2recipeLen] ,":");
                 sprintf(str, "%d", MIN(a, b));
@@ -159,13 +160,13 @@ start(void *data, const char *el, const char **attr) //This function is called  
                 strcat (xml2recipe[xml2recipeLen] ,str);
                 strcat (xml2recipe[xml2recipeLen] ,":0");
             } else {
-                //printf(":0:0:0");
-                strcat (xml2recipe[xml2recipeLen] ,":0:0:0");
+	        // Default to integers being in the range 0 to 999.
+                strcat (xml2recipe[xml2recipeLen] ,":0:999:0");
             }
             xml2recipeLen++;
 		  
 		}
-		else if (strcasecmp(node_type,"binary")) // All others type except binary (ignore binary fields in succinct data)
+	else if (strcasecmp(node_type,"binary")) // All others type except binary (ignore binary fields in succinct data)
         {
             if (!strcasecmp(node_name,"instanceID")) {
                 xml2recipe[xml2recipeLen] = node_name;
@@ -178,8 +179,8 @@ start(void *data, const char *el, const char **attr) //This function is called  
             }
             strcat (xml2recipe[xml2recipeLen] ,":0:0:0");
             xml2recipeLen++;
-		}
 	}
+    }
     
     //Now look for selects specifications, we wait until to find a select node
     else if ((!strcasecmp("select1",el))||(!strcasecmp("select",el))) 

@@ -108,15 +108,16 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     // Clean up after ourselves
     stats_handle_free(h);
     recipe_free(recipe);
+    snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
 
     if (succinct_len<1) {
-      LOGI("recipe_compess failed with recipe file %s.",filename);
+      LOGI("recipe_compess failed with recipe file %s. h=%p, recipe=%p, stripped_len=%d",filename,h,recipe,stripped_len);
       jbyteArray result=(*env)->NewByteArray(env, 1);
       unsigned char ret=3;
       (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
       return result;
     }
-  } else {
+  } else {    
       LOGI("Failed to strip XML using recipe file %s.",filename);
       recipe_free(recipe);
       jbyteArray result=(*env)->NewByteArray(env, 1);

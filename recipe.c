@@ -139,8 +139,11 @@ int recipe_form_hash(char *recipe_file,unsigned char *formhash,
       end=end-strlen(".recipe")-1;
   int j=0;
   for(i=start;i<=end;i++) recipe_name[j++]=recipe_file[i];
+  recipe_name[j]=0;
   
   MD5_Init(&md5);
+  fprintf(stderr,"Calculating recipe file formhash from '%s' (%d chars)\n",
+	  recipe_name,(int)strlen(recipe_name));
   MD5_Update(&md5,recipe_name,strlen(recipe_name));
   MD5_Final(hash,&md5);
   
@@ -458,7 +461,10 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     normalised_value=atoi(value)-recipe->fields[fieldnumber].minimum;
     minimum=recipe->fields[fieldnumber].minimum;
     maximum=recipe->fields[fieldnumber].maximum;
-    if (maximum<=minimum) return -1;
+    if (maximum<=minimum) {
+      fprintf(stderr,"Illegal range: min=%d, max=%d\n",minimum,maximum);
+      return -1;
+    }
     return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
   case FIELDTYPE_FLOAT:
   case FIELDTYPE_FIXEDPOINT:
@@ -621,16 +627,18 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 	    char recipe_path[1024];
 	    snprintf(recipe_path,1024,"%s/%s",recipe_dir,de->d_name);
 	    struct recipe *r=recipe_read_from_file(recipe_path);
+	    if (1) fprintf(stderr,"Is %s a recipe?\n",recipe_path);
 	    if (r) {
-	      fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
+	      if (1) fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
 		      r->formhash[0],r->formhash[1],r->formhash[2],
 		      r->formhash[3],r->formhash[4],r->formhash[5]);
 	      LOGI("libsmac",
 		   "Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
 		   r->formhash[0],r->formhash[1],r->formhash[2],
 		   r->formhash[3],r->formhash[4],r->formhash[5]);
-	      if (!memcmp(formhash,r->formhash,6))
+	      if (!memcmp(formhash,r->formhash,6)) {
 		return r;
+	      }
 	      recipe_free(r);
 	    }
 	  }
@@ -673,7 +681,7 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
   unsigned char formhash[6];
   int i;
   for(i=0;i<6;i++) formhash[i]=range_decode_equiprobable(c,256);
-  printf("formhash = %02x%02x%02x%02x%02x%02x\n",
+  printf("formhash from succinct data message = %02x%02x%02x%02x%02x%02x\n",
 	 formhash[0],formhash[1],formhash[2],
 	 formhash[3],formhash[4],formhash[5]);
 
@@ -789,7 +797,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
       line[l++]=in[i];
     }
   }
-  printf("Read %d data lines.\n",value_count);
+  printf("Read %d data lines, %d values.\n",line_number,value_count);
 
   int field;
 
@@ -1124,8 +1132,10 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       while ((de=readdir(dir))!=NULL) {
 	snprintf(filename,1024,"%s/%s",argv[4],de->d_name);
 	if (recipe_decompress_file(h,argv[3],filename,argv[5])==-1) {
-	  fprintf(stderr,"Error decompressing %s: %s",filename,recipe_error);
+	  if (0) fprintf(stderr,"Error decompressing %s: %s",filename,recipe_error);
 	  e++;
+	} else  {
+	  fprintf(stderr,"Decompressed %s\n",filename);
 	}
       }
       closedir(dir);
