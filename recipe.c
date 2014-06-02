@@ -632,8 +632,7 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 	      if (1) fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
 		      r->formhash[0],r->formhash[1],r->formhash[2],
 		      r->formhash[3],r->formhash[4],r->formhash[5]);
-	      LOGI("libsmac",
-		   "Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
+	      LOGI("Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
 		   r->formhash[0],r->formhash[1],r->formhash[2],
 		   r->formhash[3],r->formhash[4],r->formhash[5]);
 	      if (!memcmp(formhash,r->formhash,6)) {
@@ -1031,6 +1030,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 	snprintf(csv_file,1024,"%s/csv/%s.csv",output_directory,
 		 recipe_name);
 	FILE *f=fopen(csv_file,"a");
+	fprintf(stderr,"Appending CSV line: %s\n",line);
 	int wrote=fwrite(line,strlen(line),1,f);
 	fclose(f);
       }
