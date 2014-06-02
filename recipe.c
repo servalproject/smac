@@ -899,7 +899,10 @@ int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
   snprintf(recipe_file,1024,"%s/%s.recipe",recipe_dir,recipe_name);
   fprintf(stderr,"Reading recipe from '%s' for CSV generation.\n",recipe_file);
 
-  if (csv_out_size<8192) return -1;
+  if (csv_out_size<8192) {
+    fprintf(stderr,"Not enough space to extract CSV line.\n");
+    return -1;
+  }
 
   int state=0;
   int i;
@@ -939,7 +942,11 @@ int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
 
 
   struct recipe *r = recipe_read_from_file(recipe_file);
-  if (!r) return -1;
+  if (!r) {
+    fprintf(stderr,"Failed to read recipe file '%s' during CSV extraction.\n",
+	    recipe_file);
+    return -1;
+  }
 
   int n=0;
   int f;
@@ -947,8 +954,6 @@ int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
   for(f=0;f<r->field_count;f++) {
     char *v="";
     for(i=0;i<field_count;i++) {
-      fprintf(stderr,"field '%s' vs '%s'\n",
-	      fieldnames[i],r->fields[f].name);
       if (!strcasecmp(fieldnames[i],r->fields[f].name)) {
 	v=values[i]; break;
       }
@@ -996,7 +1001,10 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 
   munmap(buffer,st.st_size); close(fd);
 
-  if (r<0) return -1;
+  if (r<0) {
+    fprintf(stderr,"Could not find matching recipe file.\n");
+    return -1;
+  }
   
   char stripped_name[80];
   MD5_CTX md5;
@@ -1015,6 +1023,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   mkdir(output_file,0777);
 
   // now write stripped file out
+  fprintf(stderr,"Writing stripped data to %s\n",stripped_name);
   snprintf(output_file,1024,"%s/%s/%s.stripped",
 	   output_directory,recipe_name,stripped_name);
 
@@ -1033,7 +1042,11 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 	fprintf(stderr,"Appending CSV line: %s\n",line);
 	int wrote=fwrite(line,strlen(line),1,f);
 	fclose(f);
-      }
+      } else {
+      fprintf(stderr,"Failed to produce CSV line.\n");
+    }
+  } else {
+    fprintf(stderr,"Not writing CSV line for form, as we have already seen it.\n");
   }
 
   FILE *f=fopen(output_file,"w");
