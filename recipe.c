@@ -1015,8 +1015,8 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   MD5_Update(&md5,out_buffer,r);
   MD5_Final(hash,&md5);
   snprintf(stripped_name,80,"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-	   out_buffer[0],out_buffer[1],out_buffer[2],out_buffer[3],out_buffer[4],
-	   out_buffer[5],out_buffer[6],out_buffer[7],out_buffer[8],out_buffer[9]);
+	   hash[0],hash[1],hash[2],hash[3],hash[4],
+	   hash[5],hash[6],hash[7],hash[8],hash[9]);
 
   // make directories if required
   snprintf(output_file,1024,"%s/%s",output_directory,recipe_name);
