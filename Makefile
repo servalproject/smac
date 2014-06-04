@@ -8,6 +8,7 @@ OBJS=	main.o \
 	smac.o \
 	\
 	recipe.o \
+	map.o \
 	dexml.o \
 	md5.o \
 	\

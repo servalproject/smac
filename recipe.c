@@ -1125,6 +1125,12 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       return(-1);
     }
     else return 0;
+  } else if (!strcasecmp(argv[2],"map")) {
+    if (argc<=4) {
+      fprintf(stderr,"usage: smac map <recipe directory> <output directory>\n");
+      return(-1);
+    }      
+    return generateMaps(argv[3],argv[4]);
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
       fprintf(stderr,"usage: smac recipe decompress <recipe directory> <succinct data message> <output directory>\n");
