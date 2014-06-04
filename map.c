@@ -40,6 +40,25 @@ char *htmlTop=""
 " <script src=\"../dist/leaflet.js\"></script>\n"
 " \n"
 " <script>\n"
+" var viewportwidth;\n"
+" var viewportheight;\n"
+"\n"
+" // the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight\n"
+"\n"
+" if (typeof window.innerWidth != 'undefined')\n"
+" {                      \n"
+"      viewportwidth = window.innerWidth,\n"
+"      viewportheight = window.innerHeight\n"
+" }                              \n"
+"                        \n"
+"// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)\n"
+"  else if (typeof document.documentElement != 'undefined'     && typeof document.documentElement.clientWidth !=\n"
+"     'undefined' && document.documentElement.clientWidth != 0) {       viewportwidth = document.documentElement.clientWidth,       viewportheight = document.documentElement.clientHeight\n"
+" }   // older versions of IE\n"
+"   else {       viewportwidth = document.getElementsByTagName('body')[0].clientWidth,\n"
+"       viewportheight = document.getElementsByTagName('body')[0].clientHeight }\n"
+" document.getElementById(\"map\").setAttribute(\"style\",\"width:\"+String(viewportwidth*0.9)+\"; height:\"+String(viewportheight*0.9)+\"px\");\n"
+"\n"
 " var map = L.map('map').setView([-35.029613, 138.573177], 4);\n"
 "L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {\n"
 "			maxZoom: 18,\n"
@@ -202,6 +221,8 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
   snprintf(filename,1024,"%s/maps/",outputDir);
   mkdir(filename,0777);
 
+  int markerCount=0;
+
   // Process each form instance
   snprintf(filename,1024,"%s/%s",outputDir,recipe_name);
   DIR *d=opendir(filename);
@@ -246,7 +267,7 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
 		    }
 		  }
 		if (!formDetailLen) {
-		  formDetailLen+=snprintf(formDetail,8192,"<table border=1 padding=2>\\n");
+		  formDetailLen+=snprintf(formDetail,8192,"<div id=\\\"marker%d\\\" style=\\\"height:\\\"+String(viewportheight*0.2)+\\\"px;overflow:auto;\\\"><table border=1 padding=2>\\n",markerCount++);
 		}
 		formDetailLen
 		  +=snprintf(&formDetail[formDetailLen],8192-formDetailLen,
@@ -256,7 +277,7 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
 	      if (formDetailLen) {
 		formDetailLen
 		  +=snprintf(&formDetail[formDetailLen],8192-formDetailLen,
-			     "</table>\\n");
+			     "</table></div>\\n");
 	      } else {
 		formDetailLen
 		  +=snprintf(&formDetail[formDetailLen],8192-formDetailLen,
@@ -308,7 +329,9 @@ int generateMaps(char *recipeDir, char *outputDir)
 	recipe_name[end-strlen(".recipe")]=0;
 	fprintf(stderr,"Recipe '%s'\n",recipe_name);
 
-	if (idx) fprintf(idx,"<a href=\"%s.html\">%s</a><br>\n",recipe_name,recipe_name);
+	if (idx) fprintf(idx,"<a href=\"%s.html\">%s</a> ",recipe_name,recipe_name);
+	if (idx) fprintf(idx,"<a href=\"../csv/%s.csv\">CSV</a><br>\n",recipe_name);
+
 	generateMap(recipeDir,recipe_name,outputDir);
       }      
   }
