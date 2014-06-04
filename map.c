@@ -62,6 +62,51 @@ struct stripped {
   int value_count;
 };
 
+char sanitiseOut[8192];
+char *sanitise(char *in)
+{
+  // Sanitise output for inserting in HTML: double-quotes and < & > should be 
+  // escaped.
+  int i=0;
+  int outLen=0;
+
+  for(i=0;in[i];i++) {
+    sanitiseOut[outLen]=0;
+    if (i>1024) return sanitiseOut;
+
+    switch(in[i]) {
+    case '&': 
+      sanitiseOut[outLen++]='&';
+      sanitiseOut[outLen++]='a';
+      sanitiseOut[outLen++]='m';
+      sanitiseOut[outLen++]='p';
+      sanitiseOut[outLen++]=';';
+      break;
+    case '<': 
+      sanitiseOut[outLen++]='&';
+      sanitiseOut[outLen++]='l';
+      sanitiseOut[outLen++]='t';
+      sanitiseOut[outLen++]=';';
+      break;
+    case '>': 
+      sanitiseOut[outLen++]='&';
+      sanitiseOut[outLen++]='g';
+      sanitiseOut[outLen++]='t';
+      sanitiseOut[outLen++]=';';
+      break;
+    case '"': 
+      sanitiseOut[outLen++]='\\';
+      sanitiseOut[outLen++]='"';
+      break;
+    default:
+      sanitiseOut[outLen++]=in[i];      
+    }
+    sanitiseOut[outLen]=0;
+  }
+  
+  return sanitiseOut;
+}
+
 void stripped_free(struct stripped *s)
 {
   int i;
@@ -208,7 +253,7 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
 		formDetailLen
 		  +=snprintf(&formDetail[formDetailLen],8192-formDetailLen,
 			     "<tr><td>%s</td><td>%s</td>\\n",
-			     s->keys[i],s->values[i]);
+			     s->keys[i],sanitise(s->values[i]));
 	      }
 	      if (formDetailLen) {
 		formDetailLen
