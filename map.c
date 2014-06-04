@@ -9,6 +9,16 @@
 #include <strings.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include "charset.h"
+#include "visualise.h"
+#include "arithmetic.h"
+#include "packed_stats.h"
+#include "smac.h"
+#include "recipe.h"
 
 char *htmlTop=""
 "<!DOCTYPE HTML>\n"
@@ -46,9 +56,105 @@ char *htmlBottom=
 "\n"
 "</html>\n";
 
-int generateMap(char *recipe_name, char *outputDir)
+struct stripped {
+  char *keys[1024];
+  char *values[1024];
+  int value_count;
+};
+
+void stripped_free(struct stripped *s)
+{
+  int i;
+  if (!s) return;
+  for(i=0;i<s->value_count;i++) {
+    free(s->keys[i]); free(s->values[i]);
+  }
+  free(s);
+  return;
+}
+
+struct stripped *parse_stripped(char *filename)
+{
+  char *in;
+  int in_len;
+  int fd=open(filename,O_RDONLY);
+  if (fd<0) return NULL;
+  
+  struct stat stat;
+  if (fstat(fd, &stat) == -1) {
+    fprintf(stderr,"Could not stat file '%s'\n",filename);
+    close(fd); return NULL;
+  }
+
+  if (stat.st_size>65536) {
+    fprintf(stderr,"File '%s' is too long (must be <= %d bytes)\n",
+	     filename,65536);
+    close(fd); return NULL;
+  }
+
+  in=mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (in==MAP_FAILED) {
+    fprintf(stderr,"Could not memory map file '%s'\n",filename);
+    close(fd); return NULL; 
+  }
+  in_len=stat.st_size;
+  close(fd);
+
+  struct stripped *s=calloc(sizeof(struct stripped),1);
+
+  int l=0;
+  int line_number=1;
+  char line[1024];
+  char key[1024],value[1024];
+  int i;
+
+  for(i=0;i<=in_len;i++) {
+    if (l>1000) { 
+      fprintf(stderr,"line:%d:Data line too long.\n",line_number);
+      stripped_free(s);
+      munmap(in,stat.st_size);
+      return NULL; }
+    if ((i==in_len)||(in[i]=='\n')||(in[i]=='\r')) {
+      if (s->value_count>1000) {
+	fprintf(stderr,"line:%d:Too many data lines (must be <=1000).\n",line_number);
+	stripped_free(s);
+	munmap(in,stat.st_size);
+	return NULL;
+      }
+      // Process key=value line
+      line[l]=0; 
+      if ((l>0)&&(line[0]!='#')) {
+	if (sscanf(line,"%[^=]=%[^\n]",key,value)==2) {
+	  s->keys[s->value_count]=strdup(key);
+	  s->values[s->value_count]=strdup(value);
+	  s->value_count++;
+	} else {
+	  fprintf(stderr,"line:%d:Malformed data line.\n",line_number);
+	  stripped_free(s);
+	  munmap(in,stat.st_size);
+	  return NULL;
+	}
+      }
+      line_number++; l=0;
+    } else {
+      line[l++]=in[i];
+    }
+  }
+  printf("Read %d data lines, %d values.\n",line_number,s->value_count);
+  return s;
+}
+
+int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
 {
   char filename[1024];
+
+  snprintf(filename,1024,"%s/%s.recipe",recipeDir,recipe_name);
+  struct recipe *r=recipe_read_from_file(filename);
+  if (!r) {
+    fprintf(stderr,"Could not read recipe file '%s'\n",filename);
+    return -1;
+  }
+
   snprintf(filename,1024,"%s/maps/",outputDir);
   mkdir(filename,0777);
 
@@ -69,6 +175,12 @@ int generateMap(char *recipe_name, char *outputDir)
 	  {
 	    // It's a stripped file -- read it and add a data point for the first 
 	    // location field present.
+	    snprintf(filename,1024,"%s/%s/%s",outputDir,recipe_name,de->d_name);
+	    struct stripped *s=parse_stripped(filename);
+	    if (s) {
+	      fprintf(stderr,"  %d fields in '%s'\n",s->value_count,filename);
+	      stripped_free(s);
+	    }
 	  }
     }
     closedir(d);
@@ -103,7 +215,7 @@ int generateMaps(char *recipeDir, char *outputDir)
 	recipe_name[end-strlen(".recipe")]=0;
 	fprintf(stderr,"Recipe '%s'\n",recipe_name);
 
-	generateMap(recipe_name,outputDir);
+	generateMap(recipeDir,recipe_name,outputDir);
       }      
   }
   
