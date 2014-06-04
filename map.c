@@ -185,7 +185,6 @@ struct stripped *parse_stripped(char *filename)
       line[l++]=in[i];
     }
   }
-  printf("Read %d data lines, %d values.\n",line_number,s->value_count);
   return s;
 }
 
@@ -207,7 +206,6 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
   snprintf(filename,1024,"%s/%s",outputDir,recipe_name);
   DIR *d=opendir(filename);
   if (d) {
-
     snprintf(filename,1024,"%s/maps/%s.html",outputDir,recipe_name);
     FILE *f=fopen(filename,"w");
 
@@ -268,8 +266,6 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
 		formDetail[formDetailLen]=0;
 		fprintf(f," L.marker([%f, %f]).addTo(map).bindPopup(\"%s\");\n",
 			lat,lon,formDetail);
-		fprintf(stderr," L.marker([%f, %f]).addTo(map).bindPopup(\"%s\");\n",
-			lat,lon,formDetail);
 	      }
 	      stripped_free(s);
 	    }
@@ -293,6 +289,10 @@ int generateMaps(char *recipeDir, char *outputDir)
 {
   DIR *d=opendir(recipeDir);
 
+  char filename[1024];
+  snprintf(filename,1024,"%s/maps/index.html",recipeDir);
+  FILE *idx=fopen(filename,"w");
+
   struct dirent *de;
 
   while((de=readdir(d))) {
@@ -307,10 +307,12 @@ int generateMaps(char *recipeDir, char *outputDir)
 	recipe_name[end-strlen(".recipe")]=0;
 	fprintf(stderr,"Recipe '%s'\n",recipe_name);
 
+	if (idx) fprintf(idx,"<a href=\"%s.html\">%s</a><br>\n",recipe_name,recipe_name);
 	generateMap(recipeDir,recipe_name,outputDir);
       }      
   }
   
+  fclose(idx);
   closedir(d);
   return 0;
 }
