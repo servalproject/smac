@@ -175,10 +175,57 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
 	  {
 	    // It's a stripped file -- read it and add a data point for the first 
 	    // location field present.
+	    char formDetail[8192];
+	    int formDetailLen=0;
+	    int haveLocation=0;
+	    float lat=0,lon=0;
 	    snprintf(filename,1024,"%s/%s/%s",outputDir,recipe_name,de->d_name);
 	    struct stripped *s=parse_stripped(filename);
 	    if (s) {
 	      fprintf(stderr,"  %d fields in '%s'\n",s->value_count,filename);
+	      int i,j;
+	      for(i=0;i<s->value_count;i++) {
+		for(j=0;j<r->field_count;j++)
+		  if (!strcasecmp(s->keys[i],r->fields[j].name)) {
+		    switch (r->fields[j].type) {
+		    case FIELDTYPE_LATLONG:
+		      if (sscanf(s->values[i],"%f %f",&lat,&lon)==2) haveLocation=1;
+		      break;
+		    case FIELDTYPE_INTEGER:
+		      // calculate summary statistics
+		      break;
+		    case FIELDTYPE_BOOLEAN:
+		      // calculate summary statistics
+		      break;
+		    case FIELDTYPE_ENUM:
+		      // calculate summary statistics
+		      break;
+		    }
+		  }
+		if (!formDetailLen) {
+		  formDetailLen+=snprintf(formDetail,8192,"<table border=1 padding=2>\\n");
+		}
+		formDetailLen
+		  +=snprintf(&formDetail[formDetailLen],8192-formDetailLen,
+			     "<tr><td>%s</td><td>%s</td>\\n",
+			     s->keys[i],s->values[i]);
+	      }
+	      if (formDetailLen) {
+		formDetailLen
+		  +=snprintf(&formDetail[formDetailLen],8192-formDetailLen,
+			     "</table>\\n");
+	      } else {
+		formDetailLen
+		  +=snprintf(&formDetail[formDetailLen],8192-formDetailLen,
+			     "Form empty.\\n");
+	      }
+	      if (haveLocation) {
+		formDetail[formDetailLen]=0;
+		fprintf(f," L.marker([%f, %f]).addTo(map).bindPopup(\"%s\");\n",
+			lat,lon,formDetail);
+		fprintf(stderr," L.marker([%f, %f]).addTo(map).bindPopup(\"%s\");\n",
+			lat,lon,formDetail);
+	      }
 	      stripped_free(s);
 	    }
 	  }

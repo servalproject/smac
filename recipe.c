@@ -35,32 +35,6 @@
 #include "recipe.h"
 #include "md5.h"
 
-// min,max set inclusive bound
-#define FIELDTYPE_INTEGER 0
-// precision specifies bits of precision. currently only 32 is supported.
-#define FIELDTYPE_FLOAT 1
-// precision sets number of decimal places.
-// gets encoded by multiplying value,min and max by 10^precision, and then encoding as an integer.
-#define FIELDTYPE_FIXEDPOINT 2
-#define FIELDTYPE_BOOLEAN 3
-// precision is bits of time of day encoded.  17 = 1 sec granularity
-#define FIELDTYPE_TIMEOFDAY 4
-// precision is bits of date encoded.  32 gets full UNIX Julian seconds.
-// 16 gets resolution of ~ 1 day.
-// with min set appropriately, 25 gets 1 second granularity within a year.
-#define FIELDTYPE_DATE 5
-// precision is bits of precision in coordinates
-#define FIELDTYPE_LATLONG 6
-// min,max refer to size limits of text field.
-// precision refers to minimum number of characters to encode if we run short of space.
-#define FIELDTYPE_TEXT 7
-// precision is the number of bits of the UUID
-// we just pull bits from the left of the UUID
-#define FIELDTYPE_UUID 8
-// Like time of day, but takes a particular string format of date
-#define FIELDTYPE_TIMEDATE 9
-#define FIELDTYPE_ENUM 10
-
 int recipe_parse_fieldtype(char *name)
 {
   if (!strcasecmp(name,"integer")) return FIELDTYPE_INTEGER;
