@@ -955,21 +955,25 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   int fd=open(input_file,O_RDONLY);
   if (fd==-1) {
     snprintf(recipe_error,1024,"Could not open succinct data file '%s'\n",input_file);
+    LOGI("%s",recipe_error);
     return -1;
   }
 
   struct stat st;
   if (fstat(fd, &st) == -1) {
     snprintf(recipe_error,1024,"Could not stat succinct data file '%s'\n",input_file);
+    LOGI("%s",recipe_error);
     close(fd); return -1;
   }
 
   buffer=mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer==MAP_FAILED) {
     snprintf(recipe_error,1024,"Could not memory map succinct data file '%s'\n",input_file);
+    LOGI("%s",recipe_error);
     close(fd); return -1; 
   }
 
+  LOGI("About to call recipe_decompress");
   char recipe_name[1024]="";
   char out_buffer[1024];
   int r=recipe_decompress(h,recipe_dir,buffer,st.st_size,out_buffer,1024,
