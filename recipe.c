@@ -1036,14 +1036,14 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   FILE *f=fopen(output_file,"w");
   if (!f) {
     snprintf(recipe_error,1024,"Could not write decompressed file '%s'\n",output_file);
-    LOGI(recipe_error);
+    LOGI("%s",recipe_error);
     return -1;
   }
   int wrote=fwrite(out_buffer,r,1,f);
   fclose(f);
   if (wrote!=1) {
     snprintf(recipe_error,1024,"Could not write %d bytes of decompressed data into '%s'\n",r,output_file);
-    LOGI(recipe_error);
+    LOGI("%s",recipe_error);
     return -1;
   }
 
@@ -1056,7 +1056,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   int template_len=recipe_load_file(template_file,template,sizeof(template));
   if (template_len<1) {
     snprintf(recipe_error,1024,"Could not read template file '%s'\n",template_file);
-    LOGI(recipe_error);
+    LOGI("%s",recipe_error);
     return -1;    
   }
   char xml[65536];
@@ -1069,14 +1069,14 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   f=fopen(xml_file,"w");
   if (!f) {
     snprintf(recipe_error,1024,"Could not write xml file '%s'\n",xml_file);
-    LOGI(recipe_error);
+    LOGI("%s",recipe_error);
     return -1;
   }
   wrote=fwrite(xml,x,1,f);
   fclose(f);
   if (wrote!=1) {
     snprintf(recipe_error,1024,"Could not write %d bytes of XML data into '%s'\n",x,xml_file);
-    LOGI(recipe_error);
+    LOGI("%s",recipe_error);
     return -1;
   }
 
