@@ -994,6 +994,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   char out_buffer[1024];
   int r=recipe_decompress(h,recipe_dir,buffer,st.st_size,out_buffer,1024,
 			  recipe_name);
+  LOGI("Got back from recipe_decompress: r=%d",r);
 
   munmap(buffer,st.st_size); close(fd);
 
