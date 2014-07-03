@@ -1004,6 +1004,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   LOGI("%s:%d\n",__FILE__,__LINE__);
 
   if (r<0) {
+    LOGI("%s:%d\n",__FILE__,__LINE__);
     fprintf(stderr,"Could not find matching recipe file for %s.\n",input_file);
     LOGI("Could not find matching recipe file for %s.\n",input_file);
     return -1;
