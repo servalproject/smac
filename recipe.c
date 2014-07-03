@@ -116,8 +116,8 @@ int recipe_form_hash(char *recipe_file,unsigned char *formhash,
   recipe_name[j]=0;
   
   MD5_Init(&md5);
-  fprintf(stderr,"Calculating recipe file formhash from '%s' (%d chars)\n",
-	  recipe_name,(int)strlen(recipe_name));
+  if (0) fprintf(stderr,"Calculating recipe file formhash from '%s' (%d chars)\n",
+		 recipe_name,(int)strlen(recipe_name));
   MD5_Update(&md5,recipe_name,strlen(recipe_name));
   MD5_Final(hash,&md5);
   
@@ -601,7 +601,7 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 	    char recipe_path[1024];
 	    snprintf(recipe_path,1024,"%s/%s",recipe_dir,de->d_name);
 	    struct recipe *r=recipe_read_from_file(recipe_path);
-	    if (1) fprintf(stderr,"Is %s a recipe?\n",recipe_path);
+	    if (0) fprintf(stderr,"Is %s a recipe?\n",recipe_path);
 	    if (r) {
 	      if (0) {
 		fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
@@ -978,7 +978,8 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   munmap(buffer,st.st_size); close(fd);
 
   if (r<0) {
-    fprintf(stderr,"Could not find matching recipe file.\n");
+    fprintf(stderr,"Could not find matching recipe file for %s.\n",input_file);
+    LOGI("Could not find matching recipe file for %s.\n",input_file);
     return -1;
   }
   
@@ -1000,6 +1001,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 
   // now write stripped file out
   fprintf(stderr,"Writing stripped data to %s\n",stripped_name);
+  LOGI("Writing stripped data to %s\n",stripped_name);
   snprintf(output_file,1024,"%s/%s/%s.stripped",
 	   output_directory,recipe_name,stripped_name);
 
@@ -1018,6 +1020,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 		 recipe_name);
 	FILE *f=fopen(csv_file,"a");
 	fprintf(stderr,"Appending CSV line: %s\n",line);
+	LOGI("Appending CSV line: %s\n",line);
 	if (f) {
 	  int wrote=fwrite(line,strlen(line),1,f);
 	}
@@ -1027,17 +1030,20 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
     }
   } else {
     fprintf(stderr,"Not writing CSV line for form, as we have already seen it.\n");
+    LOGI("Not writing CSV line for form, as we have already seen it.\n");
   }
 
   FILE *f=fopen(output_file,"w");
   if (!f) {
     snprintf(recipe_error,1024,"Could not write decompressed file '%s'\n",output_file);
+    LOGI(recipe_error);
     return -1;
   }
   int wrote=fwrite(out_buffer,r,1,f);
   fclose(f);
   if (wrote!=1) {
     snprintf(recipe_error,1024,"Could not write %d bytes of decompressed data into '%s'\n",r,output_file);
+    LOGI(recipe_error);
     return -1;
   }
 
@@ -1050,6 +1056,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   int template_len=recipe_load_file(template_file,template,sizeof(template));
   if (template_len<1) {
     snprintf(recipe_error,1024,"Could not read template file '%s'\n",template_file);
+    LOGI(recipe_error);
     return -1;    
   }
   char xml[65536];
@@ -1062,16 +1069,18 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   f=fopen(xml_file,"w");
   if (!f) {
     snprintf(recipe_error,1024,"Could not write xml file '%s'\n",xml_file);
+    LOGI(recipe_error);
     return -1;
   }
   wrote=fwrite(xml,x,1,f);
   fclose(f);
   if (wrote!=1) {
     snprintf(recipe_error,1024,"Could not write %d bytes of XML data into '%s'\n",x,xml_file);
+    LOGI(recipe_error);
     return -1;
   }
 
-
+  LOGI("Finished extracting succinct data file.\n");
   return r;
 }
 
