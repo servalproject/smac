@@ -997,13 +997,18 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   LOGI("Got back from recipe_decompress: r=%d, fd=%d, st.st_size=%d, buffer=%p",
        r,fd,(int)st.st_size,buffer);
 
-  munmap(buffer,st.st_size); close(fd);
+  LOGI("%s:%d\n",__FILE__,__LINE__);
+  munmap(buffer,st.st_size); 
+  LOGI("%s:%d\n",__FILE__,__LINE__);
+  close(fd);
+  LOGI("%s:%d\n",__FILE__,__LINE__);
 
   if (r<0) {
     fprintf(stderr,"Could not find matching recipe file for %s.\n",input_file);
     LOGI("Could not find matching recipe file for %s.\n",input_file);
     return -1;
   }
+  LOGI("%s:%d\n",__FILE__,__LINE__);
   
   char stripped_name[80];
   MD5_CTX md5;
