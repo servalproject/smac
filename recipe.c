@@ -603,12 +603,14 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 	    struct recipe *r=recipe_read_from_file(recipe_path);
 	    if (1) fprintf(stderr,"Is %s a recipe?\n",recipe_path);
 	    if (r) {
-	      if (1) fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
-		      r->formhash[0],r->formhash[1],r->formhash[2],
-		      r->formhash[3],r->formhash[4],r->formhash[5]);
-	      LOGI("Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
-		   r->formhash[0],r->formhash[1],r->formhash[2],
-		   r->formhash[3],r->formhash[4],r->formhash[5]);
+	      if (0) {
+		fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
+			r->formhash[0],r->formhash[1],r->formhash[2],
+			r->formhash[3],r->formhash[4],r->formhash[5]);
+		LOGI("Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
+		     r->formhash[0],r->formhash[1],r->formhash[2],
+		     r->formhash[3],r->formhash[4],r->formhash[5]);
+	      }
 	      if (!memcmp(formhash,r->formhash,6)) {
 		return r;
 	      }
@@ -932,7 +934,7 @@ int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
 	v=values[i]; break;
       }
     }
-    n+=snprintf(&csv_out[n],8192-n,"%s%s",f?":":"",v);
+    n+=snprintf(&csv_out[n],8192-n,"%s%s",f?",":"",v);
   }
   recipe_free(r);
 
@@ -1008,13 +1010,17 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 				     out_buffer,r,line,8192))
       {
 	char csv_file[1024];
+	snprintf(csv_file,1024,"%s",output_directory);
+	mkdir(csv_file,0777);
 	snprintf(csv_file,1024,"%s/csv",output_directory);
 	mkdir(csv_file,0777);
 	snprintf(csv_file,1024,"%s/csv/%s.csv",output_directory,
 		 recipe_name);
 	FILE *f=fopen(csv_file,"a");
 	fprintf(stderr,"Appending CSV line: %s\n",line);
-	int wrote=fwrite(line,strlen(line),1,f);
+	if (f) {
+	  int wrote=fwrite(line,strlen(line),1,f);
+	}
 	fclose(f);
       } else {
       fprintf(stderr,"Failed to produce CSV line.\n");
@@ -1126,12 +1132,15 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
 	snprintf(filename,1024,"%s/%s",argv[4],de->d_name);
 	if (recipe_decompress_file(h,argv[3],filename,argv[5])==-1) {
 	  if (0) fprintf(stderr,"Error decompressing %s: %s",filename,recipe_error);
+	  LOGI("Failed to decompress %s as succinct data message\n",filename);
 	  e++;
 	} else  {
 	  fprintf(stderr,"Decompressed %s\n",filename);
+	  LOGI("Decompressed succinct data message %s\n",filename);
 	}
       }
       closedir(dir);
+      LOGI("Finished extracting files.  %d failures.\n",e);
       if (e) return 1; else return 0;
     } else {
       if (recipe_decompress_file(h,argv[3],argv[4],argv[5])==-1) {

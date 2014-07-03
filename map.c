@@ -314,6 +314,7 @@ int generateMaps(char *recipeDir, char *outputDir)
   snprintf(filename,1024,"%s/maps/index.html",outputDir);
   fprintf(stderr,"Trying to create %s\n",filename);
   FILE *idx=fopen(filename,"w");
+  perror("result");
 
   struct dirent *de;
 
