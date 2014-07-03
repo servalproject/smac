@@ -628,30 +628,40 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
 {
   if (!recipe_dir) {
     snprintf(recipe_error,1024,"No recipe directory provided.\n");
+    LOGI("%s",recipe_error);
     return -1;
   }
 
   if (!in) {
     snprintf(recipe_error,1024,"No input provided.\n");
+    LOGI("%s",recipe_error);
     return -1;
   }
   if (!out) {
     snprintf(recipe_error,1024,"No output buffer provided.\n");
+    LOGI("%s",recipe_error);
     return -1;
   }
   if (in_len>=1024) {
     snprintf(recipe_error,1024,"Input must be <1KB.\n");
+    LOGI("%s",recipe_error);
     return -1;
   }
 
+  LOGI("%s:%d",__FILE__,__LINE__);
+
   // Make new range coder with 1KB of space
   range_coder *c=range_new_coder(1024);
+
+  LOGI("%s:%d",__FILE__,__LINE__);
 
   // Point range coder bit stream to input buffer
   bcopy(in,c->bit_stream,in_len);
   c->bit_stream_length=in_len*8;
   range_decode_prefetch(c);
   
+  LOGI("%s:%d",__FILE__,__LINE__);
+
   // Read form id hash from the succinct data stream.
   unsigned char formhash[6];
   int i;
@@ -660,10 +670,16 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
 	 formhash[0],formhash[1],formhash[2],
 	 formhash[3],formhash[4],formhash[5]);
 
+  LOGI("%s:%d",__FILE__,__LINE__);
+
   struct recipe *recipe=recipe_find_recipe(recipe_dir,formhash);
+
+  LOGI("%s:%d",__FILE__,__LINE__);
 
   if (!recipe) {
     snprintf(recipe_error,1024,"No recipe provided.\n");
+    LOGI("%s:%d: %s",__FILE__,__LINE__,recipe_error);
+    range_coder_free(c);
     return -1;
   }
   snprintf(recipe_name,1024,"%s",recipe->formname);
