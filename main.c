@@ -118,7 +118,7 @@ int main(int argc,char *argv[])
 
   if (!argv[1]) {
     fprintf(stderr,"You didn't provide me any messages to test, so I'll make some up.\n");
-#ifdef ANDROID
+#ifndef ANDROID
     range_coder *c=range_new_coder(2048);
     while(1)
       {
