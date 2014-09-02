@@ -770,7 +770,7 @@ int range_coder_free(range_coder *c)
   return 0;
 }
 
-#ifdef STANDALONE
+#ifdef TESTMODE
 int test_foo1(range_coder *c)
 {
   fprintf(stderr,"Testing a use case that failed some time.\n");

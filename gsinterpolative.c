@@ -209,7 +209,7 @@ int ENCODE(ic_,_recursive)(int *list,
 		  Test Bed
 	------------------------------------------------- */
 
-#ifdef STANDALONE
+#ifdef TESTMODE
 #ifdef COMMON
 
 void swap(int *a,int *b)
