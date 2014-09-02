@@ -118,6 +118,7 @@ int main(int argc,char *argv[])
 
   if (!argv[1]) {
     fprintf(stderr,"You didn't provide me any messages to test, so I'll make some up.\n");
+#ifdef ANDROID
     range_coder *c=range_new_coder(2048);
     while(1)
       {
@@ -135,7 +136,7 @@ int main(int argc,char *argv[])
 	stats3_decompress_bits(c,(unsigned char *)out,&lenout,h,NULL);
 	printf("%s\n",out);
       }
-
+#endif
     exit(-1);
   }
   
