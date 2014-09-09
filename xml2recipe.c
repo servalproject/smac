@@ -75,11 +75,8 @@ start(void *data, const char *el, const char **attr) //This function is called  
             strcat (str, attr[i+1]);
             strcat (str, "\"");
         }
-        strcat (str, ">");
-        if (!strcasecmp("start",el)) strcat (str, "$start$");
-        if (!strcasecmp("end",el)) strcat (str, "$end$");
-        if (!strcasecmp("deviceid",el)) strcat (str, "$deviceid$");
-        if (!strcasecmp("instanceid",el)) strcat (str, "$instanceid$");
+        strcat (str, ">$"); strcat(str,el); strcat(str,"$");
+        
         xml2template[xml2templateLen++] = str;
         
         if (in_instance_first) { // First node since we are in instance, it's the Form Name that we want to get
