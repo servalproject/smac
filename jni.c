@@ -52,6 +52,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     
     if (!recipe) {
       LOGI("Could not read recipe file %s",filename);
+      LOGI("Recipe error message: %s",recipe_error);
       jbyteArray result=(*env)->NewByteArray(env, 0);
       return result;
     }
