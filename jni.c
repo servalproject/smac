@@ -49,7 +49,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     }
 
     // Read recipe file
-    snprintf(filename,1024,"%s/%s.%s.recipe",path,version,recipefile);
+    snprintf(filename,1024,"%s/%s.%s.recipe",path,recipefile,version);
     struct recipe *recipe=recipe_read_from_file(filename);
     
     if (!recipe) {
