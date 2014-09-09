@@ -23,7 +23,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
 {
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
   const char *recipefile= (*env)->GetStringUTFChars(env,recipename,0);
-  const char *formversion= (*env)->GetStringUTFChars(env,formversion,0);
+  const char *version= (*env)->GetStringUTFChars(env,formversion,0);
   const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
   
   char stripped[8192];
