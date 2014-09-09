@@ -20,6 +20,7 @@
 #include "visualise.h"
 #include "arithmetic.h"
 #include "packed_stats.h"
+#include "recipe.h"
 #include "smac.h"
 
 // min,max set inclusive bound
