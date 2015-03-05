@@ -1,0 +1,19 @@
+# This is the kind of thing we need to extract from
+# a form specification
+street_number:text:0:40:40
+address:text:0:160:160
+head_of_household:text:0:40:20
+casualties.trapped:int:0:30:0
+casualties.seriously_injured:int:0:30:0
+casualties.minor_injured:int:0:30:0
+casualties.missing:int:0:30:0
+casualties.dead:int:0:30:0
+buildingdamage:int:0:3:2
+people.evacuated:int:0:30:0
+people.needing_accommodation:int:0:30:0
+available.elec_gas:bool:0:0:0
+available.water:bool:0:0:0
+available.sewerage:bool:0:0:0
+available.telecom:bool:0:0:0
+available.road_access:bool:0:0:0
+

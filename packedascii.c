@@ -23,34 +23,31 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "charset.h"
 
-int encodePackedASCII(range_coder *c,char *m)
+/* 
+   TODO: Doesn't handle UTF-8 Unicode yet.
+*/
+int encodePackedASCII(range_coder *c,unsigned char *m)
 {
   /* we can't encode it more efficiently than char symbols */
   int i;
   for(i=0;m[i];i++) {
     int v=m[i];
-    int upper=0;
-    if (isalpha(v)&&isupper(v)) upper=1;
-    v=tolower(v);
-    v=charIdx(v);
-    range_encode_equiprobable(c,69,v);
-    if (isalpha(m[i]))
-      range_encode_equiprobable(c,2,upper);
+    v=printableCharIdx(v);
+    if (v<0) return -1;
+    range_encode_equiprobable(c,PRINTABLECHARCOUNT,v);
   }
   // encodeCaseModel1(c,m);
   return 0;
 }
 
-int decodePackedASCII(range_coder *c, char *m,int encodedLength)
+int decodePackedASCII(range_coder *c, unsigned char *m,int encodedLength)
 {
   int i;
   for(i=0;i<encodedLength;i++) {
-    int symbol=range_decode_equiprobable(c,69);
-    int character=chars[symbol];
+    int symbol=range_decode_equiprobable(c,PRINTABLECHARCOUNT);
+    int character=printableChars[symbol];
     m[i]=character;
-    if (isalpha(m[i]))
-      if (range_decode_equiprobable(c,2))
-	m[i]^=0x20;
   }
   m[i]=0;
+  return 0;
 }

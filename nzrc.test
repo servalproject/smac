@@ -1,0 +1,10 @@
+# this is the kind of thing we need to extract
+# from a form instance.
+street_number=15
+address=Northumberland, NEV
+head_of_household=Harrington
+casualties.minor_injured=2
+buildingdamage=1
+people.evacuated=4
+available.water=1
+available.sewerage=1

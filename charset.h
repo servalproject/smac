@@ -16,8 +16,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-extern char chars[69];
+#define CHARCOUNT 65
+#define PRINTABLECHARCOUNT (CHARCOUNT-2+26+10)
+extern char chars[CHARCOUNT];
+extern char printableChars[PRINTABLECHARCOUNT];
 extern char wordChars[36];
 
-int charIdx(unsigned char c);
-int charInWord(unsigned c);
+int charIdx(unsigned short c);
+int printableCharIdx(unsigned char c);
+int charInWord(unsigned short c);

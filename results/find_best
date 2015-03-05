@@ -1,0 +1,8 @@
+#!/bin/csh -f
+
+foreach o (`egrep "compressed size.*byte" *.log | cut -f1,3 -d: | sort -t: -k2rn | cut -f1 -d\( | cut -f1 -d:`)
+  echo -n ${o}:
+  echo -n `egrep "compressed size.*byte" ${o} | cut -f2 -d: | sort -t: -k2rn | cut -f1 -d\( `:
+  echo -n `head -1 ${o} | awk '{ print $5}'`
+  echo
+end

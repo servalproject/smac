@@ -26,13 +26,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "arithmetic.h"
 #include "charset.h"
 
-int stripNonAlpha(unsigned char *in,unsigned char *out)
+int stripNonAlpha(unsigned short *in,int in_len,
+		  unsigned short *out,int *out_len)
 {
   int l=0;
   int i;
-  for(i=0;in[i];i++)
-    if (charIdx(tolower(in[i]))>=0) out[l++]=in[i];
-  out[l]=0;
+  for(i=0;i<in_len;i++)
+    if (in[i]>0x80||charIdx(tolower(in[i]))>=0) out[l++]=in[i];
+  *out_len=l;
   return 0;
 }
 
@@ -68,7 +69,7 @@ int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
 }
 
 
-int encodeNonAlpha(range_coder *c,unsigned char *m)
+int encodeNonAlpha(range_coder *c,unsigned short *m,int messageLength)
 {
   /* Get positions and values of non-alpha chars.
      Encode count, then write the chars, then use interpolative encoding to
@@ -79,14 +80,18 @@ int encodeNonAlpha(range_coder *c,unsigned char *m)
   int count=0;
   
   int i;
-  for(i=0;m[i];i++)
-    if (charIdx(tolower(m[i]))>=0) {
-      /* alpha or space -- so ignore */
-    } else {
-      /* non-alpha, so remember it */
-      v[count]=m[i];
-      // printf("non-alpha char: 0x%02x '%c' @ %d\n",m[i],m[i],i);
-      pos[count++]=i;
+  for(i=0;i<messageLength;i++)
+    /* (non-alpha characters can only be <0x80,
+       since higher codepoints are encoded using unicode processing mechanisms) */
+    if (m[i]<0x80) {
+      if (charIdx(tolower(m[i]))>=0) {
+	/* alpha or space -- so ignore */
+      } else {
+	/* non-alpha, so remember it */
+	v[count]=m[i];
+	// printf("non-alpha char: 0x%02x '%c' @ %d\n",m[i],m[i],i);
+	pos[count++]=i;
+      }  
     }
 
   // XXX - The following assumes that 50% of messages have special characters.
@@ -103,7 +108,6 @@ int encodeNonAlpha(range_coder *c,unsigned char *m)
   // printf("Using 8-bits to encode each of %d non-alpha chars.\n",count);
 
   /* Encode number of non-alpha chars */
-  int messageLength=strlen((char *)m);
   range_encode_equiprobable(c,messageLength+1,count);
 
   // printf("Using %f bits to encode the number of non-alpha/space chars.\n",countBits);
