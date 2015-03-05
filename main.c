@@ -85,10 +85,22 @@ int outputHistograms()
   return 0;
 }
 
+int usage()
+{
+  fprintf(stderr,
+	  "smac usage:\n"
+	  "  smac recipe <recipe sub-command>\n"
+	  "  smac babble\n"
+	  "  smac test <files>\n");
+  exit(-1);
+}
+
 int main(int argc,char *argv[])
 {
   int i;
 
+  if (argc<2) usage();
+  
   /* Clear statistics */
   for(i=0;i<104;i++) {
     comp_by_size_percent[i]=0;
@@ -112,11 +124,11 @@ int main(int argc,char *argv[])
   if (argc>1) {
     if (!strcasecmp(argv[1],"recipe")) return recipe_main(argc,argv,h);
   }
-
+  
   /* Preload tree for speed */
   stats_load_tree(h);
 
-  if (!argv[1]) {
+  if (!strcmp("babble",argv[1])) {
     fprintf(stderr,"You didn't provide me any messages to test, so I'll make some up.\n");
 #ifndef ANDROID
     range_coder *c=range_new_coder(2048);
@@ -139,52 +151,56 @@ int main(int argc,char *argv[])
 #endif
     exit(-1);
   }
-  
-  FILE *f;
 
-  FILE *contentXML=fopen("content.xml","w+");
-  beginContentXML(contentXML);
-
-  int argn=1;
-
-  for(argn=1;argn<argc;argn++) {
-    if (strcmp(argv[1],"-")) f=fopen(argv[argn],"r"); else f=stdin;
-    if (!f) {
-      fprintf(stderr,"Failed to open `%s' for input.\n",argv[1]);
-      exit(-1);
-    } else {
-      processFile(f,contentXML,h);
-      fclose(f);
+  if (!strcmp(argv[1],"test")) {  
+    FILE *f;
+    
+    FILE *contentXML=fopen("content.xml","w+");
+    beginContentXML(contentXML);
+    
+    int argn;
+    
+    for(argn=2;argn<argc;argn++) {
+      if (strcmp(argv[argn],"-")) f=fopen(argv[argn],"r"); else f=stdin;
+      if (!f) {
+	fprintf(stderr,"Failed to open `%s' for input.\n",argv[1]);
+	exit(-1);
+      } else {
+	processFile(f,contentXML,h);
+	fclose(f);
+      }
     }
+    
+    endContentXML(contentXML);
+    fclose(contentXML);
+    
+    printf("Summary:\n");
+    printf("         compressed size: %f%% (bit oriented)\n",
+	   total_compressed_bits*100.0/total_uncompressed_bits);
+    printf("         compressed size: %f%% (byte oriented)\n",
+	   total_stats3_bytes*100.0/(total_uncompressed_bits/8.0));
+    printf("       uncompressed bits: %lld\n",total_uncompressed_bits);
+    printf("        compressed bytes: %lld\n",total_stats3_bytes);
+    printf("         compressed bits: %lld\n",total_compressed_bits);
+    printf("    length-encoding bits: %lld\n",total_length_bits);
+    printf("     model-encoding bits: %lld\n",total_model_bits);
+    printf("      case-encoding bits: %lld\n",total_case_bits);
+    printf("     alpha-encoding bits: %lld\n",total_alpha_bits);
+    if (total_unicode_chars)
+      printf("   avg unicode bits/char: %.2f\n",
+	     total_unicode_millibits/total_unicode_chars/1000.0);
+    printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
+    printf("\n");
+    printf("stats3 compression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
+	   stats3_compress_us,1000000.0/(stats3_compress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_compress_us);
+    printf("stats3 decompression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
+	   stats3_decompress_us,1000000.0/(stats3_decompress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_decompress_us);
+    
+    outputHistograms();
+  } else {
+    usage();
   }
-
-  endContentXML(contentXML);
-  fclose(contentXML);
-
-  printf("Summary:\n");
-  printf("         compressed size: %f%% (bit oriented)\n",
-	 total_compressed_bits*100.0/total_uncompressed_bits);
-  printf("         compressed size: %f%% (byte oriented)\n",
-	 total_stats3_bytes*100.0/(total_uncompressed_bits/8.0));
-  printf("       uncompressed bits: %lld\n",total_uncompressed_bits);
-  printf("        compressed bytes: %lld\n",total_stats3_bytes);
-  printf("         compressed bits: %lld\n",total_compressed_bits);
-  printf("    length-encoding bits: %lld\n",total_length_bits);
-  printf("     model-encoding bits: %lld\n",total_model_bits);
-  printf("      case-encoding bits: %lld\n",total_case_bits);
-  printf("     alpha-encoding bits: %lld\n",total_alpha_bits);
-  if (total_unicode_chars)
-  printf("   avg unicode bits/char: %.2f\n",
-	 total_unicode_millibits/total_unicode_chars/1000.0);
-  printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
-  printf("\n");
-  printf("stats3 compression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
-	 stats3_compress_us,1000000.0/(stats3_compress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_compress_us);
-  printf("stats3 decompression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
-	 stats3_decompress_us,1000000.0/(stats3_decompress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_decompress_us);
-
-  outputHistograms();
-
+  
   return 0;
 }
 
