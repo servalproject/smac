@@ -26,11 +26,16 @@ OBJS=	main.o \
 	arithmetic.o \
 	gsinterpolative.o \
 	\
-	visualise.o
+	visualise.o \
+	\
+	nacl/libnacl.a
 
 HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h Makefile
 
 all: smac xml2recipe arithmetic gsinterpolative gen_stats
+
+nacl/libnacl.a:	nacl/build-nacl
+	cd nacl && ./build-nacl
 
 clean:
 	rm -rf gen_stats smac
