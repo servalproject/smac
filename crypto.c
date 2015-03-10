@@ -2,8 +2,39 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 #include "md5.h"
 #include "crypto_box.h"
+
+void randombytes(unsigned char *buf,int len)
+{
+  static int urandomfd = -1;
+  int tries = 0;
+  if (urandomfd == -1) {
+    for (tries = 0; tries < 4; ++tries) {
+      urandomfd = open("/dev/urandom",O_RDONLY);
+      if (urandomfd != -1) break;
+      sleep(1);
+    }
+    if (urandomfd == -1) {
+      exit(-1);
+    }
+  }
+  tries = 0;
+  while (len > 0) {
+    ssize_t i = read(urandomfd, buf, (len < 1048576) ? len : 1048576);
+    if (i == -1) {
+      if (++tries > 4) {
+	exit(-1);
+      }
+    } else {
+      tries = 0;
+      buf += i;
+      len -= i;
+    }
+  }
+  return;
+}
 
 /* Decrypt a message */
 int decryptMessage(unsigned char *secret_key,unsigned char *nonce_in,int nonce_len,
@@ -77,19 +108,21 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
 
 }
 
-char *private_key_from_passphrase_buffer[crypto_box_SECRETKEYBYTES];
+char private_key_from_passphrase_buffer[crypto_box_SECRETKEYBYTES];
 unsigned char *private_key_from_passphrase(char *passphrase)
 {
   MD5_CTX md5;
   MD5_Init(&md5);
-  MD5_Update(&md5,"spleen",6);
-  MD5_Update(&md5,passphrase,strlen(passphrase));
-  MD5_Update(&md5,"rock melon",10);
+  MD5_Update(&md5,(unsigned char *)"spleen",6);
+  MD5_Update(&md5,(unsigned char *)passphrase,strlen(passphrase));
+  MD5_Update(&md5,(unsigned char *)"rock melon",10);
   MD5_Final(&private_key_from_passphrase_buffer[0],&md5);
   MD5_Init(&md5);
-  MD5_Update(&md5,"dropbear",8);
-  MD5_Update(&md5,passphrase,strlen(passphrase));
-  MD5_Update(&md5,"silvester",9);
+  MD5_Update(&md5,(unsigned char *)"dropbear",8);
+  MD5_Update(&md5,(unsigned char *)passphrase,strlen(passphrase));
+  MD5_Update(&md5,(unsigned char *)"silvester",9);
   MD5_Final(&private_key_from_passphrase_buffer[16],&md5);
+  
   return private_key_from_passphrase_buffer;
 }
+
