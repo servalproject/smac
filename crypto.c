@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include "md5.h"
 #include "crypto_box.h"
 
 /* Decrypt a message */
@@ -74,4 +75,21 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
 
   return 0;
 
+}
+
+char *private_key_from_passphrase_buffer[crypto_box_SECRETKEYBYTES];
+unsigned char *private_key_from_passphrase(char *passphrase)
+{
+  MD5_CTX md5;
+  MD5_Init(&md5);
+  MD5_Update(&md5,"spleen",6);
+  MD5_Update(&md5,passphrase,strlen(passphrase));
+  MD5_Update(&md5,"rock melon",10);
+  MD5_Final(&private_key_from_passphrase_buffer[0],&md5);
+  MD5_Init(&md5);
+  MD5_Update(&md5,"dropbear",8);
+  MD5_Update(&md5,passphrase,strlen(passphrase));
+  MD5_Update(&md5,"silvester",9);
+  MD5_Final(&private_key_from_passphrase_buffer[16],&md5);
+  return private_key_from_passphrase_buffer;
 }
