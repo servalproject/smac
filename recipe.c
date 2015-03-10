@@ -960,7 +960,6 @@ int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
   return 0;
 }
 
-
 int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,char *output_directory)
 {
   // struct recipe *recipe=recipe_read_from_file(recipe_file);

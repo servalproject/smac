@@ -1,6 +1,6 @@
 CC=gcc
 COPT=-g -Wall -O3
-CFLAGS=-g -Wall -O3
+CFLAGS=-g -Wall -O3 -Inacl/include
 DEFS=
 
 OBJS=	main.o \
@@ -28,14 +28,27 @@ OBJS=	main.o \
 	\
 	visualise.o \
 	\
-	nacl/libnacl.a
+	crypto.o \
+	nacl/src/crypto_box_curve25519xsalsa20poly1305_ref/keypair.o \
+	nacl/src/crypto_box_curve25519xsalsa20poly1305_ref/before.o \
+	nacl/src/crypto_box_curve25519xsalsa20poly1305_ref/after.o \
+	nacl/src/crypto_box_curve25519xsalsa20poly1305_ref/box.o \
+	nacl/src/crypto_core_hsalsa20_ref/core.o \
+	nacl/src/crypto_scalarmult_curve25519_ref/base.o \
+	nacl/src/crypto_scalarmult_curve25519_ref/smult.o \
+	nacl/src/crypto_secretbox_xsalsa20poly1305_ref/box.o \
+	nacl/src/crypto_onetimeauth_poly1305_ref/auth.o \
+	nacl/src/crypto_onetimeauth_poly1305_ref/verify.o \
+	nacl/src/crypto_verify_16_ref/verify.o \
+	nacl/src/crypto_stream_xsalsa20_ref/xor.o \
+	nacl/src/crypto_stream_xsalsa20_ref/stream.o \
+	nacl/src/crypto_core_salsa20_ref/core.o \
+	nacl/src/crypto_stream_salsa20_ref/xor.o \
+	nacl/src/crypto_stream_salsa20_ref/stream.o
 
 HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h Makefile
 
 all: smac xml2recipe arithmetic gsinterpolative gen_stats
-
-nacl/libnacl.a:	nacl/build-nacl
-	cd nacl && ./build-nacl
 
 clean:
 	rm -rf gen_stats smac
