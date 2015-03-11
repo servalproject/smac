@@ -60,6 +60,16 @@ int decryptMessage(unsigned char *secret_key,unsigned char *nonce_in,int nonce_l
   return 0;
 }
 
+int dump_bytes(char *m,unsigned char *b,int n)
+{
+  printf("%s: ",m);
+  for(int i=0;i<n;i++) {
+    if (!(i&7)) printf(" ");
+    printf("%02x",b[i]);
+  }printf("\n");
+  return 0;
+}
+
 /* Encrypt a message */
 int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
 		   unsigned char *out,int *out_len, unsigned char *nonce, int nonce_len)
@@ -72,6 +82,8 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   unsigned char sk[crypto_box_SECRETKEYBYTES];
   crypto_box_keypair(pk,sk);
 
+  dump_bytes("my pk",pk,crypto_box_PUBLICKEYBYTES);
+  
   /* Output message will consist of encrypted version of original preceded by 
      crypto_box_ZEROBYTES which will hold the authentication information.
 
@@ -91,17 +103,28 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
 
   // Prepare message with space for authentication code and public key
   unsigned long long template_len
-    = in_len + crypto_box_ZEROBYTES
-    + crypto_box_PUBLICKEYBYTES;
+    = in_len + crypto_box_ZEROBYTES;
   unsigned char template[template_len];
   bzero(&template[0],crypto_box_ZEROBYTES);
   bcopy(in,&template[crypto_box_ZEROBYTES],in_len);
   bzero(out,template_len);
-  bcopy(pk,&template[crypto_box_ZEROBYTES+in_len],crypto_box_PUBLICKEYBYTES);
+  dump_bytes("template",template,template_len);
   
-  if (crypto_box(out,template,template_len,nonce,pk,sk)) return -1;
+  if (crypto_box(out,template,template_len,nonce,pk,sk)) {
+    fprintf(stderr,"crypto_box failed\n");
+    exit(-1);
+  }
+
+  // This leaves crypto_box_ZEROBYTES of zeroes at the start of the message.
+  // This is a waste.  We will stuff half of our public key in there, and then the
+  // other half at the end.
+  bcopy(&pk[0],&out[0],crypto_box_BOXZEROBYTES);
+  bcopy(&pk[crypto_box_BOXZEROBYTES],&out[crypto_box_ZEROBYTES+in_len],
+	crypto_box_PUBLICKEYBYTES-crypto_box_BOXZEROBYTES);
+  (*out_len)=in_len+crypto_box_PUBLICKEYBYTES
+    +(crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES);
   
-  (*out_len)=in_len+crypto_box_ZEROBYTES+crypto_box_PUBLICKEYBYTES;
+  dump_bytes("  output",out,*out_len);
 
   return 0;
 
