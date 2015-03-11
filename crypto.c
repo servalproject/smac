@@ -126,3 +126,12 @@ unsigned char *private_key_from_passphrase(char *passphrase)
   return private_key_from_passphrase_buffer;
 }
 
+int encryptAndFragment(char *filename,int mtu,char *outputdir)
+{
+  return -1;
+}
+
+int defragmentAndDecrypt(char *inputdir,char *outputdir)
+{
+  return -1;
+}

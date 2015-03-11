@@ -35,6 +35,9 @@
 #include "recipe.h"
 #include "md5.h"
 
+int encryptAndFragment(char *filename,int mtu,char *outputdir);
+int defragmentAndDecrypt(char *inputdir,char *outputdir);
+
 int recipe_parse_fieldtype(char *name)
 {
   if (!strcasecmp(name,"integer")) return FIELDTYPE_INTEGER;
@@ -1147,6 +1150,18 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       return(-1);
     }      
     return generateMaps(argv[3],argv[4]);
+  } else if (!strcasecmp(argv[2],"encrypt")) {
+    if (argc<=5) {
+      fprintf(stderr,"usage: smac necrypt <file> <MTU> <output directory>\n");
+      return(-1);
+    }      
+    return encryptAndFragment(argv[3],atoi(argv[4]),argv[5]);
+  } else if (!strcasecmp(argv[2],"decrypt")) {
+    if (argc<=4) {
+      fprintf(stderr,"usage: smac decrypt <recipe directory> <output directory>\n");
+      return(-1);
+    }      
+    return defragmentAndDecrypt(argv[3],argv[4]);
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
       fprintf(stderr,"usage: smac recipe decompress <recipe directory> <succinct data message> <output directory>\n");
