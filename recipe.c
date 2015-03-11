@@ -1158,7 +1158,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     return encryptAndFragment(argv[3],atoi(argv[4]),argv[5],argv[6]);
   } else if (!strcasecmp(argv[2],"decrypt")) {
     if (argc<=5) {
-      fprintf(stderr,"usage: smac decrypt <recipe directory> <output directory> <pass phrase>\n");
+      fprintf(stderr,"usage: smac decrypt <input directory> <output directory> <pass phrase>\n");
       return(-1);
     }      
     return defragmentAndDecrypt(argv[3],argv[4],argv[5]);
