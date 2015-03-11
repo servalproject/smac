@@ -85,7 +85,7 @@ int ic_encode_recursive(int *list,
 			int max_value,
 			range_coder *c);
 
-inline void binary_encode(int low,int *pp,int high,range_coder *c)
+void binary_encode(int low,int *pp,int high,range_coder *c)
 {
   /* Work out the range of values we can encode/decode */
   int p=*pp;
@@ -107,7 +107,7 @@ inline void binary_encode(int low,int *pp,int high,range_coder *c)
   return;
 }
 
-inline void binary_decode(int low,int *pp,int high,range_coder *c)
+void binary_decode(int low,int *pp,int high,range_coder *c)
 {
 
   /* Work out the range of values we can encode/decode */

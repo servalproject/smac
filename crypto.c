@@ -82,8 +82,6 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   unsigned char sk[crypto_box_SECRETKEYBYTES];
   crypto_box_keypair(pk,sk);
 
-  dump_bytes("my pk",pk,crypto_box_PUBLICKEYBYTES);
-  
   /* Output message will consist of encrypted version of original preceded by 
      crypto_box_ZEROBYTES which will hold the authentication information.
 
@@ -108,7 +106,6 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   bzero(&template[0],crypto_box_ZEROBYTES);
   bcopy(in,&template[crypto_box_ZEROBYTES],in_len);
   bzero(out,template_len);
-  dump_bytes("template",template,template_len);
   
   if (crypto_box(out,template,template_len,nonce,pk,sk)) {
     fprintf(stderr,"crypto_box failed\n");
@@ -124,10 +121,7 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   (*out_len)=in_len+crypto_box_PUBLICKEYBYTES
     +(crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES);
   
-  dump_bytes("  output",out,*out_len);
-
   return 0;
-
 }
 
 unsigned char private_key_from_passphrase_buffer[crypto_box_SECRETKEYBYTES];
@@ -173,9 +167,10 @@ int char_to_num(int c)
 
 int base64_append(char *out,int *out_offset,unsigned char *bytes,int count)
 {
-  for(int i=0;i<count;i+=3) {
+  int i;
+  for(i=0;i<count;i+=3) {
     int n=4;
-    unsigned char b[3];
+    unsigned int b[30];
     b[0]=bytes[i];
     if ((i+2)>=count) { b[2]=0; n=3; } else b[2]=bytes[i+2];
     if ((i+1)>=count) { b[1]=0; n=2; } else b[1]=bytes[i+1];
@@ -206,10 +201,7 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   printf("Read %d bytes\n",r);
   in_buffer[r]=0;
 
-  unsigned char out_buffer[32768];
-  int out_len=0;
-
-  unsigned char nonce[6];
+  unsigned char nonce[crypto_box_NONCEBYTES];
   int nonce_len=6;
   randombytes(nonce,6);
 
@@ -222,10 +214,12 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
       hex[1]=publickeyhex[i*2+1];
       pk[i]=strtoll(hex,NULL,16);
     }
+
+  unsigned char *out_buffer=alloca(32768);
+  int out_len=0;
   
   encryptMessage(pk,in_buffer,r,
 		 out_buffer,&out_len,nonce,nonce_len);
-  printf("out_len=%d\n",out_len);
   
   /* Work out how many bytes per fragment:
 
@@ -242,7 +236,7 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   int frag_count=out_len/bytes_per_fragment;
   if (out_len%bytes_per_fragment) frag_count++;
   assert(frag_count<=62);
-
+  
   int frag_number=0;
   for(int i=0;i<out_len;i+=bytes_per_fragment)
     {
