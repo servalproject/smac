@@ -6,6 +6,8 @@
 #include "md5.h"
 #include "crypto_box.h"
 
+int crypto_scalarmult_curve25519_ref_base(unsigned char *q,const unsigned char *n);
+
 void randombytes(unsigned char *buf,int len)
 {
   static int urandomfd = -1;
@@ -49,10 +51,6 @@ int decryptMessage(unsigned char *secret_key,unsigned char *nonce_in,int nonce_l
     if (o>=nonce_len) o=0;
     nonce[i]=nonce[o++];
   }
-
-  // compute public key from secret key
-  // unsigned char pk[crypto_box_PUBLICKEYBYTES];
-  // crypto_scalarmult_curve25519_base(pk,secret_key);
   
   if (crypto_box_open(out,in,in_len-crypto_box_PUBLICKEYBYTES,
 		      nonce,&in[in_len-crypto_box_PUBLICKEYBYTES],secret_key))
@@ -108,7 +106,7 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
 
 }
 
-char private_key_from_passphrase_buffer[crypto_box_SECRETKEYBYTES];
+unsigned char private_key_from_passphrase_buffer[crypto_box_SECRETKEYBYTES];
 unsigned char *private_key_from_passphrase(char *passphrase)
 {
   MD5_CTX md5;
@@ -134,8 +132,15 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   return -1;
 }
 
-int defragmentAndDecrypt(char *inputdir,char *outputdir,unsigned char *privatekeypassphrase)
+int defragmentAndDecrypt(char *inputdir,char *outputdir,char *privatekeypassphrase)
 {
+  unsigned char *sk = private_key_from_passphrase(privatekeypassphrase);
+  unsigned char pk[crypto_box_PUBLICKEYBYTES];
+  crypto_scalarmult_curve25519_ref_base(pk,sk);
+  fprintf(stderr,"Public key for passphrase: ");
+  for(int i=0;i<crypto_box_PUBLICKEYBYTES;i++) fprintf(stderr,"%02x",pk[i]);
+  fprintf(stderr,"\n");
+	  
   
   return -1;
 }

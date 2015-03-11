@@ -44,7 +44,7 @@ OBJS=	main.o \
 	nacl/src/crypto_stream_xsalsa20_ref/stream.o \
 	nacl/src/crypto_core_salsa20_ref/core.o \
 	nacl/src/crypto_stream_salsa20_ref/xor.o \
-	nacl/src/crypto_stream_salsa20_ref/stream.o
+	nacl/src/crypto_stream_salsa20_ref/stream.o \
 
 HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h Makefile
 
