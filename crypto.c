@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+#include <assert.h>
 #include "md5.h"
 #include "crypto_box.h"
 
@@ -124,10 +125,121 @@ unsigned char *private_key_from_passphrase(char *passphrase)
   return private_key_from_passphrase_buffer;
 }
 
+int num_to_char(int n)
+{
+  assert(n>=0); assert(n<64);
+  if (n<10) return '0'+n;
+  if (n<36) return 'a'+(n-10);
+  if (n<62) return 'A'+(n-36);
+  switch(n) {
+  case 62: return '.'; 
+  case 63: return '+';
+  default: return -1;
+  }
+}
+
+int char_to_num(int c)
+{
+  if ((c>='0')&&(c<='9')) return c-'0';
+  if ((c>='a')&&(c<='z')) return c-'a'+10;
+  if ((c>='A')&&(c<='Z')) return c-'A'+36;
+  if (c=='.') return 62;
+  if (c=='+') return 63;
+  return -1;
+}
+
+int base64_append(char *out,int *out_offset,unsigned char *bytes,int count)
+{
+  for(int i=0;i<count;i+=3) {
+    int n=4;
+    unsigned char b[3];
+    b[0]=bytes[i];
+    if ((i+2)>=count) { b[2]=0; n=3; } else b[2]=bytes[i+2];
+    if ((i+1)>=count) { b[1]=0; n=2; } else b[1]=bytes[i+1];
+    out[(*out_offset)++] = num_to_char(b[0]&0x3f);
+    out[(*out_offset)++] = num_to_char( ((b[0]&0xc0)>>6) | ((b[1]&0x0f)<<2) );
+    if (n==2) return 0;
+    out[(*out_offset)++] = num_to_char( ((b[1]&0xf0)>>4) | ((b[2]&0x03)<<4) );
+    if (n==3) return 0;
+    out[(*out_offset)++] = num_to_char((b[2]&0xfc)>>2);
+  }
+  return 0;
+}
+
 int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhex)
 {
   /* Read a file, encrypt it, break it into fragments and write them into the output
      directory. */
+
+  unsigned char in_buffer[16384];
+  FILE *f=fopen(filename,"r");
+  assert(f);
+  int r=fread(in_buffer,1,16384,f);
+  assert(r>0);
+  if (r>=16384) {
+    fprintf(stderr,"File must be <16KB\n");
+  }
+  fclose(f);
+  printf("Read %d bytes\n",r);
+  in_buffer[r]=0;
+
+  unsigned char out_buffer[32768];
+  int out_len=0;
+
+  unsigned char nonce[6];
+  int nonce_len=6;
+  randombytes(nonce,6);
+
+  unsigned char pk[crypto_box_PUBLICKEYBYTES];
+  char hex[3];
+  hex[2]=0;
+  for(int i=0;i<crypto_box_PUBLICKEYBYTES;i++)
+    {
+      hex[0]=publickeyhex[i*2+0];
+      hex[1]=publickeyhex[i*2+1];
+      pk[i]=strtoll(hex,NULL,16);
+    }
+  
+  encryptMessage(pk,in_buffer,r,
+		 out_buffer,&out_len,nonce,nonce_len);
+  printf("out_len=%d\n",out_len);
+  
+  /* Work out how many bytes per fragment:
+
+     Assumes that: 
+     1. body gets base64 encoded.
+     2. Nonce is 6 bytes (48 bits), and so takes 8 characters to encode.
+     3. Fragment number is expressed using two leading characters: 0-9a-zA-Z = 
+        current fragment number, followed by 2nd character which indicates the max
+	fragment number.  Thus we can have 62 fragments.
+  */
+  int overhead=2+(48/6);
+  int bytes_per_fragment=mtu-overhead;
+  assert(bytes_per_fragment>0);
+  int frag_count=out_len/bytes_per_fragment;
+  if (out_len%bytes_per_fragment) frag_count++;
+  assert(frag_count<=62);
+
+  int frag_number=0;
+  for(int i=0;i<out_len;i+=bytes_per_fragment)
+    {
+      int bytes=bytes_per_fragment;
+      if (bytes>(out_len-i)) bytes=out_len-i;
+
+      char fragment[mtu+1];
+      int offset=0;
+
+      fragment[offset++]=num_to_char(frag_number);
+      fragment[offset++]=num_to_char(frag_count-1);
+      base64_append(fragment,&offset,nonce,6);
+      base64_append(fragment,&offset,&out_buffer[i],bytes);
+
+      fragment[offset]=0;
+
+      printf("%s\n",fragment);
+      
+      frag_number++;
+    }
   
   return -1;
 }
@@ -139,8 +251,7 @@ int defragmentAndDecrypt(char *inputdir,char *outputdir,char *privatekeypassphra
   crypto_scalarmult_curve25519_ref_base(pk,sk);
   fprintf(stderr,"Public key for passphrase: ");
   for(int i=0;i<crypto_box_PUBLICKEYBYTES;i++) fprintf(stderr,"%02x",pk[i]);
-  fprintf(stderr,"\n");
-	  
+  fprintf(stderr,"\n"); 
   
   return -1;
 }
