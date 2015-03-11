@@ -126,12 +126,16 @@ unsigned char *private_key_from_passphrase(char *passphrase)
   return private_key_from_passphrase_buffer;
 }
 
-int encryptAndFragment(char *filename,int mtu,char *outputdir)
+int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhex)
 {
+  /* Read a file, encrypt it, break it into fragments and write them into the output
+     directory. */
+  
   return -1;
 }
 
-int defragmentAndDecrypt(char *inputdir,char *outputdir)
+int defragmentAndDecrypt(char *inputdir,char *outputdir,unsigned char *privatekeypassphrase)
 {
+  
   return -1;
 }
