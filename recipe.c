@@ -1152,7 +1152,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     return generateMaps(argv[3],argv[4]);
   } else if (!strcasecmp(argv[2],"encrypt")) {
     if (argc<=6) {
-      fprintf(stderr,"usage: smac necrypt <file> <MTU> <output directory> <public key hex>\n");
+      fprintf(stderr,"usage: smac encrypt <file> <MTU> <output directory> <public key hex>\n");
       return(-1);
     }      
     return encryptAndFragment(argv[3],atoi(argv[4]),argv[5],argv[6]);
