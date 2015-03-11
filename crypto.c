@@ -231,7 +231,7 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
 	fragment number.  Thus we can have 62 fragments.
   */
   int overhead=2+(48/6);
-  int bytes_per_fragment=mtu-overhead;
+  int bytes_per_fragment=(mtu-overhead)*6/8;
   assert(bytes_per_fragment>0);
   int frag_count=out_len/bytes_per_fragment;
   if (out_len%bytes_per_fragment) frag_count++;
