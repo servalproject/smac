@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <dirent.h>
 #include "md5.h"
 #include "crypto_box.h"
 
@@ -271,6 +272,16 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   return -1;
 }
 
+#define MAX_FRAGMENTS 64
+struct fragment_set {
+  char *prefix;
+  char *pieces[MAX_FRAGMENTS];
+};
+
+#define MAX_FRAGSETS 65536
+struct fragment_set *fragments[MAX_FRAGSETS];
+int fragset_count=0;
+
 int defragmentAndDecrypt(char *inputdir,char *outputdir,char *privatekeypassphrase)
 {
   unsigned char *sk = private_key_from_passphrase(privatekeypassphrase);
@@ -279,6 +290,25 @@ int defragmentAndDecrypt(char *inputdir,char *outputdir,char *privatekeypassphra
   fprintf(stderr,"Public key for passphrase: ");
   for(int i=0;i<crypto_box_PUBLICKEYBYTES;i++) fprintf(stderr,"%02x",pk[i]);
   fprintf(stderr,"\n"); 
+
+  // Iterate through the input directory, building lists of message fragments, and
+  // then reassembling and decrypting them when we find the whole set.  It's really
+  // a bit like collecting Paddle-Pop(tm) Lick-a-prize(tm) sticks.
+  DIR *d=opendir(inputdir);
+  if (!d) return -1;
+  struct dirent *de=NULL;
+  while ((de=readdir(d))!=NULL) {
+    char this_prefix[16];
+    if (strlen(de->d_name)>=10) {
+      for(int i=0;i<8;i++) this_prefix[i]=de->d_name[2+i];
+      int frag_num=char_to_num(de->d_name[0]);
+      int frag_count=char_to_num(de->d_name[1]);
+      printf("Found fragment #%d/%d of %s\n",frag_num,frag_count,this_prefix);
+    }
+    
+  }
+
+  closedir(d);
   
   return -1;
 }
