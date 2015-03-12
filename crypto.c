@@ -236,7 +236,8 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   int frag_count=out_len/bytes_per_fragment;
   if (out_len%bytes_per_fragment) frag_count++;
   assert(frag_count<=62);
-  
+
+  char prefix[16];
   int frag_number=0;
   for(int i=0;i<out_len;i+=bytes_per_fragment)
     {
@@ -253,10 +254,19 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
 
       fragment[offset]=0;
 
-      printf("%s\n",fragment);
+      char filename[1024];
+      for(int i=0;i<10;i++) prefix[i]=fragment[i]; prefix[10]=0;
+      snprintf(filename,1024,"%s/%s",outputdir,prefix);
+      FILE *f=fopen(filename,"w");
+      if (f) {
+	fprintf(f,"%s",fragment);
+	fclose(f);
+      }
       
       frag_number++;
     }
+  printf("Wrote %d fragments.  Message prefix is '%s'\n",
+	 frag_number,frag_number?&prefix[2]:"N/A");
   
   return -1;
 }
