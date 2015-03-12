@@ -282,6 +282,7 @@ struct fragment_set {
 int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
 			 unsigned char *sk, unsigned char *pk)
 {
+  printf("Reassembling %s\n",f->prefix);
   return 0;
 }
 
@@ -347,8 +348,8 @@ int defragmentAndDecrypt(char *inputdir,char *outputdir,char *privatekeypassphra
       assert(fragments[i]->pieces[frag_num]);
 
       int j;
-      for(j=0;j<frag_count;j++) if (!fragments[i]->pieces[j]) break;
-      if (j==frag_count) {
+      for(j=0;j<=frag_count;j++) if (!fragments[i]->pieces[j]) break;
+      if (j==frag_count+1) {
 	// Have whole message -- reassemble, decrypt and delete
 	reassembleAndDecrypt(fragments[i],outputdir,sk,pk);
 
