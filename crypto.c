@@ -150,7 +150,7 @@ int num_to_char(int n)
   if (n<36) return 'a'+(n-10);
   if (n<62) return 'A'+(n-36);
   switch(n) {
-  case 62: return '.'; 
+  case 62: return '='; 
   case 63: return '+';
   default: return -1;
   }
@@ -161,7 +161,7 @@ int char_to_num(int c)
   if ((c>='0')&&(c<='9')) return c-'0';
   if ((c>='a')&&(c<='z')) return c-'a'+10;
   if ((c>='A')&&(c<='Z')) return c-'A'+36;
-  if (c=='.') return 62;
+  if (c=='=') return 62;
   if (c=='+') return 63;
   return -1;
 }
