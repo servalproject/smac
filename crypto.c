@@ -279,10 +279,46 @@ struct fragment_set {
   char *pieces[MAX_FRAGMENTS];
 };
 
+int base64_extract(char *in,unsigned char *out,int *out_len)
+{
+  int v[4];
+  
+  for(int i=0;i<strlen(in);i+=3) {
+    int c=0;
+    v[0]=char_to_num(in[i]);
+    if (!in[i+1]) {
+      // invalid
+    } else if (!in[i+2]) {
+      // one byte
+      v[1]=char_to_num(in[i+1]); c=1;
+    } else if (!in[i+3]) {
+      // two byte
+      v[1]=char_to_num(in[i+1]);
+      v[2]=char_to_num(in[i+2]); c=2;
+    } else {
+      // three bytes
+      v[1]=char_to_num(in[i+1]);
+      v[2]=char_to_num(in[i+2]);
+      v[3]=char_to_num(in[i+3]); c=3;
+    }
+    if (c>0) out[(*out_len)++]=v[0]|((v[1]&3)<<6);
+    if (c>1) out[(*out_len)++]=((v[1]&0x3c)>>2)|((v[2]&0xf)<<4);
+    if (c>2) out[(*out_len)++]=((v[2]&0x30)>>4)|(v[3]<<2);
+  }
+  return 0;
+}
+
 int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
 			 unsigned char *sk, unsigned char *pk)
 {
+  unsigned char buffer[32768];
+  bzero(buffer,32768);
+  int offset=crypto_box_ZEROBYTES;
+  
   printf("Reassembling %s\n",f->prefix);
+  for(int i=0;i<=f->frag_count;i++)
+    base64_extract(&f->pieces[i][10],buffer,&offset);
+      
   return 0;
 }
 
