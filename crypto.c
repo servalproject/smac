@@ -274,9 +274,17 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
 
 #define MAX_FRAGMENTS 64
 struct fragment_set {
+  int frag_count;
   char *prefix;
   char *pieces[MAX_FRAGMENTS];
 };
+
+int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
+			 unsigned char *sk, unsigned char *pk)
+{
+  return 0;
+}
+
 
 #define MAX_FRAGSETS 65536
 struct fragment_set *fragments[MAX_FRAGSETS];
@@ -303,7 +311,57 @@ int defragmentAndDecrypt(char *inputdir,char *outputdir,char *privatekeypassphra
       for(int i=0;i<8;i++) this_prefix[i]=de->d_name[2+i];
       int frag_num=char_to_num(de->d_name[0]);
       int frag_count=char_to_num(de->d_name[1]);
+
+      char message[32768];
+      char filename[1024];
+      snprintf(filename,1024,"%s/%s",inputdir,de->d_name);
+      FILE *f=fopen(filename,"r");
+      if (!f) continue;
+      int r=fread(message,1,32768,f);
+      fclose(f);
+      if (r<0) r=0; if (r>32767) r=32767;
+      message[r]=0;
+      
       printf("Found fragment #%d/%d of %s\n",frag_num,frag_count,this_prefix);
+      int i;
+      for(i=0;i<fragset_count;i++) {
+	if (!strcmp(fragments[i]->prefix,this_prefix)) break;
+      }
+      if (i==fragset_count) {
+	// Need a new fragset.
+
+	// No space, so ignore
+	if (fragset_count==MAX_FRAGSETS) continue;
+
+	fragments[i]=calloc(sizeof(struct fragment_set),1);
+	assert(fragments[i]);
+
+	fragments[i]->prefix=strdup(this_prefix);
+
+	fragset_count++;
+      }
+
+      fragments[i]->frag_count=frag_count;
+      if (fragments[i]->pieces[frag_num]) free(fragments[i]->pieces[frag_num]);
+      fragments[i]->pieces[frag_num]=strdup(message);
+      assert(fragments[i]->pieces[frag_num]);
+
+      int j;
+      for(j=0;j<frag_count;j++) if (!fragments[i]->pieces[j]) break;
+      if (j==frag_count) {
+	// Have whole message -- reassemble, decrypt and delete
+	reassembleAndDecrypt(fragments[i],outputdir,sk,pk);
+
+	// free fragment and adjust list
+	for(int j=0;j<fragments[i]->frag_count;j++) {
+	  if (fragments[i]->pieces[j]) free(fragments[i]->pieces[j]);
+	}
+	free(fragments[i]);
+	fragments[i]=fragments[fragset_count-1];
+	fragments[fragset_count-1]=NULL;
+	fragset_count--;
+      }
+	
     }
     
   }
