@@ -83,9 +83,6 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   unsigned char sk[crypto_box_SECRETKEYBYTES];
   crypto_box_keypair(pk,sk);
 
-  dump_bytes("  message public key",pk,crypto_box_PUBLICKEYBYTES);
-  dump_bytes("recipient public key",public_key,crypto_box_PUBLICKEYBYTES);
-  
   /* Output message will consist of encrypted version of original preceded by 
      crypto_box_ZEROBYTES which will hold the authentication information.
 
@@ -103,8 +100,6 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
     nonce[i]=nonce[o++];
   }
 
-  dump_bytes("nonce",nonce,crypto_box_NONCEBYTES);
-  
   // Prepare message with space for authentication code and public key
   unsigned long long template_len
     = in_len + crypto_box_ZEROBYTES;
@@ -117,8 +112,6 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
     fprintf(stderr,"crypto_box failed\n");
     exit(-1);
   }
-
-  dump_bytes("immediately after encryption:",out,template_len);
 
   {
     unsigned char temp[32768];
@@ -214,11 +207,8 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
     fprintf(stderr,"File must be <16KB\n");
   }
   fclose(f);
-  printf("Read %d bytes\n",r);
   in_buffer[r]=0;
 
-  dump_bytes("before encryption:",in_buffer,r);
-  
   unsigned char nonce[crypto_box_NONCEBYTES];
   int nonce_len=6;
   randombytes(nonce,6);
@@ -238,8 +228,6 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   
   encryptMessage(pk,in_buffer,r,
 		 out_buffer,&out_len,nonce,nonce_len);
-
-  dump_bytes("after encryption:",out_buffer,out_len);
 
   /* Work out how many bytes per fragment:
 
@@ -338,12 +326,9 @@ int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
   for(int i=0;i<=f->frag_count;i++)
     base64_extract(&f->pieces[i][10],buffer,&offset);
 
-  dump_bytes("reassembled message",buffer,offset);
-
   unsigned char nonce[crypto_box_NONCEBYTES];
   int nonce_len=0;
   base64_extract(f->prefix,nonce,&nonce_len);
-  printf("Got %d nonce bytes.\n",nonce_len);
   int o=0;
   for(int i=nonce_len;i<crypto_box_NONCEBYTES;i++) {
     if (o>=nonce_len) o=0;
@@ -373,18 +358,16 @@ int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
   bcopy(&buffer[offset],
 	&msg_pk[crypto_box_BOXZEROBYTES],crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES);
 
-  dump_bytes("my public key",pk,crypto_box_PUBLICKEYBYTES);
-  dump_bytes("message public key",msg_pk,crypto_box_PUBLICKEYBYTES);
-  dump_bytes("ready for openbox",buffer,offset);
-  dump_bytes("nonce",nonce,crypto_box_NONCEBYTES);
-  
   unsigned char enclaire[32768];
   bzero(enclaire,32768);
   int result = crypto_box_open(enclaire,buffer,
 			       offset,
 			       nonce,msg_pk,sk);
-  printf("cryptobox result = %d, offset=%d\n",result,offset);
-  dump_bytes("after decryption",enclaire,offset-crypto_box_ZEROBYTES);
+  if (result) {
+    printf("decryption of %s failed\n",f->prefix);
+    return -1;
+  }
+  printf("Decrypted %s\n",f->prefix);
   
   return 0;
 }
