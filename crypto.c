@@ -83,6 +83,9 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   unsigned char sk[crypto_box_SECRETKEYBYTES];
   crypto_box_keypair(pk,sk);
 
+  dump_bytes("  message public key",pk,crypto_box_PUBLICKEYBYTES);
+  dump_bytes("recipient public key",public_key,crypto_box_PUBLICKEYBYTES);
+  
   /* Output message will consist of encrypted version of original preceded by 
      crypto_box_ZEROBYTES which will hold the authentication information.
 
@@ -100,6 +103,8 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
     nonce[i]=nonce[o++];
   }
 
+  dump_bytes("nonce",nonce,crypto_box_NONCEBYTES);
+  
   // Prepare message with space for authentication code and public key
   unsigned long long template_len
     = in_len + crypto_box_ZEROBYTES;
@@ -108,11 +113,21 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   bcopy(in,&template[crypto_box_ZEROBYTES],in_len);
   bzero(out,template_len);
   
-  if (crypto_box(out,template,template_len,nonce,pk,sk)) {
+  if (crypto_box(out,template,template_len,nonce,public_key,sk)) {
     fprintf(stderr,"crypto_box failed\n");
     exit(-1);
   }
 
+  dump_bytes("immediately after encryption:",out,template_len);
+
+  {
+    unsigned char temp[32768];
+    int clen=in_len+crypto_box_ZEROBYTES;
+    int result = crypto_box_open(temp,out,clen,
+				 nonce,pk,sk);
+    printf("open result = %d, clen=%d\n",result,clen);    
+  }
+  
   // This leaves crypto_box_ZEROBYTES of zeroes at the start of the message.
   // This is a waste.  We will stuff half of our public key in there, and then the
   // other half at the end.
@@ -317,13 +332,59 @@ int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
 {
   unsigned char buffer[32768];
   bzero(buffer,32768);
-  int offset=crypto_box_ZEROBYTES;
+  int offset=0;
   
   printf("Reassembling %s\n",f->prefix);
   for(int i=0;i<=f->frag_count;i++)
     base64_extract(&f->pieces[i][10],buffer,&offset);
 
   dump_bytes("reassembled message",buffer,offset);
+
+  unsigned char nonce[crypto_box_NONCEBYTES];
+  int nonce_len=0;
+  base64_extract(f->prefix,nonce,&nonce_len);
+  printf("Got %d nonce bytes.\n",nonce_len);
+  int o=0;
+  for(int i=nonce_len;i<crypto_box_NONCEBYTES;i++) {
+    if (o>=nonce_len) o=0;
+    nonce[i]=nonce[o++];
+  }
+
+  unsigned char msg_pk[crypto_box_PUBLICKEYBYTES];
+
+  /*
+    Encrypted message consists of:
+    1. crypto_box_BOXZEROBYTES of message public key.
+    2. the message.
+    3. crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES of message public key.
+
+    It needs to end up as:
+
+    1. crypto_box_BOXZEROBYTES of zeroes.
+    2. the message
+
+    So we copy the bytes of the public key out, then zero the first 
+    crypto_box_BOXZEROBYTES of the message, and trim its length by
+    crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES.
+  */
+  bcopy(&buffer[0],&msg_pk[0],crypto_box_BOXZEROBYTES);
+  bzero(&buffer[0],crypto_box_BOXZEROBYTES);
+  offset-=crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES;
+  bcopy(&buffer[offset],
+	&msg_pk[crypto_box_BOXZEROBYTES],crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES);
+
+  dump_bytes("my public key",pk,crypto_box_PUBLICKEYBYTES);
+  dump_bytes("message public key",msg_pk,crypto_box_PUBLICKEYBYTES);
+  dump_bytes("ready for openbox",buffer,offset);
+  dump_bytes("nonce",nonce,crypto_box_NONCEBYTES);
+  
+  unsigned char enclaire[32768];
+  bzero(enclaire,32768);
+  int result = crypto_box_open(enclaire,buffer,
+			       offset,
+			       nonce,msg_pk,sk);
+  printf("cryptobox result = %d, offset=%d\n",result,offset);
+  dump_bytes("after decryption",enclaire,offset-crypto_box_ZEROBYTES);
   
   return 0;
 }
