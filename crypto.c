@@ -368,6 +368,20 @@ int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
     return -1;
   }
   printf("Decrypted %s\n",f->prefix);
+
+  char filename[1024];
+  snprintf(filename,1024,"%s/%s.out",outputdir,f->prefix);
+  FILE *of=fopen(filename,"w");
+  if (!of) {
+    printf("failed to open %s for writing\n",filename);
+    return -1;
+  }
+  enclaire[offset]=0;
+  int n=fwrite(&enclaire[crypto_box_ZEROBYTES],offset-crypto_box_ZEROBYTES,1,of);
+  fclose(of);
+  if (n!=1) {
+    printf("failed to write data into %s\n",filename);
+  }
   
   return 0;
 }
