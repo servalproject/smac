@@ -202,6 +202,8 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   printf("Read %d bytes\n",r);
   in_buffer[r]=0;
 
+  dump_bytes("before encryption:",in_buffer,r);
+  
   unsigned char nonce[crypto_box_NONCEBYTES];
   int nonce_len=6;
   randombytes(nonce,6);
@@ -221,7 +223,9 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   
   encryptMessage(pk,in_buffer,r,
 		 out_buffer,&out_len,nonce,nonce_len);
-  
+
+  dump_bytes("after encryption:",out_buffer,out_len);
+
   /* Work out how many bytes per fragment:
 
      Assumes that: 
@@ -283,7 +287,7 @@ int base64_extract(char *in,unsigned char *out,int *out_len)
 {
   int v[4];
   
-  for(int i=0;i<strlen(in);i+=3) {
+  for(int i=0;i<strlen(in);i+=4) {
     int c=0;
     v[0]=char_to_num(in[i]);
     if (!in[i+1]) {
@@ -318,7 +322,9 @@ int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
   printf("Reassembling %s\n",f->prefix);
   for(int i=0;i<=f->frag_count;i++)
     base64_extract(&f->pieces[i][10],buffer,&offset);
-      
+
+  dump_bytes("reassembled message",buffer,offset);
+  
   return 0;
 }
 
