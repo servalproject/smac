@@ -49,7 +49,7 @@ JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
   stats_handle_free(h);
   LOGI("Line %d",__LINE__);
 
-  return;
+  return 0;
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinct
