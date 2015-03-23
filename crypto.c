@@ -8,6 +8,15 @@
 #include "md5.h"
 #include "crypto_box.h"
 
+#ifdef ANDROID
+#include <android/log.h>
+ 
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "libsmac", __VA_ARGS__))
+#else
+#define LOGI(...)
+#endif
+#define CHECKPOINT() LOGI("checkpoint: %s:%d",__FILE__,__LINE__);
+
 #define MAX_FRAGMENTS 64
 struct fragment_set {
   int frag_count;
@@ -86,13 +95,13 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   // This key is then discarded after so that only the recipient can decrypt it once
   // it has been encrypted
 
-  fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+  CHECKPOINT();
 
   unsigned char pk[crypto_box_PUBLICKEYBYTES];
   unsigned char sk[crypto_box_SECRETKEYBYTES];
   crypto_box_keypair(pk,sk);
 
-  fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+  CHECKPOINT();
 
   /* Output message will consist of encrypted version of original preceded by 
      crypto_box_ZEROBYTES which will hold the authentication information.
@@ -111,7 +120,7 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
     nonce[i]=nonce[o++];
   }
 
-  fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+  CHECKPOINT();
 
   // Prepare message with space for authentication code and public key
   unsigned long long template_len
@@ -126,7 +135,7 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
     exit(-1);
   }
 
-  fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+  CHECKPOINT();
 
   {
     unsigned char temp[32768];
@@ -145,7 +154,7 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   (*out_len)=in_len+crypto_box_PUBLICKEYBYTES
     +(crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES);
 
-  fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+  CHECKPOINT();
 
   return 0;
 }
@@ -218,7 +227,7 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
   int nonce_len=6;
   randombytes(nonce,6);
 
-  fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+  CHECKPOINT();
   
   unsigned char pk[crypto_box_PUBLICKEYBYTES];
   char hex[3];
@@ -230,7 +239,7 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
       pk[i]=strtoll(hex,NULL,16);
     }
 
-  fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+  CHECKPOINT();
 
   unsigned char *out_buffer=alloca(32768);
   int out_len=0;
@@ -238,7 +247,7 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
   encryptMessage(pk,in_buffer,in_len,
 		 out_buffer,&out_len,nonce,nonce_len);
 
-  fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+  CHECKPOINT();
 
   /* Work out how many bytes per fragment:
 
@@ -256,12 +265,12 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
   if (out_len%bytes_per_fragment) frag_count++;
   assert(frag_count<=62);
 
-  fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+  CHECKPOINT();
   
   int frag_number=0;
   for(int i=0;i<out_len;i+=bytes_per_fragment)
     {
-      fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+      CHECKPOINT();
 
       if ((*fragment_count)>=MAX_FRAGMENTS) return -1;
       
@@ -280,7 +289,7 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
       
       fragments[(*fragment_count)++]=strdup(fragment);
 
-      fprintf(stderr,"%s:%d: checkpoint\n",__FILE__,__LINE__);
+      CHECKPOINT();
     }
   
   return 0;
