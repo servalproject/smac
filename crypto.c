@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include "md5.h"
 #include "crypto_box.h"
+#include "randombytes.h"
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -26,8 +27,12 @@ struct fragment_set {
 
 int crypto_scalarmult_curve25519_ref_base(unsigned char *q,const unsigned char *n);
 
-void randombytes(unsigned char *buf,int len)
+void randombytes(unsigned char *buf,unsigned long long len)
 {
+#ifdef ANDROID
+  LOGI("randombytes: buf=%p, len=%lld (0x%llx)",buf,len,len);
+#endif
+  CHECKPOINT();
   static int urandomfd = -1;
   int tries = 0;
   if (urandomfd == -1) {
@@ -40,6 +45,7 @@ void randombytes(unsigned char *buf,int len)
       exit(-1);
     }
   }
+  CHECKPOINT();
   tries = 0;
   while (len > 0) {
     ssize_t i = read(urandomfd, buf, (len < 1048576) ? len : 1048576);
@@ -53,6 +59,7 @@ void randombytes(unsigned char *buf,int len)
       len -= i;
     }
   }
+  CHECKPOINT();
   return;
 }
 
@@ -223,6 +230,8 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
 			     char *fragments[MAX_FRAGMENTS],int *fragment_count,
 			     int mtu,char *publickeyhex)
 {
+  CHECKPOINT();
+
   unsigned char nonce[crypto_box_NONCEBYTES];
   int nonce_len=6;
   randombytes(nonce,6);
