@@ -161,7 +161,7 @@ unsigned char *private_key_from_passphrase(char *passphrase)
     int r=fread(passphrase,1,1020,f);
     if (r<1) return NULL;
     passphrase[r]=0;
-    while (passphrase[0]&&(passphrase[]<' '))
+    while (passphrase[0]&&(passphrase[strlen(passphrase)-1]<' '))
       passphrase[strlen(passphrase)-1]=0;
     fclose(f);
   }
