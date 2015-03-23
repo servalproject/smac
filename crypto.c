@@ -153,6 +153,19 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
 unsigned char private_key_from_passphrase_buffer[crypto_box_SECRETKEYBYTES];
 unsigned char *private_key_from_passphrase(char *passphrase)
 {
+  if (passphrase[0]=='@') {
+    // Pass phrase comes from a file
+    FILE *f=fopen(&passphrase[1],"r");
+    if (!f) return NULL;
+    passphrase=alloca(1024);
+    int r=fread(passphrase,1,1020,f);
+    if (r<1) return NULL;
+    passphrase[r]=0;
+    while (passphrase[0]&&(passphrase[]<' '))
+      passphrase[strlen(passphrase)-1]=0;
+    fclose(f);
+  }
+  
   MD5_CTX md5;
   MD5_Init(&md5);
   MD5_Update(&md5,(unsigned char *)"spleen",6);
