@@ -14,6 +14,7 @@
 #include "smac.h"
 #include "recipe.h"
 
+#define MAX_FRAGMENTS 64
 int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
 			     char *fragments[MAX_FRAGMENTS],int *fragment_count,
 			     int mtu,char *publickeyhex);
@@ -56,7 +57,7 @@ JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
   return 0;
 }
 
-JNIEXPORT jObjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinctfragments
+JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinctfragments
 (JNIEnv * env, jobject jobj,
  jstring xmlforminstance,
  jstring formname,
@@ -146,7 +147,8 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
  jstring xmlforminstance,
  jstring formname,
  jstring formversion,
- jstring succinctpath)
+ jstring succinctpath,
+ jint mtu)
 {
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
   const char *formname_c= (*env)->GetStringUTFChars(env,formname,0);
@@ -156,6 +158,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
   char stripped[8192];
   unsigned char succinct[1024];
   int succinct_len=0;
+  char filename[1024];
 
   // Read public key hex
   snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
@@ -169,14 +172,17 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     int r=fread(publickeyhex,1,1023,f);
     if (r<64) {
       LOGI("Failed to read from public key file");
-      return -1;
+      jbyteArray result=(*env)->NewByteArray(env, 1);
+      unsigned char ret=7;
+      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
+      return result;
     }
     publickeyhex[r]=0;
+    while(publickeyhex[strlen(publickeyhex)-1]<' ') publickeyhex[strlen(publickeyhex)-1]=0;
     fclose(f);
   }
   
   // Read recipe file
-  char filename[1024];
   snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
   LOGI("Opening recipe file %s",filename);
   struct recipe *recipe=recipe_read_from_file(filename);
@@ -233,17 +239,17 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
       return result;
   }
 
-  char *fragments[64];
+  char *fragments[MAX_FRAGMENTS];
   int fragment_count=0;
   encryptAndFragmentBuffer(succinct,succinct_len,fragments,&fragment_count,mtu,
 			   publickeyhex);
   
-  jObjectArray result=
-    (jobjectArray)env->NewObjectArray(fragment_count,
-				      env->FindClass("java/lang/String"),
-         env->NewStringUTF(""));
+  jobjectArray result=
+    (jobjectArray)(*env)->NewObjectArray(env,fragment_count,
+				      (*env)->FindClass(env,"java/lang/String"),
+         (*env)->NewStringUTF(env,""));
   for(int i=0;i<fragment_count;i++) {
-    env->SetObjectArrayElement(result,i,env->NewStringUTF(fragments[i]));
+    (*env)->SetObjectArrayElement(env,result,i,(*env)->NewStringUTF(env,fragments[i]));
     free(fragments[i]);
   }
     
