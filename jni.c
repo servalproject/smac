@@ -52,7 +52,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   // Read public key hex
   snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
   LOGI("Opening recipient public key file %s",filename);
-  char publickeyhex[1024];
+  char publickeyhex[1024]="";
   {
     FILE *f=fopen(filename,"r");
     if (!f) {
@@ -66,8 +66,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
 	snprintf(message,1024,"Failed to read from public key file");
 	return error_message(env,message);
       }
+      publickeyhex[r]=0;
     }
-    publickeyhex[r]=0;
     while(publickeyhex[strlen(publickeyhex)-1]<' ') publickeyhex[strlen(publickeyhex)-1]=0;
     fclose(f);
   }
