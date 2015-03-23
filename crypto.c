@@ -362,8 +362,10 @@ int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
   int offset=0;
   
   printf("Reassembling %s\n",f->prefix);
-  for(int i=0;i<=f->frag_count;i++)
+  for(int i=0;i<=f->frag_count;i++) {
     base64_extract(&f->pieces[i][10],buffer,&offset);
+    printf("  fragment '%s'\n",f->pieces[i]);
+  }
 
   unsigned char nonce[crypto_box_NONCEBYTES];
   int nonce_len=0;
@@ -374,6 +376,13 @@ int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
     nonce[i]=nonce[o++];
   }
 
+  printf("Preparing to decrypt %d bytes.\n",offset);
+  if (offset<=(crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES))
+    {
+      printf("Message too short -- ignoring.\n");
+      return -1;
+    }
+  
   unsigned char msg_pk[crypto_box_PUBLICKEYBYTES];
 
   /*
@@ -396,9 +405,9 @@ int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
   offset-=crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES;
   bcopy(&buffer[offset],
 	&msg_pk[crypto_box_BOXZEROBYTES],crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES);
-
+  
   unsigned char enclaire[32768];
-  bzero(enclaire,32768);
+  bzero(enclaire,32768);  
   int result = crypto_box_open(enclaire,buffer,
 			       offset,
 			       nonce,msg_pk,sk);

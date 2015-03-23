@@ -117,7 +117,9 @@ int main(int argc,char *argv[])
 #endif
   
   if (!h) {
-    fprintf(stderr,"Could not read stats.dat.\n");
+    char working_dir[1024];
+    getcwd(working_dir,1024);
+    fprintf(stderr,"Could not read stats.dat (pwd='%s').\n",working_dir);
     exit(-1);
   }
 
