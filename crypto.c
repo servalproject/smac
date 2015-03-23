@@ -29,10 +29,6 @@ int crypto_scalarmult_curve25519_ref_base(unsigned char *q,const unsigned char *
 
 void randombytes(unsigned char *buf,unsigned long long len)
 {
-#ifdef ANDROID
-  LOGI("randombytes: buf=%p, len=%lld (0x%llx)",buf,len,len);
-#endif
-  CHECKPOINT();
   static int urandomfd = -1;
   int tries = 0;
   if (urandomfd == -1) {
@@ -45,7 +41,6 @@ void randombytes(unsigned char *buf,unsigned long long len)
       exit(-1);
     }
   }
-  CHECKPOINT();
   tries = 0;
   while (len > 0) {
     ssize_t i = read(urandomfd, buf, (len < 1048576) ? len : 1048576);
@@ -59,7 +54,6 @@ void randombytes(unsigned char *buf,unsigned long long len)
       len -= i;
     }
   }
-  CHECKPOINT();
   return;
 }
 
@@ -102,13 +96,9 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
   // This key is then discarded after so that only the recipient can decrypt it once
   // it has been encrypted
 
-  CHECKPOINT();
-
   unsigned char pk[crypto_box_PUBLICKEYBYTES];
   unsigned char sk[crypto_box_SECRETKEYBYTES];
   crypto_box_keypair(pk,sk);
-
-  CHECKPOINT();
 
   /* Output message will consist of encrypted version of original preceded by 
      crypto_box_ZEROBYTES which will hold the authentication information.
@@ -127,8 +117,6 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
     nonce[i]=nonce[o++];
   }
 
-  CHECKPOINT();
-
   // Prepare message with space for authentication code and public key
   unsigned long long template_len
     = in_len + crypto_box_ZEROBYTES;
@@ -141,8 +129,6 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
     fprintf(stderr,"crypto_box failed\n");
     exit(-1);
   }
-
-  CHECKPOINT();
 
   {
     unsigned char temp[32768];
@@ -160,8 +146,6 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
 	crypto_box_PUBLICKEYBYTES-crypto_box_BOXZEROBYTES);
   (*out_len)=in_len+crypto_box_PUBLICKEYBYTES
     +(crypto_box_ZEROBYTES-crypto_box_BOXZEROBYTES);
-
-  CHECKPOINT();
 
   return 0;
 }
@@ -230,14 +214,10 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
 			     char *fragments[MAX_FRAGMENTS],int *fragment_count,
 			     int mtu,char *publickeyhex)
 {
-  CHECKPOINT();
-
   unsigned char nonce[crypto_box_NONCEBYTES];
   int nonce_len=6;
   randombytes(nonce,6);
 
-  CHECKPOINT();
-  
   unsigned char pk[crypto_box_PUBLICKEYBYTES];
   char hex[3];
   hex[2]=0;
@@ -248,15 +228,11 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
       pk[i]=strtoll(hex,NULL,16);
     }
 
-  CHECKPOINT();
-
   unsigned char *out_buffer=alloca(32768);
   int out_len=0;
   
   encryptMessage(pk,in_buffer,in_len,
 		 out_buffer,&out_len,nonce,nonce_len);
-
-  CHECKPOINT();
 
   /* Work out how many bytes per fragment:
 
@@ -274,13 +250,9 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
   if (out_len%bytes_per_fragment) frag_count++;
   assert(frag_count<=62);
 
-  CHECKPOINT();
-  
   int frag_number=0;
   for(int i=0;i<out_len;i+=bytes_per_fragment)
     {
-      CHECKPOINT();
-
       if ((*fragment_count)>=MAX_FRAGMENTS) return -1;
       
       int bytes=bytes_per_fragment;
@@ -297,8 +269,6 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
       fragment[offset]=0;
       
       fragments[(*fragment_count)++]=strdup(fragment);
-
-      CHECKPOINT();
     }
   
   return 0;
