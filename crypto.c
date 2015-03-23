@@ -8,6 +8,13 @@
 #include "md5.h"
 #include "crypto_box.h"
 
+#define MAX_FRAGMENTS 64
+struct fragment_set {
+  int frag_count;
+  char *prefix;
+  char *pieces[MAX_FRAGMENTS];
+};
+
 int crypto_scalarmult_curve25519_ref_base(unsigned char *q,const unsigned char *n);
 
 void randombytes(unsigned char *buf,int len)
@@ -192,23 +199,11 @@ int base64_append(char *out,int *out_offset,unsigned char *bytes,int count)
   }
   return 0;
 }
-
-int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhex)
+  
+int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
+			     char *fragments[MAX_FRAGMENTS],int *fragment_count,
+			     int mtu,char *publickeyhex)
 {
-  /* Read a file, encrypt it, break it into fragments and write them into the output
-     directory. */
-
-  unsigned char in_buffer[16384];
-  FILE *f=fopen(filename,"r");
-  assert(f);
-  int r=fread(in_buffer,1,16384,f);
-  assert(r>0);
-  if (r>=16384) {
-    fprintf(stderr,"File must be <16KB\n");
-  }
-  fclose(f);
-  in_buffer[r]=0;
-
   unsigned char nonce[crypto_box_NONCEBYTES];
   int nonce_len=6;
   randombytes(nonce,6);
@@ -226,7 +221,7 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   unsigned char *out_buffer=alloca(32768);
   int out_len=0;
   
-  encryptMessage(pk,in_buffer,r,
+  encryptMessage(pk,in_buffer,in_len,
 		 out_buffer,&out_len,nonce,nonce_len);
 
   /* Work out how many bytes per fragment:
@@ -245,10 +240,11 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
   if (out_len%bytes_per_fragment) frag_count++;
   assert(frag_count<=62);
 
-  char prefix[16];
   int frag_number=0;
   for(int i=0;i<out_len;i+=bytes_per_fragment)
     {
+      if ((*fragment_count)>=MAX_FRAGMENTS) return -1;
+      
       int bytes=bytes_per_fragment;
       if (bytes>(out_len-i)) bytes=out_len-i;
 
@@ -261,30 +257,50 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir, char *publickeyhe
       base64_append(fragment,&offset,&out_buffer[i],bytes);
 
       fragment[offset]=0;
-
-      char filename[1024];
-      for(int i=0;i<10;i++) prefix[i]=fragment[i]; prefix[10]=0;
-      snprintf(filename,1024,"%s/%s",outputdir,prefix);
-      FILE *f=fopen(filename,"w");
-      if (f) {
-	fprintf(f,"%s",fragment);
-	fclose(f);
-      }
       
-      frag_number++;
+      fragments[(*fragment_count)++]=strdup(fragment);
     }
-  printf("Wrote %d fragments.  Message prefix is '%s'\n",
-	 frag_number,frag_number?&prefix[2]:"N/A");
   
-  return -1;
+  return 0;
 }
 
-#define MAX_FRAGMENTS 64
-struct fragment_set {
-  int frag_count;
-  char *prefix;
-  char *pieces[MAX_FRAGMENTS];
-};
+int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex)
+{
+  /* Read a file, encrypt it, break it into fragments and write them into the output
+     directory. */
+
+  unsigned char in_buffer[16384];
+  FILE *f=fopen(filename,"r");
+  assert(f);
+  int r=fread(in_buffer,1,16384,f);
+  assert(r>0);
+  if (r>=16384) {
+    fprintf(stderr,"File must be <16KB\n");
+  }
+  fclose(f);
+  in_buffer[r]=0;
+
+  char *fragments[MAX_FRAGMENTS];
+  int fragment_count=0;
+  
+  encryptAndFragmentBuffer(in_buffer,r,fragments,&fragment_count,
+			   mtu,publickeyhex);
+
+  if (fragment_count<1) return 0;
+  
+  // Now write fragments out to files
+  for(int j=0;j<fragment_count;j++) {
+    char filename[1024], prefix[11];
+    for(int i=0;i<10;i++) prefix[i]=fragments[j][i]; prefix[10]=0;
+    snprintf(filename,1024,"%s/%s",outputdir,prefix);
+    FILE *f=fopen(filename,"w");
+    if (f) {
+      fprintf(f,"%s",fragments[j]);
+      fclose(f);
+    }
+  }
+  return fragment_count;
+}
 
 int base64_extract(char *in,unsigned char *out,int *out_len)
 {
