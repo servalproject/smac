@@ -86,6 +86,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   // Transform XML to stripped data first.
   int stripped_len=xml2stripped(formname_c,xmldata,strlen(xmldata),stripped,8192);
 
+  LOGI("Stripped data is %d bytes long",stripped_len);
+  
   if (stripped_len>0) {
     // Produce succinct data
 
@@ -103,6 +105,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
 
     // Compress stripped data to form succinct data
     succinct_len=recipe_compress(h,recipe,stripped,stripped_len,succinct,sizeof(succinct));
+
+    LOGI("Binary succinct data is %d bytes long",stripped_len);
 
     // Clean up after ourselves
     stats_handle_free(h);
@@ -126,6 +130,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   int fragment_count=0;
   encryptAndFragmentBuffer(succinct,succinct_len,fragments,&fragment_count,mtu,
 			   publickeyhex);
+
+  LOGI("Succinct data formed into %d fragments",fragment_count);
   
   jobjectArray result=
     (jobjectArray)(*env)->NewObjectArray(env,fragment_count,
