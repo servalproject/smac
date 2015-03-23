@@ -157,6 +157,24 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
   unsigned char succinct[1024];
   int succinct_len=0;
 
+  // Read public key hex
+  snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
+  LOGI("Opening recipient public key file %s",filename);
+  char publickeyhex[1024];
+  {
+    FILE *f=fopen(filename,"r");
+    if (!f) {
+      LOGI("Failed to open public key file");
+    }
+    int r=fread(publickeyhex,1,1023,f);
+    if (r<64) {
+      LOGI("Failed to read from public key file");
+      return -1;
+    }
+    publickeyhex[r]=0;
+    fclose(f);
+  }
+  
   // Read recipe file
   char filename[1024];
   snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
