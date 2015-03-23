@@ -13,7 +13,6 @@
 #include "packed_stats.h"
 #include "smac.h"
 #include "recipe.h"
-
 #define MAX_FRAGMENTS 64
 int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
 			     char *fragments[MAX_FRAGMENTS],int *fragment_count,
@@ -57,13 +56,12 @@ JNIEXPORT jint JNICALL Java_org_servalproject_succinctdata_jni_updatecsv
   return 0;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinctfragments
+JNIEXPORT jByteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinct
 (JNIEnv * env, jobject jobj,
  jstring xmlforminstance,
  jstring formname,
  jstring formversion,
- jstring succinctpath,
- jint mtu)
+ jstring succinctpath)
 {
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
   const char *formname_c= (*env)->GetStringUTFChars(env,formname,0);
@@ -141,8 +139,21 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   return result;  
 }
 
+jobjectArray error_message(JNIEnv * env, char *message)
+{
+  LOGI("%s",message);
+      
+  jobjectArray result=
+    (jobjectArray)(*env)->NewObjectArray(env,1,
+					 (*env)->FindClass(env,"java/lang/String"),
+					 (*env)->NewStringUTF(env,""));
+  (*env)->SetObjectArrayElement(env,result,0,(*env)->NewStringUTF(env,message));
 
-JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinct
+  return result;
+}
+
+
+JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinctfragments
 (JNIEnv * env, jobject jobj,
  jstring xmlforminstance,
  jstring formname,
@@ -167,15 +178,16 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
   {
     FILE *f=fopen(filename,"r");
     if (!f) {
-      LOGI("Failed to open public key file");
-    }
-    int r=fread(publickeyhex,1,1023,f);
-    if (r<64) {
-      LOGI("Failed to read from public key file");
-      jbyteArray result=(*env)->NewByteArray(env, 1);
-      unsigned char ret=7;
-      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
-      return result;
+      char message[1024];
+      snprintf(message,1024,"Failed to open public key file");
+      return error_message(env,message);
+    } else {
+      int r=fread(publickeyhex,1,1023,f);
+      if (r<64) {
+	char message[1024];
+	snprintf(message,1024,"Failed to read from public key file");
+	return error_message(env,message);
+      }
     }
     publickeyhex[r]=0;
     while(publickeyhex[strlen(publickeyhex)-1]<' ') publickeyhex[strlen(publickeyhex)-1]=0;
@@ -188,11 +200,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
   struct recipe *recipe=recipe_read_from_file(filename);
   
   if (!recipe) {
-    LOGI("Could not read recipe file %s",filename);
-    jbyteArray result=(*env)->NewByteArray(env, 1);
-    unsigned char ret=2;
-    (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
-    return result;
+    char message[1024];
+    snprintf(message,1024,"Could not read recipe file %s",filename);
+    return error_message(env,message);
   }
 
   // Transform XML to stripped data first.
@@ -207,12 +217,10 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     stats_handle *h=stats_new_handle(filename);
 
     if (!h) {
-      LOGI("Could not read SMAC stats file %s",filename);
       recipe_free(recipe);
-      jbyteArray result=(*env)->NewByteArray(env, 1);
-      unsigned char ret=1;
-      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
-      return result;
+      char message[1024];
+      snprintf(message,1024,"Could not read SMAC stats file %s",filename);
+      return error_message(env,message);
     }
 
     // Compress stripped data to form succinct data
@@ -224,19 +232,16 @@ JNIEXPORT jbyteArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinc
     snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
 
     if (succinct_len<1) {
-      LOGI("recipe_compess failed with recipe file %s. h=%p, recipe=%p, stripped_len=%d",filename,h,recipe,stripped_len);
-      jbyteArray result=(*env)->NewByteArray(env, 1);
-      unsigned char ret=3;
-      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
-      return result;
-    }
-  } else {    
-      LOGI("Failed to strip XML using recipe file %s.",filename);
       recipe_free(recipe);
-      jbyteArray result=(*env)->NewByteArray(env, 1);
-      unsigned char ret=4;
-      (*env)->SetByteArrayRegion(env, result, 0, 1, &ret);
-      return result;
+      char message[1024];
+      snprintf(message,1024,"recipe_compess failed with recipe file %s. h=%p, recipe=%p, stripped_len=%d",filename,h,recipe,stripped_len);
+      return error_message(env,message);
+    }
+  } else {
+    recipe_free(recipe);
+    char message[1024];
+    snprintf(message,1024,"Failed to strip XML using recipe file %s.",filename);
+    return error_message(env,message);
   }
 
   char *fragments[MAX_FRAGMENTS];
