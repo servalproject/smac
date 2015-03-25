@@ -274,7 +274,7 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
       char fragment[mtu+1];
       int offset=0;
 
-      fragment[offset++]=num_to_char(frag_number);
+      fragment[offset++]=num_to_char(*fragment_count);
       fragment[offset++]=num_to_char(frag_count-1);
       base64_append(fragment,&offset,nonce,6);
       base64_append(fragment,&offset,&out_buffer[i],bytes);
@@ -442,8 +442,9 @@ int fragset_count=0;
 int defragmentAndDecrypt(char *inputdir,char *outputdir,char *privatekeypassphrase)
 {
   unsigned char *sk = private_key_from_passphrase(privatekeypassphrase);
+  if (!sk) { fprintf(stderr,"Failed to read passphrase\n"); exit(-1); }
   unsigned char pk[crypto_box_PUBLICKEYBYTES];
-  crypto_scalarmult_curve25519_ref_base(pk,sk);
+  crypto_scalarmult_curve25519_ref_base(pk,sk);  
   fprintf(stderr,"Public key for passphrase: ");
   for(int i=0;i<crypto_box_PUBLICKEYBYTES;i++) fprintf(stderr,"%02x",pk[i]);
   fprintf(stderr,"\n"); 
