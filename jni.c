@@ -34,6 +34,8 @@ jobjectArray error_message(JNIEnv * env, char *message)
   return result;
 }
 
+char form_name[1024],form_version[1024];
+
 JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinctfragments
 (JNIEnv * env, jobject jobj,
  jstring xmlforminstance,
@@ -47,6 +49,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   const char *formname_c= (*env)->GetStringUTFChars(env,formname,0);
   const char *formversion_c= (*env)->GetStringUTFChars(env,formversion,0);
   const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
+  const char *xmlform_c= (*env)->GetStringUTFChars(env,xmlformspecification,0);
   
   char stripped[8192];
   unsigned char succinct[1024];
@@ -76,20 +79,38 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     fclose(f);
   }
 
-  if (xmlformspecification==null) {
+  struct recipe *recipe=NULL;
+  
+  if (xmlformspecification==null||xmlform_c==null||!strlen(xmlform_c)) {
     // Read recipe file
     snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
     LOGI("Opening recipe file %s",filename);
-    struct recipe *recipe=recipe_read_from_file(filename);
+    recipe=recipe_read_from_file(filename);
+    if (!recipe) {
+      char message[1024];
+      snprintf(message,1024,"Could not read recipe file %s",filename);
+      return error_message(env,message);
+    }    
   } else {
     // Create recipe from form specification
-    xml2re
-  }
-  
-  if (!recipe) {
-    char message[1024];
-    snprintf(message,1024,"Could not read recipe file %s",filename);
-    return error_message(env,message);
+    char recipetext[8192];
+    int recipetextLen=8192;
+    char templatetext[65536];
+    int templatetextLen=65536;
+    int r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
+		      form_name,form_version,
+		      reciptetext,&reciptetextLen,
+		      templatetext,&templatetextLen);
+    if (r) {
+      return error_message(env,"Could not create recipe from form specification");
+    }
+    formname_c=form_name; formversion_c=form_version;
+    recipe = recipe_read(form_name,recipetext,reciptetextLen);    
+    if (!recipe) {
+      char message[1024];
+      snprintf(message,1024,"Could not set recipe");
+      return error_message(env,message);
+    }
   }
 
   // Transform XML to stripped data first.
