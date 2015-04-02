@@ -24,6 +24,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #include <string.h>
 #include <ctype.h>
 
+int xmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
+		char *recipetext,int *recipeLen,
+		char *templatetext,int *templateLen);
+
+
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
@@ -265,6 +270,15 @@ void end(void *data, const char *el) //This function is called  by the XML libra
     }
 }  
 
+int appendto(char *out,int *used,int max,char *stuff)
+{
+  int l = strlen(stuff);
+  if (((*used)+l)>=max) return -1;
+  strcpy(&out[*used],stuff);
+  *used+=l;
+  return 0;
+}
+
 int main(int argc, char **argv)
 {
 	if (argc != 2) {
@@ -274,73 +288,108 @@ int main(int argc, char **argv)
 	
     FILE *f=fopen(argv[1],"r");
     char filename[512] = "";
-    XML_Parser parser;
     size_t size;
     char *xmltext;
-    int i ;
-    
-    //ParserCreation
-    parser = XML_ParserCreate(NULL);
-    if (parser == NULL) {
-    	fprintf(stderr, "Parser not created\n");
-    	return (1);
-    }
-    
-    // Tell expat to use functions start() and end() each times it encounters the start or end of an element.
-    XML_SetElementHandler(parser, start, end);    
-    // Tell expat to use function characterData()
-    XML_SetCharacterDataHandler(parser,characterdata);
+
     //Open Xml File
     xmltext = malloc(MAXCHARS);
     size = fread(xmltext, sizeof(char), MAXCHARS, f);
+
+    char recipetext[4096];
+    int recipeLen=4096;
+
+    char templatetext[16384];
+    int templateLen=16384;
+
+    char formname[1024];
+    char formversion[1024];
     
-    //Parse Xml Text
-    if (XML_Parse(parser, xmltext, strlen(xmltext), XML_TRUE) ==
-        XML_STATUS_ERROR) {
-    	fprintf(stderr,
-    		"Cannot parse , file may be too large or not well-formed XML\n");
-    	return (1);
+    int r = xmlToRecipe(xmltext,size,formname,formversion,
+			recipetext,&recipeLen,
+			templatetext,&templateLen);
+
+    if (r) {
+      fprintf(stderr,"xml2recipe failed\n");
+      return(1);
     }
-    
+
     //Create output for RECIPE
-    strcpy(filename,formName);
+    strcpy(filename,formname);
     strcat(filename,".");
-    strcat(filename,formVersion);
+    strcat(filename,formversion);
     strcat(filename,".recipe");
-    FILE *fRecipe=fopen(filename,"w+");
-    if (fRecipe != NULL) {
-        for(i=0;i<xml2recipeLen;i++){
-            fprintf(fRecipe, "%s\n",xml2recipe[i]);
-        }
-        for(i=0;i<selectsLen;i++){
-            fprintf(fRecipe, "%s\n",selects[i]);
-        }
-    } else {
-        printf("Unable to open file .recipe\n");
-    }
-    
+    fprintf(stderr,"Writing recipe to '%s'\n",filename);
+    f=fopen(filename,"w");
+    fprintf(f,"%s",recipetext);
+    fclose(f);
+
     //Create output for TEMPLATE
-    strcpy(filename,formName);
+    strcpy(filename,formname);
     strcat(filename,".");
-    strcat(filename,formVersion);
+    strcat(filename,formversion);
     strcat(filename,".template");
     fprintf(stderr,"Writing template to '%s'\n",filename);
-    FILE *fTemplate=fopen(filename,"w+");
-    if (fTemplate != NULL) {
-        for(i=0;i<xml2templateLen;i++){
-            fprintf(fTemplate, "%s",xml2template[i]);
-        }
-    } else {
-        printf("Unable to open file .template\n");
-    }
-    //Close
+    f=fopen(filename,"w");
+    fprintf(f,"%s",templatetext);
     fclose(f);
-    fclose(fTemplate);
-    fclose(fRecipe);
-    XML_ParserFree(parser);
-    fprintf(stderr, "\n\nSuccessfully parsed %i characters !\n", (int)size);
-    return (0);
+
+    return 0;
 }
+    
+int xmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
+		char *recipetext,int *recipeLen,
+		char *templatetext,int *templateLen)
+{
+  XML_Parser parser;
+  int i ;
+  
+  //ParserCreation
+  parser = XML_ParserCreate(NULL);
+  if (parser == NULL) {
+    fprintf(stderr, "Parser not created\n");
+    return (1);
+  }
+    
+  // Tell expat to use functions start() and end() each times it encounters the start or end of an element.
+  XML_SetElementHandler(parser, start, end);    
+  // Tell expat to use function characterData()
+  XML_SetCharacterDataHandler(parser,characterdata);
+  
+  //Parse Xml Text
+  if (XML_Parse(parser, xmltext, strlen(xmltext), XML_TRUE) ==
+      XML_STATUS_ERROR) {
+    fprintf(stderr,
+	    "Cannot parse , file may be too large or not well-formed XML\n");
+    return (1);
+  }
+  
+  // Build recipe output
+  int recipeMaxLen=*recipeLen;
+  *recipeLen=0;
+  
+  for(i=0;i<xml2recipeLen;i++){
+    if (appendto(recipetext,recipeLen,recipeMaxLen,xml2recipe[i])) return -1;
+    if (appendto(recipetext,recipeLen,recipeMaxLen,"\n")) return -1;
+  }
+  for(i=0;i<selectsLen;i++){
+    if (appendto(recipetext,recipeLen,recipeMaxLen,selects[i])) return -1;
+    if (appendto(recipetext,recipeLen,recipeMaxLen,"\n")) return -1;
+  }
+  
+  int templateMaxLen=*templateLen;
+  *templateLen=0;
+  for(i=0;i<xml2templateLen;i++){
+    if (appendto(templatetext,templateLen,templateMaxLen,xml2template[i]))
+      return -1;
+    if (appendto(templatetext,templateLen,templateMaxLen,"\n")) return -1;
+  }
 
- 
-
+  snprintf(formname,1024,"%s",formName);
+  snprintf(formversion,1024,"%s",formVersion);
+  
+  XML_ParserFree(parser);
+  fprintf(stderr, "\n\nSuccessfully parsed %i characters !\n", (int)size);
+  fprintf(stderr,"formName=%s, formVersion=%s\n",
+	  formName,formVersion);
+  return (0);
+}
