@@ -37,6 +37,7 @@ jobjectArray error_message(JNIEnv * env, char *message)
 JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succinctfragments
 (JNIEnv * env, jobject jobj,
  jstring xmlforminstance,
+ jstring xmlformspecification,
  jstring formname,
  jstring formversion,
  jstring succinctpath,
@@ -74,11 +75,16 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     while(publickeyhex[strlen(publickeyhex)-1]<' ') publickeyhex[strlen(publickeyhex)-1]=0;
     fclose(f);
   }
-  
-  // Read recipe file
-  snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
-  LOGI("Opening recipe file %s",filename);
-  struct recipe *recipe=recipe_read_from_file(filename);
+
+  if (xmlformspecification==null) {
+    // Read recipe file
+    snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
+    LOGI("Opening recipe file %s",filename);
+    struct recipe *recipe=recipe_read_from_file(filename);
+  } else {
+    // Create recipe from form specification
+    xml2re
+  }
   
   if (!recipe) {
     char message[1024];

@@ -1,6 +1,7 @@
 CC=gcc
 COPT=-g -Wall -O3
 CFLAGS=-g -Wall -O3 -Inacl/include
+LIBS=-lexpat
 DEFS=
 
 OBJS=	main.o \
@@ -8,6 +9,7 @@ OBJS=	main.o \
 	smac.o \
 	\
 	recipe.o \
+	xml2recipe.o \
 	map.o \
 	dexml.o \
 	md5.o \
@@ -64,7 +66,7 @@ gen_stats:	gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o u
 	gcc $(CFLAGS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
 
 smac:	$(OBJS)
-	gcc -g -Wall -o smac $(OBJS)
+	gcc -g -Wall -o smac $(OBJS) $(LIBS)
 
 gsinterpolative:	gsinterpolative.c $(OBJS)
 	gcc -g -Wall -DSTANDALONE -o gsinterpolative{,.c} arithmetic.o
@@ -83,7 +85,3 @@ out.odt:	content.xml
 
 extract_instance_with_library:	extract_instance_with_library.c Makefile
 	$(CC) $(CFLAGS) -o extract_instance_with_library extract_instance_with_library.c -lexpat
-
-xml2recipe:	xml2recipe.c Makefile
-	$(CC) $(CFLAGS) -o xml2recipe xml2recipe.c -lexpat
-

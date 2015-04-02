@@ -279,18 +279,18 @@ int appendto(char *out,int *used,int max,char *stuff)
   return 0;
 }
 
-int main(int argc, char **argv)
+int recipe_create(char *input)
 {
-	if (argc != 2) {
-    	fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
-    	return (1);
-    }
-	
-    FILE *f=fopen(argv[1],"r");
+    FILE *f=fopen(input,"r");
     char filename[512] = "";
     size_t size;
     char *xmltext;
 
+    if (!f) {
+      fprintf(stderr,"Could not read XML file '%s'\n",input);
+      return -1;
+    }
+    
     //Open Xml File
     xmltext = malloc(MAXCHARS);
     size = fread(xmltext, sizeof(char), MAXCHARS, f);
