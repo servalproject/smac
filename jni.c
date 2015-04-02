@@ -81,7 +81,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
 
   struct recipe *recipe=NULL;
   
-  if (xmlformspecification==null||xmlform_c==null||!strlen(xmlform_c)) {
+  if (xmlformspecification==NULL||xmlform_c==NULL||!strlen(xmlform_c)) {
     // Read recipe file
     snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
     LOGI("Opening recipe file %s",filename);
@@ -99,13 +99,13 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     int templatetextLen=65536;
     int r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
 		      form_name,form_version,
-		      reciptetext,&reciptetextLen,
+		      recipetext,&recipetextLen,
 		      templatetext,&templatetextLen);
     if (r) {
       return error_message(env,"Could not create recipe from form specification");
     }
     formname_c=form_name; formversion_c=form_version;
-    recipe = recipe_read(form_name,recipetext,reciptetextLen);    
+    recipe = recipe_read(form_name,recipetext,recipetextLen);    
     if (!recipe) {
       char message[1024];
       snprintf(message,1024,"Could not set recipe");

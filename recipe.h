@@ -45,6 +45,7 @@ struct recipe {
 
 int recipe_main(int argc,char *argv[],stats_handle *h);
 struct recipe *recipe_read_from_file(char *filename);
+struct recipe *recipe_read(char *formname,char *buffer,int buffer_size);
 int stripped2xml(char *stripped,int stripped_len,char *template,int template_len,char *xml,int xml_size);
 int xml2stripped(const char *form_name, const char *xml,int xml_len,char *stripped,int stripped_size);
 
