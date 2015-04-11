@@ -51,7 +51,7 @@ OBJS=	main.o \
 
 HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h Makefile
 
-all: smac xml2recipe arithmetic gsinterpolative gen_stats
+all: smac arithmetic gen_stats
 
 clean:
 	rm -rf gen_stats smac
