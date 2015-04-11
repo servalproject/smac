@@ -24,6 +24,14 @@
 #include <string.h>
 #include <ctype.h>
 
+char *strgrow(char *in, char *new)
+{
+  char *out = malloc(strlen(in)+strlen(new)+1);
+  snprintf(out,strlen(in)+strlen(new)+1,"%s%s",in,new);
+  free(in);
+  return out;
+}
+
 int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 		  char *recipetext,int *recipeLen,
 		  char *templatetext,int *templateLen);
@@ -56,14 +64,18 @@ int      xhtml_in_value = 0;
 
 #define MAXCHARS 1000000
 
-
+char temp[1024];
 
 void
 start_xhtml(void *data, const char *el, const char **attr) //This function is called  by the XML library each time it sees a new tag 
 {   
   char    *node_name = "", *node_type = "", *node_constraint = "", *str = "";
   int     i ;
-    
+
+  printf("start_xhtml(): el = %s\n",el);
+  for(i=0;attr[i];i++)
+    printf("  % 2d: '%s'\n",i,attr[i]);
+  
   if (xhtml_in_instance) { // We are between <instance> tags, so we want to get everything to create template file
     str = calloc (4096, sizeof(char*));
     strcpy (str, "<");
@@ -84,13 +96,11 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
   else if ((!strcasecmp("bind",el))||(!strcasecmp("xf:bind",el))) 
     {
       for (i = 0; attr[i]; i += 2) //Found a bind element, look for attributes
-	{ 
-	    
+	{ 	    
 	  //Looking for attribute nodeset
 	  if (!strncasecmp("nodeset",attr[i],strlen("nodeset"))) {
 	    char *last_slash = strrchr(attr[i+1], '/');
-	    node_name  = calloc (strlen(last_slash), sizeof(char*));
-	    memcpy (node_name, last_slash+1, strlen(last_slash));
+	    node_name = strdup(last_slash+1);
 	  }
 	    
 	  //Looking for attribute type
@@ -105,38 +115,38 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	      const char *attribute=attr[i+1];
 	      // Skip "XXX:" prefixes on types
 	      if (strstr(attribute,":")) attribute=strstr(attribute,":")+1;
-	      node_type  = calloc (strlen(attribute), sizeof(char*));
-	      memcpy (node_type, attribute, strlen(attribute));
+	      node_type  = strdup(attribute);
 	    }
 	  }
 			
 	  //Looking for attribute constraint
 	  if (!strncasecmp("constraint",attr[i],strlen("constraint"))) {
-	    node_constraint  = calloc (strlen(attr[i + 1]), sizeof(char*));
-	    memcpy (node_constraint, attr[i + 1], strlen(attr[i + 1]));
+	    node_constraint  = strdup(attr[i+1]);
 	  }
 	}
 		
       //Now we got node_name, node_type, node_constraint
+      printf("  node_name=%p, node_type=%p, node_constraint=%p\n",
+	     node_name,node_type,node_constraint);
+      printf("  node_name=%s, node_type=%s, node_constraint=%s\n",
+	     node_name,node_type,node_constraint);
       //Lets build output        
       if ((!strcasecmp(node_type,"select"))||(!strcasecmp(node_type,"select1"))) // Select, special case we need to wait later to get all informations (ie the range)
 	{
-	  selects[xhtmlSelectsLen] = node_name;
-	  strcat (selects[xhtmlSelectsLen] ,":");
-	  strcat (selects[xhtmlSelectsLen] ,"enum");
-	  strcat (selects[xhtmlSelectsLen] ,":0:0:0:");
+	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
+	  snprintf(temp,1024,"%s:enum:0:0:0:",node_name);	 
+	  selects[xhtmlSelectsLen] = strdup(temp);
 	  xhtmlSelectsLen++;
 	} 
       else if ((!strcasecmp(node_type,"decimal"))||(!strcasecmp(node_type,"int"))) // Integers and decimal
         {
 	  //printf("%s:%s", node_name,node_type);  
-	  xhtml2recipe[xhtml2recipeLen] = node_name;
-	  strcat (xhtml2recipe[xhtml2recipeLen] ,":");
-	  strcat (xhtml2recipe[xhtml2recipeLen] ,node_type);
+	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
+	  snprintf(temp,1024,"%s:%s",node_name,node_type);
+	  xhtml2recipe[xhtml2recipeLen] = strdup(temp);
             
 	  if (strlen(node_constraint)) {
 	    char *ptr = node_constraint;
-	    char str[15];
 	    int a, b;
 		    
 	    //We look for 0 to 2 digits
@@ -147,82 +157,94 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	    b = atoi(ptr);
 	    if (b<=a) b=a+999;
 	    //printf(":%d:%d:0", MIN(a, b), MAX(a, b));
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,":");
-	    sprintf(str, "%d", MIN(a, b));
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,str);
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,":");
-	    sprintf(str, "%d", MAX(a, b));
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,str);
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,":0");
+	    snprintf(temp,1024,"%s:%s:%d:%d:0",node_name,node_type,MIN(a,b),MAX(a,b));
+	    free(xhtml2recipe[xhtml2recipeLen]);
+	    xhtml2recipe[xhtml2recipeLen] = strdup(temp);
+
 	  } else {
 	    // Default to integers being in the range 0 to 999.
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,":0:999:0");
+	    snprintf(temp,1024,"%s:%s:0:999:0",node_name,node_type);
+	    free(xhtml2recipe[xhtml2recipeLen]);
+	    xhtml2recipe[xhtml2recipeLen] = strdup(temp);
 	  }
 	  xhtml2recipeLen++;
 		  
 	}
       else if (strcasecmp(node_type,"binary")) // All others type except binary (ignore binary fields in succinct data)
         {
+	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	  if (!strcasecmp(node_name,"instanceID")) {
-	    xhtml2recipe[xhtml2recipeLen] = node_name;
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,":");
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,"uuid");
+	    printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
+	    snprintf(temp,1024,"%s:uuid",node_name);
+	    xhtml2recipe[xhtml2recipeLen] = strdup(temp);
 	  }else{    
-	    xhtml2recipe[xhtml2recipeLen] = node_name;
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,":");
-	    strcat (xhtml2recipe[xhtml2recipeLen] ,node_type);
+	    printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
+	    printf("xhtml2recipeLen = %d\n",xhtml2recipeLen);
+	    
+	    snprintf(temp,1024,"%s:%s",node_name,node_type);
+	    xhtml2recipe[xhtml2recipeLen] = strdup(temp);
+	    printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	  }
-	  strcat (xhtml2recipe[xhtml2recipeLen] ,":0:0:0");
+	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
+	  snprintf(temp,1024,"%s:0:0:0",xhtml2recipe[xhtml2recipeLen]);
+	  free(xhtml2recipe[xhtml2recipeLen]);
+	  xhtml2recipe[xhtml2recipeLen] = strdup(temp);
 	  xhtml2recipeLen++;
+	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	}
+      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
     }
     
   //Now look for selects specifications, we wait until to find a select node
-  else if ((!strcasecmp("select1",el))||(!strcasecmp("select",el))) 
+  else if ((!strcasecmp("xf:select1",el))||(!strcasecmp("xf:select",el))) 
     {
+      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
       for (i = 0; attr[i]; i += 2) //Found a select element, look for attributes
         { 
-	  if (!strcasecmp("ref",attr[i])) {
-	    char *last_slash = strrchr(attr[i+1], '/');
-	    node_name  = calloc (strlen(last_slash), sizeof(char*));
-	    memcpy (node_name, last_slash+1, strlen(last_slash));
+	  if (!strcasecmp("bind",attr[i])) {
+	    const char *last_slash = strrchr(attr[i+1], '/');
+	    // Allow for non path-indicated bindings in XHTML forms
+	    if (!last_slash) last_slash=attr[i+1]; else last_slash++;
+	    printf("Found multiple-choice selection definition '%s'\n",last_slash);
+	    node_name  = strdup(last_slash);
+	    xhtmlSelectElem  = node_name;
+	    xhtmlSelectFirst = 1; 
 	  }
         }
-      xhtmlSelectElem  = calloc (strlen(node_name), sizeof(char*));
-      memcpy (xhtmlSelectElem, node_name, strlen(node_name));
-      xhtmlSelectFirst = 1; 
     }
     
   //We are in a select node and we need to find a value element
   else if ((xhtmlSelectElem)&&((!strcasecmp("value",el))||(!strcasecmp("xf:value",el)))) 
     {
+      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
       xhtml_in_value = 1;
     }
     
   //We reached the start of the data in the instance, so start collecting fields
   else if (!strcasecmp("data",el)) 
     {
+      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
       xhtml_in_instance = 1;
     }
   else if (!strcasecmp("xf:model",el))
     {
       // Form name is the id attribute of the xf:model tag
+      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
       for (i = 0; attr[i]; i += 2) { 
 	if (!strcasecmp("id",attr[i])) {
-	  xhtmlFormName  = calloc (strlen(el), sizeof(char*));
-	  memcpy (xhtmlFormName, attr[i+1], strlen(attr[i+1]));
+	  xhtmlFormName  = strdup(attr[i+1]);
 	}
 	if (!strcasecmp("dd:formid",attr[i])) {
-	  xhtmlFormVersion = calloc (strlen(attr[i+1]), sizeof(char*));
-	  memcpy (xhtmlFormVersion, attr[i+1], strlen(attr[i+1]));
+	  xhtmlFormVersion = strdup(attr[i+1]);
 	}
       }
     }
      
-    
+  printf("leaving start_xhtml()\n");
 }
 
-void characterdata_xhtml(void *data, const char *el, int len) //This function is called  by the XML library each time we got data in a tag
+void characterdata_xhtml(void *data, const char *el, int len)
+//This function is called  by the XML library each time we got data in a tag
 {
   int i;
    
@@ -239,9 +261,9 @@ void characterdata_xhtml(void *data, const char *el, int len) //This function is
 	    if (xhtmlSelectFirst) {
 	      xhtmlSelectFirst = 0; 
 	    }else{
-	      strcat (selects[i] ,",");
+	      selects[i] = strgrow (selects[i] ,",");
 	    }
-	    strcat (selects[i] ,x);
+	    selects[i] = strgrow (selects[i] ,x);
 	  }
         }
     }
@@ -254,7 +276,9 @@ void characterdata_xhtml(void *data, const char *el, int len) //This function is
 void end_xhtml(void *data, const char *el) //This function is called  by the XML library each time it sees an ending of a tag
 {
   char *str = "";
-    
+
+  printf("end_xhtml(): el = %s\n",el);
+  
   if (xhtmlSelectElem && ((!strcasecmp("xf:select1",el))||(!strcasecmp("xf:select",el))))  {
     xhtmlSelectElem = NULL;
   }
