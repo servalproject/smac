@@ -38,6 +38,7 @@
 int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex);
 int defragmentAndDecrypt(char *inputdir,char *outputdir,char *passphrase);
 int recipe_create(char *input);
+int xhtml_recipe_create(char *input);
 
 int recipe_parse_fieldtype(char *name)
 {
@@ -1170,6 +1171,12 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       return(-1);
     }      
     return recipe_create(argv[3]);
+  } else if (!strcasecmp(argv[2],"xhcreate")) {
+    if (argc<=3) {
+      fprintf(stderr,"usage: smac recipe create <XHTML form> \n");
+      return(-1);
+    }      
+    return xhtml_recipe_create(argv[3]);
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
       fprintf(stderr,"usage: smac recipe decompress <recipe directory> <succinct data message> <output directory>\n");
