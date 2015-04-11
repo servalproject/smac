@@ -39,21 +39,21 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 //Creation specification stripped file from ODK XML
 //FieldName:Type:Minimum:Maximum:Precision,Select1,Select2,...,SelectN
 
-char     *formName = "", *formVersion = "";
+char     *xhtmlFormName = "", *xhtmlFormVersion = "";
 
 char    *xhtml2template[1024];
 int      xhtml2templateLen = 0;
 char    *xhtml2recipe[1024];
 int      xhtml2recipeLen = 0;
 
-int      in_instance = 0;
-int      in_instance_first = 0;
+int      xhtml_in_instance = 0;
+int      xhtml_in_instance_first = 0;
 
 char    *selects[1024];
-int      selectsLen = 0;
-char    *selectElem = NULL;
-int      selectFirst = 1;
-int      in_value = 0;
+int      xhtmlSelectsLen = 0;
+char    *xhtmlSelectElem = NULL;
+int      xhtmlSelectFirst = 1;
+int      xhtml_in_value = 0;
 
 #define MAXCHARS 1000000
 
@@ -65,7 +65,7 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
     char    *node_name = "", *node_type = "", *node_constraint = "", *str = "";
 	int     i ;
     
-    if (in_instance) { // We are between <instance> tags, so we want to get everything to create template file
+    if (xhtml_in_instance) { // We are between <instance> tags, so we want to get everything to create template file
         str = calloc (4096, sizeof(char*));
         strcpy (str, "<");
         strcat (str, el);
@@ -80,14 +80,14 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	strcat(str,"$"); strcat(str,el); strcat(str,"$");
         xhtml2template[xhtml2templateLen++] = str;
         
-        if (in_instance_first) { // First node since we are in instance, it's the Form Name that we want to get
-            in_instance_first = 0;
-            formName  = calloc (strlen(el), sizeof(char*));
-            memcpy (formName, el,strlen(el));
+        if (xhtml_in_instance_first) { // First node since we are in instance, it's the Form Name that we want to get
+            xhtml_in_instance_first = 0;
+            xhtmlFormName  = calloc (strlen(el), sizeof(char*));
+            memcpy (xhtmlFormName, el,strlen(el));
             for (i = 0; attr[i]; i += 2) { 
                 if (!strcasecmp("version",attr[i])) {
-                    formVersion = calloc (strlen(attr[i+1]), sizeof(char*));
-					memcpy (formVersion, attr[i+1], strlen(attr[i+1]));
+                    xhtmlFormVersion = calloc (strlen(attr[i+1]), sizeof(char*));
+					memcpy (xhtmlFormVersion, attr[i+1], strlen(attr[i+1]));
                 }
             }
         }
@@ -124,11 +124,11 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
         //Lets build output        
 	if ((!strcasecmp(node_type,"select"))||(!strcasecmp(node_type,"select1"))) // Select, special case we need to wait later to get all informations (ie the range)
 		{
-            selects[selectsLen] = node_name;
-            strcat (selects[selectsLen] ,":");
-            strcat (selects[selectsLen] ,"enum");
-            strcat (selects[selectsLen] ,":0:0:0:");
-            selectsLen++;
+            selects[xhtmlSelectsLen] = node_name;
+            strcat (selects[xhtmlSelectsLen] ,":");
+            strcat (selects[xhtmlSelectsLen] ,"enum");
+            strcat (selects[xhtmlSelectsLen] ,":0:0:0:");
+            xhtmlSelectsLen++;
 		} 
 	else if ((!strcasecmp(node_type,"decimal"))||(!strcasecmp(node_type,"int"))) // Integers and decimal
         {
@@ -191,22 +191,22 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 					memcpy (node_name, last_slash+1, strlen(last_slash));
 			}
         }
-        selectElem  = calloc (strlen(node_name), sizeof(char*));
-		memcpy (selectElem, node_name, strlen(node_name));
-        selectFirst = 1; 
+        xhtmlSelectElem  = calloc (strlen(node_name), sizeof(char*));
+		memcpy (xhtmlSelectElem, node_name, strlen(node_name));
+        xhtmlSelectFirst = 1; 
     }
     
     //We are in a select node and we need to find a value element
-    else if ((selectElem)&&((!strcasecmp("value",el))||(!strcasecmp("xf:value",el)))) 
+    else if ((xhtmlSelectElem)&&((!strcasecmp("value",el))||(!strcasecmp("xf:value",el)))) 
     {
-        in_value = 1;
+        xhtml_in_value = 1;
     }
     
     //We reached an instance element, means we have to take everything in it for the .template
     else if (!strcasecmp("instance",el)) 
     {
-        in_instance = 1;
-        in_instance_first = 1;
+        xhtml_in_instance = 1;
+        xhtml_in_instance_first = 1;
     }
      
     
@@ -217,17 +217,17 @@ void characterdata_xhtml(void *data, const char *el, int len) //This function is
 	int i;
    
     
-    if ( selectElem && in_value) 
+    if ( xhtmlSelectElem && xhtml_in_value) 
     {
         char x[len+2]; //el is not null terminated, so copy it to x and add \0
         memcpy(x,el,len);
         memcpy(x+len,"",1);
     
-        for (i = 0; i<selectsLen; i++)
+        for (i = 0; i<xhtmlSelectsLen; i++)
         { 
-			if (!strncasecmp(selectElem,selects[i],strlen(selectElem))) {
-                    if (selectFirst) {
-                        selectFirst = 0; 
+			if (!strncasecmp(xhtmlSelectElem,selects[i],strlen(xhtmlSelectElem))) {
+                    if (xhtmlSelectFirst) {
+                        xhtmlSelectFirst = 0; 
                     }else{
                         strcat (selects[i] ,",");
                     }
@@ -245,19 +245,19 @@ void end_xhtml(void *data, const char *el) //This function is called  by the XML
 {
     char *str = "";
     
-    if (selectElem && ((!strcasecmp("select1",el))||(!strcasecmp("select",el))))  {
-       selectElem = NULL;
+    if (xhtmlSelectElem && ((!strcasecmp("select1",el))||(!strcasecmp("select",el))))  {
+       xhtmlSelectElem = NULL;
     }
     
-    if (in_value && ((!strcasecmp("value",el))||(!strcasecmp("xf:value",el))))  {
-       in_value = 0;
+    if (xhtml_in_value && ((!strcasecmp("value",el))||(!strcasecmp("xf:value",el))))  {
+       xhtml_in_value = 0;
     }
     
-    if (in_instance &&(!strcasecmp("instance",el))) {
-        in_instance = 0;
+    if (xhtml_in_instance &&(!strcasecmp("instance",el))) {
+        xhtml_in_instance = 0;
     }
     
-     if (in_instance) { // We are between <instance> tags, we want to get everything
+     if (xhtml_in_instance) { // We are between <instance> tags, we want to get everything
         str = calloc (4096, sizeof(char*));
         strcpy (str, "</");
         strcat (str, el);
@@ -266,14 +266,7 @@ void end_xhtml(void *data, const char *el) //This function is called  by the XML
     }
 }  
 
-int appendto(char *out,int *used,int max,char *stuff)
-{
-  int l = strlen(stuff);
-  if (((*used)+l)>=max) return -1;
-  strcpy(&out[*used],stuff);
-  *used+=l;
-  return 0;
-}
+int appendto(char *out,int *used,int max,char *stuff);
 
 int xhtml_recipe_create(char *input)
 {
@@ -367,7 +360,7 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
     if (appendto(recipetext,recipeLen,recipeMaxLen,xhtml2recipe[i])) return -1;
     if (appendto(recipetext,recipeLen,recipeMaxLen,"\n")) return -1;
   }
-  for(i=0;i<selectsLen;i++){
+  for(i=0;i<xhtmlSelectsLen;i++){
     if (appendto(recipetext,recipeLen,recipeMaxLen,selects[i])) return -1;
     if (appendto(recipetext,recipeLen,recipeMaxLen,"\n")) return -1;
   }
@@ -380,12 +373,12 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
     if (appendto(templatetext,templateLen,templateMaxLen,"\n")) return -1;
   }
 
-  snprintf(formname,1024,"%s",formName);
-  snprintf(formversion,1024,"%s",formVersion);
+  snprintf(formname,1024,"%s",xhtmlFormName);
+  snprintf(formversion,1024,"%s",xhtmlFormVersion);
   
   XML_ParserFree(parser);
   fprintf(stderr, "\n\nSuccessfully parsed %i characters !\n", (int)size);
-  fprintf(stderr,"formName=%s, formVersion=%s\n",
-	  formName,formVersion);
+  fprintf(stderr,"xhtmlFormName=%s, xhtmlFormVersion=%s\n",
+	  xhtmlFormName,xhtmlFormVersion);
   return (0);
 }
