@@ -325,7 +325,10 @@ int xhtml_recipe_create(char *input)
     strcat(filename,".template");
     fprintf(stderr,"Writing template to '%s'\n",filename);
     f=fopen(filename,"w");
+    fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<form>\n<meta>\n");
+    fprintf(f,"</meta>\n<data>\n");
     fprintf(f,"%s",templatetext);
+    fprintf(f,"</data>\n");
     fclose(f);
 
     return 0;
