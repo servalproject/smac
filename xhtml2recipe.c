@@ -47,7 +47,6 @@ char    *xhtml2recipe[1024];
 int      xhtml2recipeLen = 0;
 
 int      xhtml_in_instance = 0;
-int      xhtml_in_model = 0;
 
 char    *selects[1024];
 int      xhtmlSelectsLen = 0;
@@ -79,24 +78,8 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
         strcat (str, ">");
 	strcat(str,"$"); strcat(str,el); strcat(str,"$");
         xhtml2template[xhtml2templateLen++] = str;
-        
-        if (xhtml_in_model) {
-	  // Form name is the id attribute of the xf:model tag
-            xhtml_in_model = 0;
-            for (i = 0; attr[i]; i += 2) { 
-                if (!strcasecmp("id",attr[i])) {
-		  xhtmlFormName  = calloc (strlen(el), sizeof(char*));
-		  memcpy (xhtmlFormName, attr[i+1], strlen(attr[i+1]));
-		}
-                if (!strcasecmp("dd:formid",attr[i])) {
-		  xhtmlFormVersion = calloc (strlen(attr[i+1]), sizeof(char*));
-		  memcpy (xhtmlFormVersion, attr[i+1], strlen(attr[i+1]));
-                }
-            }
-        }
-
     }
-    
+
     //Looking for bind elements to create the recipe file
 	else if ((!strcasecmp("bind",el))||(!strcasecmp("xf:bind",el))) 
     {
@@ -212,7 +195,17 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
       }
     else if (!strcasecmp("xf:model",el))
       {
-	xhtml_in_model = 1;
+	// Form name is the id attribute of the xf:model tag
+	for (i = 0; attr[i]; i += 2) { 
+	  if (!strcasecmp("id",attr[i])) {
+	    xhtmlFormName  = calloc (strlen(el), sizeof(char*));
+	    memcpy (xhtmlFormName, attr[i+1], strlen(attr[i+1]));
+	  }
+	  if (!strcasecmp("dd:formid",attr[i])) {
+	    xhtmlFormVersion = calloc (strlen(attr[i+1]), sizeof(char*));
+	    memcpy (xhtmlFormVersion, attr[i+1], strlen(attr[i+1]));
+	  }
+	}
       }
      
     
