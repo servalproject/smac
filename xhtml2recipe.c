@@ -328,7 +328,7 @@ int xhtml_recipe_create(char *input)
     fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<form>\n<meta>\n");
     fprintf(f,"</meta>\n<data>\n");
     fprintf(f,"%s",templatetext);
-    fprintf(f,"</data>\n");
+    fprintf(f,"</data>\n</form>\n");
     fclose(f);
 
     return 0;
