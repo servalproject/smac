@@ -332,7 +332,7 @@ int xhtml_recipe_create(char *input)
     return 0;
 }
     
-int xmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
+int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 		char *recipetext,int *recipeLen,
 		char *templatetext,int *templateLen)
 {
