@@ -95,9 +95,11 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	    
 	  //Looking for attribute type
 	  if (!strncasecmp("type",attr[i],strlen("type"))) {
-	      
-	    node_type  = calloc (strlen(attr[i + 1]), sizeof(char*));
-	    memcpy (node_type, attr[i + 1], strlen(attr[i + 1]));
+	    const char *attribute=attr[i+1];
+	    // Skip "XXX:" prefixes on types
+	    if (strstr(attribute,":")) attribute=strstr(attribute,":")+1;
+	    node_type  = calloc (strlen(attribute), sizeof(char*));
+	    memcpy (node_type, attribute, strlen(attribute));
 	  }
 			
 	  //Looking for attribute constraint
