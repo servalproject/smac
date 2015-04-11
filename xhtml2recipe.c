@@ -47,7 +47,7 @@ char    *xhtml2recipe[1024];
 int      xhtml2recipeLen = 0;
 
 int      xhtml_in_instance = 0;
-int      xhtml_in_instance_first = 0;
+int      xhtml_in_model = 0;
 
 char    *selects[1024];
 int      xhtmlSelectsLen = 0;
@@ -80,14 +80,17 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	strcat(str,"$"); strcat(str,el); strcat(str,"$");
         xhtml2template[xhtml2templateLen++] = str;
         
-        if (xhtml_in_instance_first) { // First node since we are in instance, it's the Form Name that we want to get
-            xhtml_in_instance_first = 0;
-            xhtmlFormName  = calloc (strlen(el), sizeof(char*));
-            memcpy (xhtmlFormName, el,strlen(el));
+        if (xhtml_in_model) {
+	  // Form name is the id attribute of the xf:model tag
+            xhtml_in_model = 0;
             for (i = 0; attr[i]; i += 2) { 
-                if (!strcasecmp("version",attr[i])) {
-                    xhtmlFormVersion = calloc (strlen(attr[i+1]), sizeof(char*));
-					memcpy (xhtmlFormVersion, attr[i+1], strlen(attr[i+1]));
+                if (!strcasecmp("id",attr[i])) {
+		  xhtmlFormName  = calloc (strlen(el), sizeof(char*));
+		  memcpy (xhtmlFormName, attr[i+1], strlen(attr[i+1]));
+		}
+                if (!strcasecmp("dd:formid",attr[i])) {
+		  xhtmlFormVersion = calloc (strlen(attr[i+1]), sizeof(char*));
+		  memcpy (xhtmlFormVersion, attr[i+1], strlen(attr[i+1]));
                 }
             }
         }
@@ -202,12 +205,15 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
         xhtml_in_value = 1;
     }
     
-    //We reached an instance element, means we have to take everything in it for the .template
-    else if (!strcasecmp("instance",el)) 
-    {
+    //We reached the start of the data in the instance, so start collecting fields
+    else if (!strcasecmp("data",el)) 
+      {
         xhtml_in_instance = 1;
-        xhtml_in_instance_first = 1;
-    }
+      }
+    else if (!strcasecmp("xf:model",el))
+      {
+	xhtml_in_model = 1;
+      }
      
     
 }
@@ -253,7 +259,7 @@ void end_xhtml(void *data, const char *el) //This function is called  by the XML
        xhtml_in_value = 0;
     }
     
-    if (xhtml_in_instance &&(!strcasecmp("instance",el))) {
+    if (xhtml_in_instance &&(!strcasecmp("data",el))) {
         xhtml_in_instance = 0;
     }
     
