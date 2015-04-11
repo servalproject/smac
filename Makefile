@@ -10,6 +10,7 @@ OBJS=	main.o \
 	\
 	recipe.o \
 	xml2recipe.o \
+	xhtml2recipe.o \
 	map.o \
 	dexml.o \
 	md5.o \
