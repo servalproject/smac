@@ -95,11 +95,19 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	    
 	  //Looking for attribute type
 	  if (!strncasecmp("type",attr[i],strlen("type"))) {
-	    const char *attribute=attr[i+1];
-	    // Skip "XXX:" prefixes on types
-	    if (strstr(attribute,":")) attribute=strstr(attribute,":")+1;
-	    node_type  = calloc (strlen(attribute), sizeof(char*));
-	    memcpy (node_type, attribute, strlen(attribute));
+	    if (!strcasecmp(attr[i+1],"xsd:dropdown")) {
+	      // Dropdown is a synonym for select1 (multiple choice)
+	      node_type = strdup("select1");
+	    } else if (!strcasecmp(attr[i+1],"xsd:radio")) {
+	      // So is radio
+	      node_type = strdup("select1");
+	    } else {
+	      const char *attribute=attr[i+1];
+	      // Skip "XXX:" prefixes on types
+	      if (strstr(attribute,":")) attribute=strstr(attribute,":")+1;
+	      node_type  = calloc (strlen(attribute), sizeof(char*));
+	      memcpy (node_type, attribute, strlen(attribute));
+	    }
 	  }
 			
 	  //Looking for attribute constraint
@@ -247,7 +255,7 @@ void end_xhtml(void *data, const char *el) //This function is called  by the XML
 {
   char *str = "";
     
-  if (xhtmlSelectElem && ((!strcasecmp("select1",el))||(!strcasecmp("select",el))))  {
+  if (xhtmlSelectElem && ((!strcasecmp("xf:select1",el))||(!strcasecmp("xf:select",el))))  {
     xhtmlSelectElem = NULL;
   }
     
