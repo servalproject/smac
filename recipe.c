@@ -319,9 +319,6 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   int minimum;
   int maximum;
   int precision;
-  int h,m,s,d,y;
-  float lat,lon;
-  int ilat,ilon;
 
   int r;
   
@@ -1054,6 +1051,10 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 	LOGI("Appending CSV line: %s\n",line);
 	if (f) {
 	  int wrote=fwrite(line,strlen(line),1,f);
+	  if (wrote<strlen(line)) {
+	    fprintf(stderr,"Failed to produce CSV line (short write)\n");
+	  }
+				  
 	}
 	fclose(f);
       } else {
