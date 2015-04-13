@@ -24,6 +24,18 @@
 #include <string.h>
 #include <ctype.h>
 
+char *implied_meta_fields =
+  "email:string:0:0:0\n"
+  "password:string:0:0:0\n"
+  "formid:string:0:0:0\n"
+  "lastsubmittime:date:0:0:0\n"
+  "endrecordtime:date:0:0:0\n"
+  "startrecordtime:date:0:0:0\n"
+  "version:string:0:0:0\n"
+  "uuid:magpiuuid:0:0:0\n"
+  "latitutde:float:0:180:0\n"
+  "longitude:float:0:180:0\n";
+
 char *strgrow(char *in, char *new)
 {
   char *out = malloc(strlen(in)+strlen(new)+1);
@@ -343,6 +355,7 @@ int xhtml_recipe_create(char *input)
   strcat(filename,".recipe");
   fprintf(stderr,"Writing recipe to '%s'\n",filename);
   f=fopen(filename,"w");
+  fprintf(f,"%s",implied_meta_fields);
   fprintf(f,"%s",recipetext);
   fclose(f);
 
