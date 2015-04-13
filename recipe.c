@@ -57,6 +57,8 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"geopoint")) return FIELDTYPE_LATLONG;
   if (!strcasecmp(name,"text")) return FIELDTYPE_TEXT;
   if (!strcasecmp(name,"string")) return FIELDTYPE_TEXT;
+  if (!strcasecmp(name,"image")) return FIELDTYPE_TEXT;
+  if (!strcasecmp(name,"information")) return FIELDTYPE_TEXT;
   if (!strcasecmp(name,"uuid")) return FIELDTYPE_UUID;
   if (!strcasecmp(name,"magpiuuid")) return FIELDTYPE_MAGPIUUID;
   if (!strcasecmp(name,"enum")) return FIELDTYPE_ENUM;
