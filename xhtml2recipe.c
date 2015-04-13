@@ -35,6 +35,19 @@ char *implied_meta_fields =
   "uuid:magpiuuid:0:0:0\n"
   "latitutde:float:-90:90:0\n"
   "longitude:float:-200:200:0\n";
+char *implied_meta_fields_template =
+  "<email>$email$</email>\n"
+  "<password>$password$</password>\n"
+  "<formid>$formid$</formid>\n"
+  "<lastsubmittime>$lastsubmittime$</lastsubmittime>\n"
+  "<endrecordtime>$endrecordtime$</endrecordtime>\n"
+  "<startrecordtime>$startrecordtime$</startrecordtime>\n"
+  "<version>$version$</version>\n"
+  "<uuid>$uuid$</uuid>\n"
+  "<geotag>\n"
+  "  <longitude>$longitude$</longitude>\n"
+  "  <latitude>$latitude$</latitude>\n"
+  "</geotag>\n";
 
 char *strgrow(char *in, char *new)
 {
@@ -84,10 +97,6 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
   char    *node_name = "", *node_type = "", *node_constraint = "", *str = "";
   int     i ;
 
-  printf("start_xhtml(): el = %s\n",el);
-  for(i=0;attr[i];i++)
-    printf("  % 2d: '%s'\n",i,attr[i]);
-  
   if (xhtml_in_instance) { // We are between <instance> tags, so we want to get everything to create template file
     str = calloc (4096, sizeof(char*));
     strcpy (str, "<");
@@ -138,14 +147,9 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	}
 		
       //Now we got node_name, node_type, node_constraint
-      printf("  node_name=%p, node_type=%p, node_constraint=%p\n",
-	     node_name,node_type,node_constraint);
-      printf("  node_name=%s, node_type=%s, node_constraint=%s\n",
-	     node_name,node_type,node_constraint);
       //Lets build output        
       if ((!strcasecmp(node_type,"select"))||(!strcasecmp(node_type,"select1"))) // Select, special case we need to wait later to get all informations (ie the range)
 	{
-	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	  snprintf(temp,1024,"%s:enum:0:0:0:",node_name);	 
 	  selects[xhtmlSelectsLen] = strdup(temp);
 	  xhtmlSelectsLen++;
@@ -153,7 +157,6 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
       else if ((!strcasecmp(node_type,"decimal"))||(!strcasecmp(node_type,"int"))) // Integers and decimal
         {
 	  //printf("%s:%s", node_name,node_type);  
-	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	  snprintf(temp,1024,"%s:%s",node_name,node_type);
 	  xhtml2recipe[xhtml2recipeLen] = strdup(temp);
             
@@ -184,33 +187,25 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	}
       else if (strcasecmp(node_type,"binary")) // All others type except binary (ignore binary fields in succinct data)
         {
-	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	  if (!strcasecmp(node_name,"instanceID")) {
-	    printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	    snprintf(temp,1024,"%s:uuid",node_name);
 	    xhtml2recipe[xhtml2recipeLen] = strdup(temp);
 	  }else{    
-	    printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	    printf("xhtml2recipeLen = %d\n",xhtml2recipeLen);
 	    
 	    snprintf(temp,1024,"%s:%s",node_name,node_type);
 	    xhtml2recipe[xhtml2recipeLen] = strdup(temp);
-	    printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	  }
-	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	  snprintf(temp,1024,"%s:0:0:0",xhtml2recipe[xhtml2recipeLen]);
 	  free(xhtml2recipe[xhtml2recipeLen]);
 	  xhtml2recipe[xhtml2recipeLen] = strdup(temp);
 	  xhtml2recipeLen++;
-	  printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
 	}
-      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
     }
     
   //Now look for selects specifications, we wait until to find a select node
   else if ((!strcasecmp("xf:select1",el))||(!strcasecmp("xf:select",el))) 
     {
-      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
       for (i = 0; attr[i]; i += 2) //Found a select element, look for attributes
         { 
 	  if (!strcasecmp("bind",attr[i])) {
@@ -228,20 +223,17 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
   //We are in a select node and we need to find a value element
   else if ((xhtmlSelectElem)&&((!strcasecmp("value",el))||(!strcasecmp("xf:value",el)))) 
     {
-      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
       xhtml_in_value = 1;
     }
     
   //We reached the start of the data in the instance, so start collecting fields
   else if (!strcasecmp("data",el)) 
     {
-      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
       xhtml_in_instance = 1;
     }
   else if (!strcasecmp("xf:model",el))
     {
       // Form name is the id attribute of the xf:model tag
-      printf("%s:%d:checkpoint\n",__FILE__,__LINE__);
       for (i = 0; attr[i]; i += 2) { 
 	if (!strcasecmp("id",attr[i])) {
 	  xhtmlFormName  = strdup(attr[i+1]);
@@ -252,7 +244,6 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
       }
     }
      
-  printf("leaving start_xhtml()\n");
 }
 
 void characterdata_xhtml(void *data, const char *el, int len)
@@ -288,8 +279,6 @@ void characterdata_xhtml(void *data, const char *el, int len)
 void end_xhtml(void *data, const char *el) //This function is called  by the XML library each time it sees an ending of a tag
 {
   char *str = "";
-
-  printf("end_xhtml(): el = %s\n",el);
   
   if (xhtmlSelectElem && ((!strcasecmp("xf:select1",el))||(!strcasecmp("xf:select",el))))  {
     xhtmlSelectElem = NULL;
@@ -367,6 +356,7 @@ int xhtml_recipe_create(char *input)
   fprintf(stderr,"Writing template to '%s'\n",filename);
   f=fopen(filename,"w");
   fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<form>\n<meta>\n");
+  fprintf(f,"%s",implied_meta_fields_template);
   fprintf(f,"</meta>\n<data>\n");
   fprintf(f,"%s",templatetext);
   fprintf(f,"</data>\n</form>\n");
