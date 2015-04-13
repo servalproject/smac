@@ -826,7 +826,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 	  value_count++;
 	} else {
 	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d).\n",
-		   line_number,__FILE__,__LINE__);
+		   line_number,__FILE__,__LINE__);	  
 	  return -1;
 	}
       }
@@ -1270,7 +1270,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       exit(-1);
     }
     xml_len=recipe_load_file(argv[4],xml_data,sizeof(xml_data));
-    int stripped_len=xml2stripped(argv[3],xml_data,xml_len,stripped,sizeof(stripped));
+    int stripped_len=xml2stripped(NULL,xml_data,xml_len,stripped,sizeof(stripped));
     if (stripped_len<0) {
       fprintf(stderr,"Failed to strip '%s'\n",argv[4]);
       exit(-1);

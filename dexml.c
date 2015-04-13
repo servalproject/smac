@@ -126,17 +126,32 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,
 	if (tag[0]!='/'&&in_instance&&tag[taglen-1]!='/') {
 	  interesting_tag=1;
 	}
-	if (!strncasecmp(form_name,tag,strlen(form_name)))
-	  {
-	    //	    if (!in_instance) printf("Found start of instance\n");
-	    in_instance++;
-	  }
-	if ((!strncasecmp(form_name,&tag[1],strlen(form_name)))
-	    &&tag[0]=='/')
-	  {
-	    in_instance--;
-	    //	    if (!in_instance) printf("Found end of instance\n");
-	  }
+	if (!form_name) {
+	  // Magpi forms don't include the form name in the xml
+	  if (!strncasecmp("form",tag,strlen("form")))
+	    {
+	      //	    if (!in_instance) printf("Found start of instance\n");
+	      in_instance++;
+	    }
+	  if ((!strncasecmp("form",&tag[1],strlen("form")))
+	      &&tag[0]=='/')
+	    {
+	      in_instance--;
+	      //	    if (!in_instance) printf("Found end of instance\n");
+	    }
+	} else {
+	  if (!strncasecmp(form_name,tag,strlen(form_name)))
+	    {
+	      //	    if (!in_instance) printf("Found start of instance\n");
+	      in_instance++;
+	    }
+	  if ((!strncasecmp(form_name,&tag[1],strlen(form_name)))
+	      &&tag[0]=='/')
+	    {
+	      in_instance--;
+	      //	    if (!in_instance) printf("Found end of instance\n");
+	    }
+	}
 	taglen=0;
       }
       state=0; break; // out of a tag
