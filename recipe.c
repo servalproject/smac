@@ -825,7 +825,8 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 	  values[value_count]=strdup(value);
 	  value_count++;
 	} else {
-	  snprintf(recipe_error,1024,"line:%d:Malformed data line.\n",line_number);
+	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d).\n",
+		   line_number,__FILE__,__LINE__);
 	  return -1;
 	}
       }

@@ -193,7 +193,8 @@ struct stripped *parse_stripped(char *filename)
 	  s->values[s->value_count]=strdup(value);
 	  s->value_count++;
 	} else {
-	  fprintf(stderr,"line:%d:Malformed data line.\n",line_number);
+	  fprintf(stderr,"line:%d:Malformed data line (%s:%d).\n",line_number,
+		  __FILE__,__LINE__);
 	  stripped_free(s);
 	  munmap(in,stat.st_size);
 	  return NULL;
