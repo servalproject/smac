@@ -147,16 +147,20 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	}
 		
       //Now we got node_name, node_type, node_constraint
-      //Lets build output        
+      //Lets build output
+      fprintf(stderr,"Parsing field %s:%s\n", node_name,node_type);  
+
       if ((!strcasecmp(node_type,"select"))||(!strcasecmp(node_type,"select1"))) // Select, special case we need to wait later to get all informations (ie the range)
 	{
 	  snprintf(temp,1024,"%s:enum:0:0:0:",node_name);	 
 	  selects[xhtmlSelectsLen] = strdup(temp);
 	  xhtmlSelectsLen++;
 	} 
-      else if ((!strcasecmp(node_type,"decimal"))||(!strcasecmp(node_type,"int"))) // Integers and decimal
+      else if ((!strcasecmp(node_type,"decimal"))
+	       ||(!strcasecmp(node_type,"integer"))
+	       ||(!strcasecmp(node_type,"int"))) // Integers and decimal
         {
-	  //printf("%s:%s", node_name,node_type);  
+	  fprintf(stderr,"Parsing INT field %s:%s\n", node_name,node_type);  
 	  snprintf(temp,1024,"%s:%s",node_name,node_type);
 	  xhtml2recipe[xhtml2recipeLen] = strdup(temp);
             
@@ -171,7 +175,9 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	    while( ! isdigit(*ptr) && (ptr<node_constraint+strlen(node_constraint))) ptr++;
 	    b = atoi(ptr);
 	    if (b<=a) b=a+999;
-	    //printf(":%d:%d:0", MIN(a, b), MAX(a, b));
+	    fprintf(stderr,"%s:%s:%d:%d:0\n",
+		    node_name,node_type,
+		    MIN(a, b), MAX(a, b));
 	    snprintf(temp,1024,"%s:%s:%d:%d:0",node_name,node_type,MIN(a,b),MAX(a,b));
 	    free(xhtml2recipe[xhtml2recipeLen]);
 	    xhtml2recipe[xhtml2recipeLen] = strdup(temp);
