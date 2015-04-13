@@ -51,7 +51,7 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"bool")) return FIELDTYPE_BOOLEAN;
   if (!strcasecmp(name,"timeofday")) return FIELDTYPE_TIMEOFDAY;
   if (!strcasecmp(name,"timestamp")) return FIELDTYPE_TIMEDATE;
-  if (!strcasecmp(name,"datetime")) return FIELDTYPE_TIMEDATE;
+  if (!strcasecmp(name,"magpitimestamp")) return FIELDTYPE_MAGPITIMEDATE;
   if (!strcasecmp(name,"date")) return FIELDTYPE_DATE;
   if (!strcasecmp(name,"latlong")) return FIELDTYPE_LATLONG;
   if (!strcasecmp(name,"geopoint")) return FIELDTYPE_LATLONG;
@@ -75,6 +75,7 @@ char *recipe_field_type_name(int f)
   case FIELDTYPE_BOOLEAN: return    "boolean";
   case FIELDTYPE_TIMEOFDAY: return    "timeofday";
   case FIELDTYPE_TIMEDATE: return    "timestamp";
+  case FIELDTYPE_MAGPITIMEDATE: return    "magpitimestamp";
   case FIELDTYPE_DATE: return    "date";
   case FIELDTYPE_LATLONG: return    "latlong";
   case FIELDTYPE_TEXT: return    "text";
@@ -361,6 +362,18 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	      tm.tm_hour,tm.tm_hour,tm.tm_min);
       return 0;
     }
+  case FIELDTYPE_MAGPITIMEDATE:
+    // time is 32-bit seconds since 1970.
+    // Format as yyyy-mm-dd hh:mm:ss
+    {
+      time_t t=range_decode_equiprobable(c,0x7fffffff);
+      struct tm tm;
+      gmtime_r(&t,&tm);
+      sprintf(value,"%04d-%02d-%02d %02d:%02d:%02d",
+	      tm.tm_year+1900,tm.tm_mon+1,tm.tm_mday,
+	      tm.tm_hour,tm.tm_hour,tm.tm_min);
+      return 0;
+    }
   case FIELDTYPE_UUID:
     {
       int i,j=5;      
@@ -511,7 +524,27 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       normalised_value=t;
       return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
     }
-
+  case FIELDTYPE_MAGPITIMEDATE:
+    {
+      struct tm tm;
+      int tzh=0,tzm=0;
+      int r;
+      bzero(&tm,sizeof(tm));
+      if ((r=sscanf(value,"%d-%d-%d %d:%d:%d",
+		 &tm.tm_year,&tm.tm_mon,&tm.tm_mday,
+		 &tm.tm_hour,&tm.tm_min,&tm.tm_sec))<6) {
+	printf("r=%d\n",r);
+	return -1;
+      }
+      tm.tm_gmtoff=tzm*60+tzh*3600;
+      tm.tm_year-=1900;
+      tm.tm_mon-=1;
+      time_t t = mktime(&tm);
+      minimum=1;
+      maximum=0x7fffffff;
+      normalised_value=t;
+      return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+    }
   case FIELDTYPE_DATE:
     if (sscanf(value,"%d/%d/%d",&y,&m,&d)!=3) return -1;
 		 
@@ -825,8 +858,8 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 	  values[value_count]=strdup(value);
 	  value_count++;
 	} else {
-	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d).\n",
-		   line_number,__FILE__,__LINE__);	  
+	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d): '%s'\n",
+		   line_number,__FILE__,__LINE__,line);	  
 	  return -1;
 	}
       }

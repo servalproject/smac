@@ -25,6 +25,9 @@
 #define FIELDTYPE_ENUM 10
 // Magpi UUID is 64-bit value followed by time since UNIX epoch
 #define FIELDTYPE_MAGPIUUID 11
+// Like time of day, but takes a particular string format of date
+// (a slightly different format for magpi)
+#define FIELDTYPE_MAGPITIMEDATE 12
 
 struct field {
   char *name;
