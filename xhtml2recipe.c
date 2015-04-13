@@ -28,13 +28,13 @@ char *implied_meta_fields =
   "email:string:0:0:0\n"
   "password:string:0:0:0\n"
   "formid:string:0:0:0\n"
-  "lastsubmittime:date:0:0:0\n"
-  "endrecordtime:date:0:0:0\n"
-  "startrecordtime:date:0:0:0\n"
+  "lastsubmittime:dateTime:0:0:0\n"
+  "endrecordtime:dateTime:0:0:0\n"
+  "startrecordtime:dateTime:0:0:0\n"
   "version:string:0:0:0\n"
   "uuid:magpiuuid:0:0:0\n"
-  "latitutde:float:0:180:0\n"
-  "longitude:float:0:180:0\n";
+  "latitutde:float:-90:90:0\n"
+  "longitude:float:-200:200:0\n";
 
 char *strgrow(char *in, char *new)
 {
