@@ -58,6 +58,7 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"text")) return FIELDTYPE_TEXT;
   if (!strcasecmp(name,"string")) return FIELDTYPE_TEXT;
   if (!strcasecmp(name,"uuid")) return FIELDTYPE_UUID;
+  if (!strcasecmp(name,"magpiuuid")) return FIELDTYPE_MAGPIUUID;
   if (!strcasecmp(name,"enum")) return FIELDTYPE_ENUM;
   
   return -1;
@@ -76,6 +77,7 @@ char *recipe_field_type_name(int f)
   case FIELDTYPE_LATLONG: return    "latlong";
   case FIELDTYPE_TEXT: return    "text";
   case FIELDTYPE_UUID: return    "uuid";
+  case FIELDTYPE_MAGPIUUID: return    "magpiuuid";
   default: return "unknown";
   }
 }
@@ -376,6 +378,27 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	}
       return 0;
     }
+  case FIELDTYPE_MAGPIUUID:
+    // 64bit hex followed by seconds since UNIX epoch?
+    {
+      int i,j=0;      
+      value[0]=0;
+      for(i=0;i<8;i++)
+	{
+	  int b=0;
+	  b=range_decode_equiprobable(c,256);
+	  sprintf(&value[j],"%02x",b); j+=2;
+	  value[j]=0;
+	}
+      // 40 bits of time since unix epoch
+      long long timestamp=0;
+      for(i=0;i<5;i++) {
+	timestamp=timestamp<<8LL;
+	timestamp|=range_decode_equiprobable(c,256);
+      }
+      sprintf(&value[j],"-%lld",timestamp);
+      return 0;
+    }
   case FIELDTYPE_LATLONG:
     {
       int ilat,ilon;
@@ -555,6 +578,25 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 				   NULL);
       printf("'%s' encoded in %d bits\n",value,c->bits_used-before);
       if (r) return -1;
+      return 0;
+    }
+  case FIELDTYPE_MAGPIUUID:
+    // 64bit hex followed by seconds since UNIX epoch
+    {
+      int i,j=0;
+      unsigned char uuid[8];
+      i=0;      
+      for(i=0;i<16;i+=2) {
+	uuid[j++]=parseHexByte(&value[i]);
+	range_encode_equiprobable(c,256,uuid[i]);
+      }
+      long long timestamp=strtoll(&value[17],NULL,10);
+      timestamp&=0xffffffffffLL;
+      for(i=0;i<5;i++) {
+	int b=(timestamp>>32LL)&0xff;
+	range_encode_equiprobable(c,256,b);
+	timestamp=timestamp<<8LL;
+      }
       return 0;
     }
   case FIELDTYPE_UUID:
