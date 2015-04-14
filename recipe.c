@@ -336,7 +336,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     maximum=recipe->fields[fieldnumber].maximum;
     normalised_value=range_decode_equiprobable(c,maximum-minimum+1);
     sprintf(value,"%d",normalised_value+minimum);
-    break;
+    return 0;
   case FIELDTYPE_FLOAT:
     {
       // Sign
@@ -345,11 +345,12 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       int exponent = range_decode_equiprobable(c,256)-128;
       // Mantissa
       int mantissa = 0;
-      mantissa |= range_decode_equiprobable(c,256)<<16;
-      mantissa |= range_decode_equiprobable(c,256)<<8;
-      mantissa |= range_decode_equiprobable(c,256)<<0;
+      int b;
+      b=range_decode_equiprobable(c,256); mantissa |= b<<16;
+      b=range_decode_equiprobable(c,256); mantissa |= b<<8; 
+      b=range_decode_equiprobable(c,256); mantissa |= b<<0; 
       float f = mantissa*1.0/0xffffff;
-      if (sign) mantissa=-mantissa;
+      if (sign) f=-f;
       f = ldexp( f, exponent);
       fprintf(stderr,"sign=%d, exp=%d, mantissa=%x, f=%f\n",
 	      sign,exponent,mantissa,f);
@@ -531,7 +532,8 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       mantissa = m * 0xffffff;
       if (exponent<-127) exponent=-127;
       if (exponent>127) exponent=127;
-      fprintf(stderr,"f=%f -> m=%f,exp=%d\n",f,(float)m,exponent);
+      fprintf(stderr,"encoding sign=%d, exp=%d, mantissa=%x, f=%f\n",
+	      sign,exponent,mantissa,atof(value));
       // Sign
       range_encode_equiprobable(c,2,sign);
       // Exponent
@@ -539,8 +541,8 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       // Mantissa
       range_encode_equiprobable(c,256,(mantissa>>16)&0xff);
       range_encode_equiprobable(c,256,(mantissa>>8)&0xff);
-      range_encode_equiprobable(c,256,(mantissa>>0)&0xff);
-    }
+      return range_encode_equiprobable(c,256,(mantissa>>0)&0xff);
+    }    
   case FIELDTYPE_FIXEDPOINT:
   case FIELDTYPE_BOOLEAN:
     normalised_value=recipe_parse_boolean(value);
@@ -831,8 +833,10 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
   for(field=0;field<recipe->field_count;field++)
     {
       int field_present=range_decode_equiprobable(c,2);
+      printf("%sdecompressing value for '%s'\n",
+	     field_present?"":"not ",
+	     recipe->fields[field].name);
       if (field_present) {
-	// printf("Decompressing value for '%s'\n",recipe->fields[field].name);
 	char value[1024];
 	int r=recipe_decode_field(recipe,h,c,field,value,1024);
 	if (r) {
@@ -963,6 +967,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 	}
     } else {
       // Field missing: record this fact and nothing else.
+      printf("No field #%d ('%s')\n",field,recipe->fields[field].name);
       range_encode_equiprobable(c,2,0);
     }
   }
