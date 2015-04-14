@@ -33,7 +33,7 @@ char *implied_meta_fields =
   "startrecordtime:magpitimestamp:0:0:0\n"
   "version:string:0:0:0\n"
   "uuid:magpiuuid:0:0:0\n"
-  "latitutde:float:-90:90:0\n"
+  "latitude:float:-90:90:0\n"
   "longitude:float:-200:200:0\n";
 char *implied_meta_fields_template =
   "<email>$email$</email>\n"
