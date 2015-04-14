@@ -112,8 +112,13 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,
       state=1;
       if (interesting_tag&&val_len>0) {
 	value[val_len]=0;
-	int b=snprintf(&stripped[stripped_ofs],stripped_size-stripped_ofs,"%s=%s\n",tag,value);
-	if (b>0) stripped_ofs+=b;
+	// Magpi puts ~ in empty fields -- don't include these in the stripped output
+	if ((value[0]=='~')&&(val_len==1)) {
+	  // nothing to do
+	} else {
+	  int b=snprintf(&stripped[stripped_ofs],stripped_size-stripped_ofs,"%s=%s\n",tag,value);
+	  if (b>0) stripped_ofs+=b;
+	}
 	val_len=0;
       }
       interesting_tag=0; 

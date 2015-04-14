@@ -546,7 +546,12 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
     }
   case FIELDTYPE_DATE:
-    if (sscanf(value,"%d/%d/%d",&y,&m,&d)!=3) return -1;
+    // ODK does YYYY/MM/DD
+    // Magpi (being US-centric) does MM-DD-YYYY
+    // This allows us to discern between the two
+    if (sscanf(value,"%d/%d/%d",&y,&m,&d)==3) { }
+    else if (sscanf(value,"%d-%d-%d",&m,&d,&y)==3) { }
+    else return -1;
 		 
     // XXX Not as efficient as it could be (assumes all months have 31 days)
     if (y<1||y>9999||m<1||m>12||d<1||d>31) return -1;
@@ -779,6 +784,14 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
 	int r2=snprintf(&out[written],out_size-written,"%s=%s\n",
 			recipe->fields[field].name,value);
 	if (r2>0) written+=r2;
+      } else {
+	// Field not present.
+	// Magpi uses ~ to indicate an empty field, so insert.
+	// ODK Collect shouldn't care about the presence of the ~'s, so we
+	// will always insert them.
+	int r2=snprintf(&out[written],out_size-written,"%s=~\n",
+			recipe->fields[field].name);
+	if (r2>0) written+=r2;	
       }
     }
   
