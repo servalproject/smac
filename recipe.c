@@ -387,10 +387,11 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     {
       time_t t=range_decode_equiprobable(c,0x7fffffff);
       struct tm tm;
+      bzero(&tm,sizeof(tm));
       gmtime_r(&t,&tm);
       sprintf(value,"%04d-%02d-%02d %02d:%02d:%02d",
 	      tm.tm_year+1900,tm.tm_mon+1,tm.tm_mday,
-	      tm.tm_hour,tm.tm_hour,tm.tm_min);
+	      tm.tm_hour,tm.tm_min,tm.tm_sec);
       return 0;
     }
   case FIELDTYPE_DATE:
@@ -585,7 +586,7 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_MAGPITIMEDATE:
     {
       struct tm tm;
-      int tzh=0,tzm=0;
+      // int tzh=0,tzm=0;
       int r;
       bzero(&tm,sizeof(tm));
       if ((r=sscanf(value,"%d-%d-%d %d:%d:%d",
@@ -594,14 +595,12 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	printf("r=%d\n",r);
 	return -1;
       }
-      tm.tm_gmtoff=tzm*60+tzh*3600;
+      // tm.tm_gmtoff=tzm*60+tzh*3600;
       tm.tm_year-=1900;
       tm.tm_mon-=1;
-      time_t t = mktime(&tm);
-      minimum=1;
-      maximum=0x7fffffff;
+      time_t t = timegm(&tm);
       normalised_value=t;
-      return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+      return range_encode_equiprobable(c,0x7fffffff,normalised_value);
     }
   case FIELDTYPE_DATE:
     // ODK does YYYY/MM/DD
