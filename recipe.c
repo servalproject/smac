@@ -337,6 +337,23 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     normalised_value=range_decode_equiprobable(c,maximum-minimum+1);
     sprintf(value,"%d",normalised_value+minimum);
     break;
+  case FIELDTYPE_FLOAT:
+    {
+      // Sign
+      int sign = range_decode_equiprobable(c,2);
+      // Exponent
+      int exponent = range_decode_equiprobable(c,256)-128;
+      // Mantissa
+      int mantissa = 0;
+      mantissa |= range_decode_equiprobable(c,256)<<16;
+      mantissa |= range_decode_equiprobable(c,256)<<8;
+      mantissa |= range_decode_equiprobable(c,256)<<0;
+      float f = mantissa*1.0/0xffffff;
+      if (sign) mantissa=-mantissa;
+      f = ldexp( f, exponent);
+      fprintf(stderr,"sign=%d, exp=%d, mantissa=%x, f=%f\n",
+	      sign,exponent,mantissa,f);
+    }
   case FIELDTYPE_BOOLEAN:
     normalised_value=range_decode_equiprobable(c,2);
     sprintf(value,"%d",normalised_value);
@@ -481,6 +498,26 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     }
     return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
   case FIELDTYPE_FLOAT:
+    {
+      float f = atof(value);
+      int sign=0;
+      int exponent=0;
+      int mantissa=0;
+      if (f<0) { sign=1; f=-f; } else sign=0;
+      double m = frexp(f,&exponent);
+      mantissa = m * 0xffffff;
+      if (exponent<-127) exponent=-127;
+      if (exponent>127) exponent=127;
+      fprintf(stderr,"f=%f -> m=%f,exp=%d\n",f,(float)m,exponent);
+      // Sign
+      range_encode_equiprobable(c,2,sign);
+      // Exponent
+      range_encode_equiprobable(c,256,exponent+128);
+      // Mantissa
+      range_encode_equiprobable(c,256,(mantissa>>16)&0xff);
+      range_encode_equiprobable(c,256,(mantissa>>8)&0xff);
+      range_encode_equiprobable(c,256,(mantissa>>0)&0xff);
+    }
   case FIELDTYPE_FIXEDPOINT:
   case FIELDTYPE_BOOLEAN:
     normalised_value=recipe_parse_boolean(value);
