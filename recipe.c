@@ -444,11 +444,12 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	  sprintf(&value[j],"%02x",b); j+=2;
 	  value[j]=0;
 	}
-      // 40 bits of time since unix epoch
+      // 48 bits of milliseconds since unix epoch
       long long timestamp=0;
-      for(i=0;i<5;i++) {
+      for(i=0;i<6;i++) {
 	timestamp=timestamp<<8LL;
-	timestamp|=range_decode_equiprobable(c,256);
+	int b=range_decode_equiprobable(c,256);	
+	timestamp|=b;
       }
       sprintf(&value[j],"-%lld",timestamp);
       return 0;
@@ -678,19 +679,19 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       return 0;
     }
   case FIELDTYPE_MAGPIUUID:
-    // 64bit hex followed by seconds since UNIX epoch
+    // 64bit hex followed by milliseconds since UNIX epoch (48 bits to last us many centuries)
     {
       int i,j=0;
       unsigned char uuid[8];
       i=0;      
       for(i=0;i<16;i+=2) {
-	uuid[j++]=parseHexByte(&value[i]);
-	range_encode_equiprobable(c,256,uuid[i]);
+	uuid[j]=parseHexByte(&value[i]);
+	range_encode_equiprobable(c,256,uuid[j++]);
       }
       long long timestamp=strtoll(&value[17],NULL,10);
-      timestamp&=0xffffffffffLL;
-      for(i=0;i<5;i++) {
-	int b=(timestamp>>32LL)&0xff;
+      timestamp&=0xffffffffffffLL;
+      for(i=0;i<6;i++) {
+	int b=(timestamp>>40LL)&0xff;
 	range_encode_equiprobable(c,256,b);
 	timestamp=timestamp<<8LL;
       }
