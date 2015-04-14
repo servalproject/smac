@@ -353,6 +353,8 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       f = ldexp( f, exponent);
       fprintf(stderr,"sign=%d, exp=%d, mantissa=%x, f=%f\n",
 	      sign,exponent,mantissa,f);
+      sprintf(value,"%f",f);
+      return 0;
     }
   case FIELDTYPE_BOOLEAN:
     normalised_value=range_decode_equiprobable(c,2);
@@ -389,6 +391,25 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       sprintf(value,"%04d-%02d-%02d %02d:%02d:%02d",
 	      tm.tm_year+1900,tm.tm_mon+1,tm.tm_mday,
 	      tm.tm_hour,tm.tm_hour,tm.tm_min);
+      return 0;
+    }
+  case FIELDTYPE_DATE:
+    // Date encoded using:
+    // normalised_value=y*372+(m-1)*31+(d-1);
+    // So year = value / 372 ...
+    {
+      if (precision==0) precision=22;
+      int minimum=0;
+      int maximum=10000*372;
+      maximum=maximum>> (22-precision);
+      maximum+=1;
+      int normalised_value = range_decode_equiprobable(c,maximum-minimum+1);
+      int year = normalised_value / 372;
+      int day_of_year = normalised_value - (year*372);
+      int month = day_of_year/31+1;
+      int day_of_month = day_of_year%31+1;
+      // American date format for Magpi
+      sprintf(value,"%02d-%02d-%04d",month,day_of_month,year);
       return 0;
     }
   case FIELDTYPE_UUID:
