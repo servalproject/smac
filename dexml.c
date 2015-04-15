@@ -164,10 +164,14 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,
 		       exit_tag,name_part,version_part);
 	    }
 	    if (r==3) {
+	      // Add implied formid tag for ODK forms so that we can more easily find
+	      // the recipe that corresponds to a record.
 	      fprintf(stderr,"ODK form name is %s.%s\n",
 		      name_part,version_part);
+	      int b=snprintf(&stripped[stripped_ofs],stripped_size-stripped_ofs,"formid=%s.%s\n",name_part,version_part);
+	      if (b>0) stripped_ofs+=b;
+	      in_instance++;
 	    }
-	    in_instance++;
 
 	  }
 	  if (in_instance&&exit_tag[0]&&tag[0]=='/'&&!strcasecmp(&tag[1],exit_tag))
