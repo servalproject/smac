@@ -360,12 +360,15 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_BOOLEAN:
     normalised_value=range_decode_equiprobable(c,2);
     sprintf(value,"%d",normalised_value);
+    return 0;
     break;
   case FIELDTYPE_ENUM:
     normalised_value=range_decode_equiprobable(c,recipe->fields[fieldnumber]
 					       .enum_count);
     sprintf(value,"%s",recipe->fields[fieldnumber].enum_values[normalised_value]);
-    printf("value=%s\n",value);
+    printf("enum: decoding %s as %d of %d\n",
+	   value,normalised_value,recipe->fields[fieldnumber].enum_count);
+    return 0;
     break;
   case FIELDTYPE_TEXT:
     r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
@@ -374,7 +377,13 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     // time is 32-bit seconds since 1970.
     // Format as yyyy-mm-ddThh:mm:ss+hh:mm
     {
-      time_t t=range_decode_equiprobable(c,0x7fffffff);
+      // SMAC has a bug with encoding large ranges, so break into smaller pieces
+      time_t t = 0;
+      int b;
+      b=range_decode_equiprobable(c,0x80); t|=(b<<24);
+      b=range_decode_equiprobable(c,0x100); t|=(b<<16);
+      b=range_decode_equiprobable(c,0x100); t|=(b<<8);
+      b=range_decode_equiprobable(c,0x100); t|=(b<<0);
       struct tm tm;
       gmtime_r(&t,&tm);
       sprintf(value,"%04d-%02d-%02dT%02d:%02d:%02d+00:00",
@@ -404,7 +413,6 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       int minimum=0;
       int maximum=10000*372;
       maximum=maximum>> (22-precision);
-      maximum+=1;
       int normalised_value = range_decode_equiprobable(c,maximum-minimum+1);
       int year = normalised_value / 372;
       int day_of_year = normalised_value - (year*372);
@@ -584,6 +592,12 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       minimum=1;
       maximum=0x7fffffff;
       normalised_value=t;
+
+      int b;
+      b=(t>>24)&0x7f; range_encode_equiprobable(c,0x80,b);
+      b=(t>>16)&0xff; range_encode_equiprobable(c,0x100,b);
+      b=(t>>8)&0xff; range_encode_equiprobable(c,0x100,b);
+      b=(t>>0)&0xff; range_encode_equiprobable(c,0x100,b);
       return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
     }
   case FIELDTYPE_MAGPITIMEDATE:
@@ -664,6 +678,7 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	return -1;
       }
       maximum=recipe->fields[fieldnumber].enum_count;
+      printf("enum: encoding %s as %d of %d\n",value,normalised_value,maximum);
       return range_encode_equiprobable(c,maximum,normalised_value);
     }
   case FIELDTYPE_TEXT:
