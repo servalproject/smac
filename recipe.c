@@ -1004,11 +1004,8 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
   return bytes;
 }
 
-int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char *output_file)
+int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char *output_file)
 {
-  struct recipe *recipe=recipe_read_from_file(recipe_file);
-  if (!recipe) return -1;
-
   unsigned char *buffer;
 
   int fd=open(input_file,O_RDONLY);
@@ -1029,6 +1026,23 @@ int recipe_compress_file(stats_handle *h,char *recipe_file,char *input_file,char
     close(fd); return -1; 
   }
 
+  // Parse formid from stripped file so that we know which recipe to use
+  char formid[1024]="";
+  for(int i=0;i<stat.st_size;i++) {
+    if (sscanf((const char *)&buffer[i],"formid=%[^\n]",formid)==1) break;
+  }
+
+  if (!formid[0]) {
+    fprintf(stderr,"stripped file contains no formid field to identify matching recipe\n");
+    return -1;
+  }
+  
+  char recipe_file[1024];
+  
+  sprintf(recipe_file,"%s/%s.recipe",recipe_dir,formid);
+  struct recipe *recipe=recipe_read_from_file(recipe_file);
+  if (!recipe) return -1;
+  
   unsigned char out_buffer[1024];
   int r=recipe_compress(h,recipe,(char *)buffer,stat.st_size,out_buffer,1024);
 
@@ -1308,7 +1322,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     printf("recipe->field_count=%d\n",recipe->field_count);
   } else if (!strcasecmp(argv[2],"compress")) {
     if (argc<=5) {
-      fprintf(stderr,"'smac recipe compress' requires recipe, input and output files.\n");
+      fprintf(stderr,"'smac recipe compress' requires recipe directory, input and output files.\n");
       return(-1);
     }
     if (recipe_compress_file(h,argv[3],argv[4],argv[5])==-1) {
