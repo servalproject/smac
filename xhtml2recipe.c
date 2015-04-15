@@ -381,7 +381,7 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
   //ParserCreation
   parser = XML_ParserCreate(NULL);
   if (parser == NULL) {
-    fprintf(stderr, "Parser not created\n");
+    fprintf(stderr, "ERROR: %s: Parser not created\n",__FUNCTION__);
     return (1);
   }
     
@@ -394,7 +394,8 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
   if (XML_Parse(parser, xmltext, strlen(xmltext), XML_TRUE) ==
       XML_STATUS_ERROR) {
     fprintf(stderr,
-	    "Cannot parse , file may be too large or not well-formed XML\n");
+	    "ERROR: %s: Cannot parse , file may be too large or not well-formed XML\n",
+	    __FUNCTION__);
     return (1);
   }
   
@@ -403,20 +404,43 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
   *recipeLen=0;
   
   for(i=0;i<xhtml2recipeLen;i++){
-    if (appendto(recipetext,recipeLen,recipeMaxLen,xhtml2recipe[i])) return -1;
-    if (appendto(recipetext,recipeLen,recipeMaxLen,"\n")) return -1;
+    if (appendto(recipetext,recipeLen,recipeMaxLen,xhtml2recipe[i])) {
+      fprintf(stderr,"ERROR: %s:%d: %s() recipe text overflow.\n",
+	      __FILE__,__LINE__,__FUNCTION__);      
+      return -1;
+    }
+    if (appendto(recipetext,recipeLen,recipeMaxLen,"\n")) {
+      fprintf(stderr,"ERROR: %s:%d: %s() recipe text overflow.\n",
+	      __FILE__,__LINE__,__FUNCTION__);      
+      return -1;
+    }
   }
   for(i=0;i<xhtmlSelectsLen;i++){
-    if (appendto(recipetext,recipeLen,recipeMaxLen,selects[i])) return -1;
-    if (appendto(recipetext,recipeLen,recipeMaxLen,"\n")) return -1;
+    if (appendto(recipetext,recipeLen,recipeMaxLen,selects[i])) {
+      fprintf(stderr,"ERROR: %s:%d: %s() recipe text overflow.\n",
+	      __FILE__,__LINE__,__FUNCTION__);      
+      return -1;
+    }
+    if (appendto(recipetext,recipeLen,recipeMaxLen,"\n")) {
+      fprintf(stderr,"ERROR: %s:%d: %s() recipe text overflow.\n",
+	      __FILE__,__LINE__,__FUNCTION__);      
+      return -1;
+    }
   }
   
   int templateMaxLen=*templateLen;
   *templateLen=0;
   for(i=0;i<xhtml2templateLen;i++){
-    if (appendto(templatetext,templateLen,templateMaxLen,xhtml2template[i]))
+    if (appendto(templatetext,templateLen,templateMaxLen,xhtml2template[i])) {
+      fprintf(stderr,"ERROR: %s:%d: %s() template text overflow.\n",
+	      __FILE__,__LINE__,__FUNCTION__);      
       return -1;
-    if (appendto(templatetext,templateLen,templateMaxLen,"\n")) return -1;
+    }
+    if (appendto(templatetext,templateLen,templateMaxLen,"\n")) {
+      fprintf(stderr,"ERROR: %s:%d: %s() template text overflow.\n",
+	      __FILE__,__LINE__,__FUNCTION__);      
+      return -1;
+    }
   }
 
   snprintf(formname,1024,"%s",xhtmlFormName);
