@@ -1,5 +1,6 @@
 #!/bin/csh
 foreach uuid ( `cat sd/*.stripped | egrep "uuid=|instanceID" | cut -f2 -d=` )
-    echo $uuid
-    grep -l "$uuid" records/*
+    set input=`grep -l "$uuid" records/*`
+    set output=`grep -l "$uuid" out/*/*xml`
+    echo $uuid $input $output	
 end
