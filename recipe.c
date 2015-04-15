@@ -51,6 +51,7 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"bool")) return FIELDTYPE_BOOLEAN;
   if (!strcasecmp(name,"timeofday")) return FIELDTYPE_TIMEOFDAY;
   if (!strcasecmp(name,"timestamp")) return FIELDTYPE_TIMEDATE;
+  if (!strcasecmp(name,"datetime")) return FIELDTYPE_TIMEDATE;
   if (!strcasecmp(name,"magpitimestamp")) return FIELDTYPE_MAGPITIMEDATE;
   if (!strcasecmp(name,"date")) return FIELDTYPE_DATE;
   if (!strcasecmp(name,"latlong")) return FIELDTYPE_LATLONG;
@@ -621,14 +622,18 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     }
   case FIELDTYPE_DATE:
     // ODK does YYYY/MM/DD
-    // Magpi (being US-centric) does MM-DD-YYYY
-    // This allows us to discern between the two
+    // Magpi does DD-MM-YYYY
+    // The different delimiter allows us to discern between the two
+    fprintf(stderr,"Parsing FIELDTYPE_DATE value '%s'\n",value);
     if (sscanf(value,"%d/%d/%d",&y,&m,&d)==3) { }
-    else if (sscanf(value,"%d-%d-%d",&m,&d,&y)==3) { }
+    else if (sscanf(value,"%d-%d-%d",&d,&m,&y)==3) { }
     else return -1;
-		 
+
     // XXX Not as efficient as it could be (assumes all months have 31 days)
-    if (y<1||y>9999||m<1||m>12||d<1||d>31) return -1;
+    if (y<1||y>9999||m<1||m>12||d<1||d>31) {
+      fprintf(stderr,"Invalid field value\n");
+      return -1;
+    }
     normalised_value=y*372+(m-1)*31+(d-1);
     minimum=0;
     maximum=10000*372;
@@ -976,8 +981,9 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
       if (recipe_encode_field(recipe,h,c,field,values[i]))
 	{
 	  range_coder_free(c);
-	  snprintf(recipe_error,1024,"Could not record value '%s' for field '%s'\n",
-		   values[i],recipe->fields[field].name);
+	  snprintf(recipe_error,1024,"Could not record value '%s' for field '%s' (type %d)\n",
+		   values[i],recipe->fields[field].name,
+		   recipe->fields[field].type);
 	  return -1;
 	}
     } else {
