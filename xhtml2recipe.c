@@ -344,10 +344,7 @@ int xhtml_recipe_create(char *input)
   }
 
   //Create output for RECIPE
-  strcpy(filename,formname);
-  strcat(filename,".");
-  strcat(filename,formversion);
-  strcat(filename,".recipe");
+  snprintf(filename,512,"%s.recipe",formversion);
   fprintf(stderr,"Writing recipe to '%s'\n",filename);
   f=fopen(filename,"w");
   fprintf(f,"%s",implied_meta_fields);
@@ -355,10 +352,7 @@ int xhtml_recipe_create(char *input)
   fclose(f);
 
   //Create output for TEMPLATE
-  strcpy(filename,formname);
-  strcat(filename,".");
-  strcat(filename,formversion);
-  strcat(filename,".template");
+  snprintf(filename,512,"%s.template",formversion);
   fprintf(stderr,"Writing template to '%s'\n",filename);
   f=fopen(filename,"w");
   fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<form>\n<meta>\n");
