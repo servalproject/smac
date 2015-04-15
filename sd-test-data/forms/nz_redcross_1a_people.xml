@@ -4,7 +4,7 @@
     <h:title>NZ Red Cross - Disaster Assessment Form: 1 A - People</h:title>
     <model>
       <instance>
-        <nz_redcross_1a_people id="nz-redcross-1a-people" version="4">
+        <nz_redcross_1a_people id="nz-redcross-1a-people" version="3">
           <intro_note/>
           <village_name/>
           <household_head/>
