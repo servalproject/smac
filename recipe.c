@@ -1254,7 +1254,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   // so we can build the template path from that.
   char template_file[1024];
   snprintf(template_file,1024,"%s/%s.template",recipe_dir,recipe_name);
-  char template[65536];
+  char template[1048576];
   int template_len=recipe_load_file(template_file,template,sizeof(template));
   if (template_len<1) {
     snprintf(recipe_error,1024,"Could not read template file '%s'\n",template_file);
@@ -1386,8 +1386,8 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       else return 0;
     }
   } else if (!strcasecmp(argv[2],"strip")) {
-    char stripped[8192];
-    char xml_data[65536];
+    char stripped[65536];
+    char xml_data[1048576];
     int xml_len=0;
     if (argc<5) {
       fprintf(stderr,"usage: smac recipe strip <formname> <xml input> [stripped output].\n");
