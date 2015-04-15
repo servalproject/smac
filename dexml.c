@@ -104,6 +104,9 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,
   int xmlofs=0;
   int stripped_ofs=0;
 
+  char exit_tag[1024]="";
+  
+
   int c=xml[xmlofs++];
   while(c>=-1&&(xmlofs<xml_len)) {
     switch(c) {
@@ -132,7 +135,13 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,
 	  interesting_tag=1;
 	}
 	if (!form_name) {
-	  // Magpi forms don't include the form name in the xml
+	  /*
+	    Magpi forms don't include the form name in the xml.
+	    We have to get the form name from the formid field.
+
+	    ODK Collect on the other hand provides the form name as an
+	    id attribute of a tag which follows an <instance> tag.
+	  */
 	  if (!strncasecmp("form",tag,strlen("form")))
 	    {
 	      //	    if (!in_instance) printf("Found start of instance\n");
@@ -144,17 +153,41 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,
 	      in_instance--;
 	      //	    if (!in_instance) printf("Found end of instance\n");
 	    }
+	  if (!in_instance) {
+	    // ODK form name appears as attributes of a tag which has a named based
+	    // on the name of the form.
+	    char name_part[1024];
+	    char version_part[1024];
+	    int r=0;
+	    if (strlen(tag)<1024) {
+	      r=sscanf(tag,"%s id=\"%[^\"]\" version=\"%[^\"]\"",
+		       exit_tag,name_part,version_part);
+	    }
+	    if (r==3)
+	      fprintf(stderr,"ODK form name is %s.%s\n",
+		      name_part,version_part);
+	    in_instance++;
+
+	  }
+	  if (in_instance&&exit_tag[0]&&tag[0]=='/'&&!strcasecmp(&tag[1],exit_tag))
+	    {
+	      // Found matching tag for the ODK instance opening tag, so end
+	      // form instance
+	      in_instance--;
+	    }
 	} else {
 	  if (!strncasecmp(form_name,tag,strlen(form_name)))
 	    {
-	      //	    if (!in_instance) printf("Found start of instance\n");
 	      in_instance++;
+	      printf("Found start of instance via <%s> (in_instance=%d)\n",
+		     tag,in_instance);
 	    }
 	  if ((!strncasecmp(form_name,&tag[1],strlen(form_name)))
 	      &&tag[0]=='/')
 	    {
 	      in_instance--;
-	      //	    if (!in_instance) printf("Found end of instance\n");
+	      printf("Found end of instance via <%s> (in_instance=%d)\n",
+		     tag,in_instance);
 	    }
 	}
 	taglen=0;
