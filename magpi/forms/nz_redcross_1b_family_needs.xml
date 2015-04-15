@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <h:head>
+    <h:title>NZ Red Cross - Disaster Assessment Form: 1 B - Family Needs</h:title>
+    <model>
+      <instance>
+        <nz_redcross_1b_family_needs id="nz-redcross-1b-family-needs" version="1">
+          <intro_note/>
+          <village_name/>
+          <household_head/>
+          <tarp_rope/>
+          <water_container/>
+          <buckets/>
+          <bed_linen/>
+          <sleeping_mat/>
+          <lamp/>
+          <cooking_set/>
+          <water/>
+          <food/>
+          <medical_supplies/>
+          <other_needs/>
+          <household_location/>
+          <start/>
+          <end/>
+          <deviceid/>
+          <meta>
+            <instanceID/>
+          </meta>
+        </nz_redcross_1b_family_needs>
+      </instance>
+      <bind nodeset="/nz_redcross_1b_family_needs/intro_note" readonly="true()" type="string"/>
+      <bind nodeset="/nz_redcross_1b_family_needs/village_name" type="string"/>
+      <bind nodeset="/nz_redcross_1b_family_needs/household_head" type="string"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1b_family_needs/tarp_rope" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1b_family_needs/water_container" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1b_family_needs/buckets" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1b_family_needs/bed_linen" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1b_family_needs/sleeping_mat" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1b_family_needs/lamp" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1b_family_needs/cooking_set" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1b_family_needs/water" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1b_family_needs/food" type="int"/>
+      <bind nodeset="/nz_redcross_1b_family_needs/medical_supplies" type="string"/>
+      <bind nodeset="/nz_redcross_1b_family_needs/other_needs" type="string"/>
+      <bind nodeset="/nz_redcross_1b_family_needs/household_location" type="geopoint"/>
+      <bind jr:preload="timestamp" jr:preloadParams="start" nodeset="/nz_redcross_1b_family_needs/start" type="dateTime"/>
+      <bind jr:preload="timestamp" jr:preloadParams="end" nodeset="/nz_redcross_1b_family_needs/end" type="dateTime"/>
+      <bind jr:preload="property" jr:preloadParams="deviceid" nodeset="/nz_redcross_1b_family_needs/deviceid" type="string"/>
+      <bind calculate="concat('uuid:', uuid())" nodeset="/nz_redcross_1b_family_needs/meta/instanceID" readonly="true()" type="string"/>
+    </model>
+  </h:head>
+  <h:body>
+    <input ref="/nz_redcross_1b_family_needs/intro_note">
+      <label>All questions are important, only skip questions when absolutely necessary</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/village_name">
+      <label>What is the name of the village/settlement?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/household_head">
+      <label>What is the name of the head of household?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/tarp_rope">
+      <label>How many tarp and rope packs are required?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/water_container">
+      <label>How many water containers are required?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/buckets">
+      <label>How many buckets are required?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/bed_linen">
+      <label>How many bed linen packs are required?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/sleeping_mat">
+      <label>How many sleeping mats are required?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/lamp">
+      <label>How many lamps are required?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/cooking_set">
+      <label>How many cooking sets are required?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/water">
+      <label>How many litres of water per day is required?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/food">
+      <label>How may people require food per day?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/medical_supplies">
+      <label>What medical supplies are required?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/other_needs">
+      <label>Are there any other needs?</label>
+    </input>
+    <input ref="/nz_redcross_1b_family_needs/household_location">
+      <label>Record the location of this household</label>
+      <hint>GPS coordinates can only be collected when outside.</hint>
+    </input>
+  </h:body>
+</h:html>

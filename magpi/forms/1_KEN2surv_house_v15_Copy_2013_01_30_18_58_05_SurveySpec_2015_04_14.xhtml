@@ -1,0 +1,1466 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>1_KEN2surv_house_v15_Copy_2013_01_30_18_58_05</title>
+          <xf:model dd:formid="27251" dd:geotag="on" id="1_KEN2surv_house_v15_Copy_2013_01_30_18_58_05">
+               <xf:instance>
+                    <data>
+                         <KENYA_MANAGEMENT_SURVEY_JANUA/>
+                         <interviewer/>
+                         <clusterid/>
+                         <hhid/>
+                         <gps/>
+                         <hhinterviewed_yn/>
+                         <consent/>
+                         <interview_start_time/>
+                         <name_hhhead/>
+                         <head_hh_school_yn/>
+                         <head_hh_educ_highest/>
+                         <num_km_to_facility/>
+                         <min_to_health_facility/>
+                         <BEDNET_questions_follow_next/>
+                         <totalpersons_lastnight/>
+                         <totalpersons_usual/>
+                         <numhhsleepingspaces_ln/>
+                         <numhhsleepingspaces_usual/>
+                         <nets_yn/>
+                         <nets_numberinhh/>
+                         <net_holes_ever_yn/>
+                         <net_holes_cause/>
+                         <net_holes_repaired_yn/>
+                         <net_holes_repair_method/>
+                         <net_holes_notrepaired_reason/>
+                         <net_holes_notrepaired_other/>
+                         <net_holes_messages_yn/>
+                         <net_holes_messages_where/>
+                         <visithomemalaria/>
+                         <itn_netinfosource/>
+                         <HOUSEHOLD_WEALTH_questions_fo/>
+                         <wlth_hhwater/>
+                         <water_wheresource/>
+                         <water_howlong/>
+                         <water_whofetches/>
+                         <water_safedrink_yn/>
+                         <water_makesafe/>
+                         <water_chlorine_type/>
+                         <wlth_hhtoilet/>
+                         <toilet_share/>
+                         <wlth_toilet_numotherhholds/>
+                         <wlth_hhcook/>
+                         <wlth_hhfloor/>
+                         <wlth_roof/>
+                         <wlth_extwalls/>
+                         <wlth_elect/>
+                         <wlth_radio/>
+                         <wlth_tv/>
+                         <wlth_mobphone/>
+                         <wlth_nonmobphone/>
+                         <wlth_refridg/>
+                         <wlth_watch/>
+                         <wlth_bicycle/>
+                         <wlth_motocyc/>
+                         <wlth_animaldrawncart/>
+                         <wlth_car/>
+                         <wlth_boat_motor/>
+                         <wlth_hhagland/>
+                         <wlth_hectaresownland/>
+                         <wlth_ownfarmanimals/>
+                         <wlth_numcattle/>
+                         <wlth_milkcowsbulls/>
+                         <wlth_horsesdonkeysmules/>
+                         <wlth_goats/>
+                         <wlth_sheep/>
+                         <wlth_chickens/>
+                         <wlth_bankaccount/>
+                         <Prompt1356176371311/>
+                         <handwash_observe_yn/>
+                         <handwash_station/>
+                         <handwash_water_present/>
+                         <handwash_cleaning_agent/>
+                         <Prompt1358572577517/>
+                         <chw_presence_yn/>
+                         <Prompt1358622580042/>
+                         <fevero5_last2weeks_num/>
+                         <fevero5_bloodtaken_num/>
+                         <This_portion_of_the_interview/>
+                    </data>
+               </xf:instance>
+               <bind id="KENYA_MANAGEMENT_SURVEY_JANUA"
+                    nodeset="/data/KENYA_MANAGEMENT_SURVEY_JANUA" type="xsd:information"/>
+               <bind id="interviewer" nodeset="/data/interviewer"
+                    required="true()" type="xsd:string"/>
+               <bind
+                    constraint="not(   /data/clusterid  &lt;  1   or   /data/clusterid  >  30    )"
+                    id="clusterid"
+                    jr:constraintMsg="Your answer must be between 1 and 30"
+                    nodeset="/data/clusterid" required="true()" type="xsd:integer"/>
+               <bind
+                    constraint="not(   /data/hhid  &lt;  1   or   /data/hhid  >  15    )"
+                    id="hhid"
+                    jr:constraintMsg="Your answer must be between 1 and 15"
+                    nodeset="/data/hhid" required="true()" type="xsd:integer"/>
+               <bind id="gps" nodeset="/data/gps" type="jr:geopoint"/>
+               <bind id="hhinterviewed_yn"
+                    nodeset="/data/hhinterviewed_yn" required="true()" type="xsd:radio"/>
+               <bind id="consent" nodeset="/data/consent"
+                    relevant="not( selected( /data/hhinterviewed_yn , 'no' ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind
+                    constraint="not(   /data/interview_start_time  &lt;  0   or   /data/interview_start_time  >  2400    )"
+                    id="interview_start_time"
+                    jr:constraintMsg="Your answer must be between 0 and 2400"
+                    nodeset="/data/interview_start_time"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="name_hhhead" nodeset="/data/name_hhhead"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="head_hh_school_yn"
+                    nodeset="/data/head_hh_school_yn"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="head_hh_educ_highest"
+                    nodeset="/data/head_hh_educ_highest"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/head_hh_school_yn , 'no' ) )  ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="num_km_to_facility"
+                    nodeset="/data/num_km_to_facility"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="min_to_health_facility"
+                    nodeset="/data/min_to_health_facility"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="BEDNET_questions_follow_next"
+                    nodeset="/data/BEDNET_questions_follow_next"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:information"/>
+               <bind id="totalpersons_lastnight"
+                    nodeset="/data/totalpersons_lastnight"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="totalpersons_usual"
+                    nodeset="/data/totalpersons_usual"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:integer"/>
+               <bind id="numhhsleepingspaces_ln"
+                    nodeset="/data/numhhsleepingspaces_ln"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="numhhsleepingspaces_usual"
+                    nodeset="/data/numhhsleepingspaces_usual"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:integer"/>
+               <bind id="nets_yn" nodeset="/data/nets_yn"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="nets_numberinhh"
+                    nodeset="/data/nets_numberinhh"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="net_holes_ever_yn"
+                    nodeset="/data/net_holes_ever_yn"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )" type="xsd:radio"/>
+               <bind id="net_holes_cause"
+                    nodeset="/data/net_holes_cause"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )" type="xsd:checkbox"/>
+               <bind id="net_holes_repaired_yn"
+                    nodeset="/data/net_holes_repaired_yn"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )" type="xsd:radio"/>
+               <bind id="net_holes_repair_method"
+                    nodeset="/data/net_holes_repair_method"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )" type="xsd:checkbox"/>
+               <bind id="net_holes_notrepaired_reason"
+                    nodeset="/data/net_holes_notrepaired_reason"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )" type="xsd:radio"/>
+               <bind id="net_holes_notrepaired_other"
+                    nodeset="/data/net_holes_notrepaired_other"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )" type="xsd:string"/>
+               <bind id="net_holes_messages_yn"
+                    nodeset="/data/net_holes_messages_yn"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )" type="xsd:radio"/>
+               <bind id="net_holes_messages_where"
+                    nodeset="/data/net_holes_messages_where"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )" type="xsd:checkbox"/>
+               <bind id="visithomemalaria"
+                    nodeset="/data/visithomemalaria"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/nets_yn , 'No' ) )  ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="itn_netinfosource"
+                    nodeset="/data/itn_netinfosource"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="HOUSEHOLD_WEALTH_questions_fo"
+                    nodeset="/data/HOUSEHOLD_WEALTH_questions_fo"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:information"/>
+               <bind id="wlth_hhwater" nodeset="/data/wlth_hhwater"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="water_wheresource"
+                    nodeset="/data/water_wheresource"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="water_howlong" nodeset="/data/water_howlong"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="water_whofetches"
+                    nodeset="/data/water_whofetches"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:radio"/>
+               <bind id="water_safedrink_yn"
+                    nodeset="/data/water_safedrink_yn"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="water_makesafe" nodeset="/data/water_makesafe"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/water_safedrink_yn , 'no' ) )  ) )" type="xsd:checkbox"/>
+               <bind id="water_chlorine_type"
+                    nodeset="/data/water_chlorine_type"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/water_safedrink_yn , 'no' ) )  ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_hhtoilet" nodeset="/data/wlth_hhtoilet"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="toilet_share" nodeset="/data/toilet_share"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:radio"/>
+               <bind id="wlth_toilet_numotherhholds"
+                    nodeset="/data/wlth_toilet_numotherhholds"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/toilet_share , 'no' ) )  ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="wlth_hhcook" nodeset="/data/wlth_hhcook"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_hhfloor" nodeset="/data/wlth_hhfloor"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_roof" nodeset="/data/wlth_roof"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_extwalls" nodeset="/data/wlth_extwalls"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:dropdown"/>
+               <bind id="wlth_elect" nodeset="/data/wlth_elect"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_radio" nodeset="/data/wlth_radio"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_tv" nodeset="/data/wlth_tv"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_mobphone" nodeset="/data/wlth_mobphone"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:radio"/>
+               <bind id="wlth_nonmobphone"
+                    nodeset="/data/wlth_nonmobphone"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_refridg" nodeset="/data/wlth_refridg"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_watch" nodeset="/data/wlth_watch"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_bicycle" nodeset="/data/wlth_bicycle"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_motocyc" nodeset="/data/wlth_motocyc"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_animaldrawncart"
+                    nodeset="/data/wlth_animaldrawncart"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_car" nodeset="/data/wlth_car"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_boat_motor"
+                    nodeset="/data/wlth_boat_motor"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_hhagland" nodeset="/data/wlth_hhagland"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_hectaresownland"
+                    nodeset="/data/wlth_hectaresownland"
+                    relevant="not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/wlth_hhagland , 'No' ) )  ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="wlth_ownfarmanimals"
+                    nodeset="/data/wlth_ownfarmanimals"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="wlth_numcattle" nodeset="/data/wlth_numcattle"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/wlth_ownfarmanimals , 'No' ) )  ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="wlth_milkcowsbulls"
+                    nodeset="/data/wlth_milkcowsbulls"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/wlth_ownfarmanimals , 'No' ) )  ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="wlth_horsesdonkeysmules"
+                    nodeset="/data/wlth_horsesdonkeysmules"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/wlth_ownfarmanimals , 'No' ) )  ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="wlth_goats" nodeset="/data/wlth_goats"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/wlth_ownfarmanimals , 'No' ) )  ) )" type="xsd:integer"/>
+               <bind id="wlth_sheep" nodeset="/data/wlth_sheep"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/wlth_ownfarmanimals , 'No' ) )  ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="wlth_chickens" nodeset="/data/wlth_chickens"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( not(  not(  ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) )  )  or  ( selected( /data/wlth_ownfarmanimals , 'No' ) )  ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="wlth_bankaccount"
+                    nodeset="/data/wlth_bankaccount"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Prompt1356176371311"
+                    nodeset="/data/Prompt1356176371311"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:information"/>
+               <bind id="handwash_observe_yn"
+                    nodeset="/data/handwash_observe_yn"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:radio"/>
+               <bind id="handwash_station"
+                    nodeset="/data/handwash_station"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:radio"/>
+               <bind id="handwash_water_present"
+                    nodeset="/data/handwash_water_present"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:radio"/>
+               <bind id="handwash_cleaning_agent"
+                    nodeset="/data/handwash_cleaning_agent"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:radio"/>
+               <bind id="Prompt1358572577517"
+                    nodeset="/data/Prompt1358572577517"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:information"/>
+               <bind id="chw_presence_yn"
+                    nodeset="/data/chw_presence_yn"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:radio"/>
+               <bind id="Prompt1358622580042"
+                    nodeset="/data/Prompt1358622580042"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )" type="xsd:information"/>
+               <bind
+                    constraint="not(   /data/fevero5_last2weeks_num  &lt;  0   or   /data/fevero5_last2weeks_num  >  98    )"
+                    id="fevero5_last2weeks_num"
+                    jr:constraintMsg="Your answer must be between 0 and 98"
+                    nodeset="/data/fevero5_last2weeks_num"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="fevero5_bloodtaken_num"
+                    nodeset="/data/fevero5_bloodtaken_num"
+                    relevant="not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) ) and not( ( selected( /data/hhinterviewed_yn , 'no' ) )  or  ( selected( /data/consent , 'no' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="This_portion_of_the_interview"
+                    nodeset="/data/This_portion_of_the_interview" type="xsd:information"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:output bind="KENYA_MANAGEMENT_SURVEY_JANUA">
+               <xf:label>HOUSEHOLD QUESTIONNAIRE</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:input bind="interviewer">
+               <xf:label>Interviewer name</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="clusterid">
+               <xf:label>Cluster number.  REMEMBER TO CHANGE THE CLUSTER NUMBER AT THE BEGINNING OF EACH DAY.  THIS VARIABLE IS SET TO 'AUTOFILL' OR REPEAT THE PREVIOUS VARIABLE RESPONSE.</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="hhid">
+               <xf:label>Household number</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="gps">
+               <xf:label>GPS coordinates. REMEMBER TO TURN ON GPS UNDER "LOCATIONS AND SETTINGS"</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="hhinterviewed_yn">
+               <xf:label>Interviewer was able to interview member of this household?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes interviewed</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no not interviewed</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="consent">
+               <xf:label>Consent obtained?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="interview_start_time">
+               <xf:label>Record time in 24-hour format that the interview was started. (example: 1420)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="name_hhhead">
+               <xf:label>Name of head of household</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="head_hh_school_yn">
+               <xf:label>Has head of household ever attended school?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>do not know</xf:label>
+                    <xf:value>do not know</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="head_hh_educ_highest">
+               <xf:label>What was the highest level of school the head of the household attended? (Primary, Secondary, Higher)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Primary</xf:label>
+                    <xf:value>Primary</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Secondary</xf:label>
+                    <xf:value>Secondary</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Higher</xf:label>
+                    <xf:value>Higher</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Do not know</xf:label>
+                    <xf:value>Do not know</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="num_km_to_facility">
+               <xf:label>How many kilometers is your household from the nearest health facility: government, NGO, mission health facility or hospital? INTERVIEWER CAN ANSWER IF POSSIBLE. (98=do not know). If less than 1 km, put "1".</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="min_to_health_facility">
+               <xf:label>How many minutes does it take to walk to the nearest health facility?  INTERVIEWER CAN ANSWER IF POSSIBLE.</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:output bind="BEDNET_questions_follow_next">
+               <xf:label>MOSQUITO BEDNET QUESTIONS FOLLOW NEXT</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:input bind="totalpersons_lastnight">
+               <xf:label>Number of people of all ages who slept in this household last night? (do NOT include usual members of this household who slept somewhere else last night). CHECK AGAINST DATA ON JOB AID #1.</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="totalpersons_usual">
+               <xf:label>What is the number of persons that usually sleep in this household? (usually the same as slept last night). CHECK AGAINST DATA ON JOB AID #1.</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="numhhsleepingspaces_ln">
+               <xf:label>Last night, how many sleeping spaces were there (both inside and outside if someone slept outside)? (Sleeping space defined as a place where people sleep that could be covered by a single net.)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="numhhsleepingspaces_usual">
+               <xf:label>How many sleeping spaces are there (both inside and outside if someone slept outside) if you include USUAL household members and exclude guests from last night?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="nets_yn">
+               <xf:label>Does your household have any mosquito nets that can be used while sleeping?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="nets_numberinhh">
+               <xf:label>How many mosquito nets does your household have, included those that were not used night? (Enter "0" if none).  &gt;&gt;Probe for any nets not in use.</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="net_holes_ever_yn">
+               <xf:label>Have you ever experienced any holes in the nets you own?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select bind="net_holes_cause">
+               <xf:label>How did the hole(s) happen? (check all that apply)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Tore when got caught on edge or nail</xf:label>
+                    <xf:value>Tore when got caught on edge or nail</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Was pulled and tore on corner</xf:label>
+                    <xf:value>Was pulled and tore on corner</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Was burned by a candle or sparks</xf:label>
+                    <xf:value>Was burned by a candle or sparks</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Was caused by rats or mice</xf:label>
+                    <xf:value>Was caused by rats or mice</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>In another way</xf:label>
+                    <xf:value>In another way</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Do not know</xf:label>
+                    <xf:value>Do not know</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:select1 bind="net_holes_repaired_yn">
+               <xf:label>Have you ever tried to repair any of these holes or get them repaired by someone else?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select bind="net_holes_repair_method">
+               <xf:label>How were the holes repaired? (check all that apply)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Stitched</xf:label>
+                    <xf:value>Stitched</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Knotted or tied</xf:label>
+                    <xf:value>Knotted or tied</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Used a patch</xf:label>
+                    <xf:value>Used a patch</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>In another way</xf:label>
+                    <xf:value>In another way</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:select1 bind="net_holes_notrepaired_reason">
+               <xf:label>What was the &lt;&lt;main&gt;&gt; reason holes were not repaired?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>No time for this</xf:label>
+                    <xf:value>No time for this</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>It is not necessary</xf:label>
+                    <xf:value>It is not necessary</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Don’t know how</xf:label>
+                    <xf:value>Don’t know how</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other</xf:label>
+                    <xf:value>Other</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="net_holes_notrepaired_other">
+               <xf:label>If other, specify. [What was the main reason holes were not repaired?]</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="net_holes_messages_yn">
+               <xf:label>In the past 6 months, did you hear any messages on the care and repair of mosquito nets?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select bind="net_holes_messages_where">
+               <xf:label>Where did you hear these messages? (check all that apply)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Radio</xf:label>
+                    <xf:value>Radio</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Community volunteer</xf:label>
+                    <xf:value>Community volunteer</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Health worker</xf:label>
+                    <xf:value>Health worker</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Community leader</xf:label>
+                    <xf:value>Community leader</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Church or mosque</xf:label>
+                    <xf:value>Church or mosque</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Family or fried</xf:label>
+                    <xf:value>Family or fried</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Poster</xf:label>
+                    <xf:value>Poster</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other</xf:label>
+                    <xf:value>Other</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:select1 bind="visithomemalaria">
+               <xf:label>Has a community volunteer visited this household in the last 6 months to talk about malaria or mosquito nets?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Do not know</xf:label>
+                    <xf:value>Do not know</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="itn_netinfosource">
+               <xf:label>What is your main source of information on the use of mosquito nets?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Radio</xf:label>
+                    <xf:value>Radio</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Health centre staff</xf:label>
+                    <xf:value>Health centre staff</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Community-based volunteer</xf:label>
+                    <xf:value>Community-based volunteer</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Community leader</xf:label>
+                    <xf:value>Community leader</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Neighbor</xf:label>
+                    <xf:value>Neighbor</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Relative</xf:label>
+                    <xf:value>Relative</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Television</xf:label>
+                    <xf:value>Television</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other</xf:label>
+                    <xf:value>Other</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No information</xf:label>
+                    <xf:value>No information</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:output bind="HOUSEHOLD_WEALTH_questions_fo">
+               <xf:label>HOUSEHOLD CHARACTERISTICS questions follow next</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:select1 bind="wlth_hhwater">
+               <xf:label>What is the main household source of drinking water?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Piped into dwelling</xf:label>
+                    <xf:value>Piped into dwelling</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Piped into yard or plot</xf:label>
+                    <xf:value>Piped into yard or plot</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Piped public tap or standpipe</xf:label>
+                    <xf:value>Piped public tap or standpipe</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Tube well or borehole</xf:label>
+                    <xf:value>Tube well or borehole</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Dug well protected</xf:label>
+                    <xf:value>Dug well protected</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Dug well unprotected</xf:label>
+                    <xf:value>Dug well unprotected</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Rainwater</xf:label>
+                    <xf:value>Rainwater</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Tanker truck</xf:label>
+                    <xf:value>Tanker truck</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Cart with small tank</xf:label>
+                    <xf:value>Cart with small tank</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Surface water lake pond etc</xf:label>
+                    <xf:value>Surface water lake pond etc</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Bottled water</xf:label>
+                    <xf:value>Bottled water</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other</xf:label>
+                    <xf:value>Other</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="water_wheresource">
+               <xf:label>Where is that water source located?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>in own dwelling</xf:label>
+                    <xf:value>in own dwelling</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>in own yard or plot</xf:label>
+                    <xf:value>in own yard or plot</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>elsewhere</xf:label>
+                    <xf:value>elsewhere</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="water_howlong">
+               <xf:label>How long (in minutes) does it take to go there, get water, and come back?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="water_whofetches">
+               <xf:label>Who usually goes to this source to fetch the water for your household?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>adult woman</xf:label>
+                    <xf:value>adult woman</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>adult man</xf:label>
+                    <xf:value>adult man</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>female child less 15 yo</xf:label>
+                    <xf:value>female child less 15 yo</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>male child less 15 yo</xf:label>
+                    <xf:value>male child less 15 yo</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>other</xf:label>
+                    <xf:value>other</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="water_safedrink_yn">
+               <xf:label>Do you do anything to the water to make it safer to drink?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>do not know</xf:label>
+                    <xf:value>do not know</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select bind="water_makesafe">
+               <xf:label>What to you usually do to make the water safe to drink? (check all that apply)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>boil</xf:label>
+                    <xf:value>boil</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>bleach_chlorine</xf:label>
+                    <xf:value>bleach_chlorine</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>strain thru cloth</xf:label>
+                    <xf:value>strain thru cloth</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>use water filter</xf:label>
+                    <xf:value>use water filter</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>solar disinfection</xf:label>
+                    <xf:value>solar disinfection</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>let stand and settle</xf:label>
+                    <xf:value>let stand and settle</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>other</xf:label>
+                    <xf:value>other</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>do not know</xf:label>
+                    <xf:value>do not know</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:select1 bind="water_chlorine_type">
+               <xf:label>If bleach or chlorine is used, what type? (or what type is used most if more than one type is used)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>aqua tab</xf:label>
+                    <xf:value>aqua tab</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>WaterGuard</xf:label>
+                    <xf:value>WaterGuard</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>PuR</xf:label>
+                    <xf:value>PuR</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>other</xf:label>
+                    <xf:value>other</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_hhtoilet">
+               <xf:label>What kind of toilet facility do members of your household usually use?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>FLUSH or POUR FLUSH to piped sewer</xf:label>
+                    <xf:value>FLUSH or POUR FLUSH to piped sewer</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FLUSH or POUR FLUSH to septic tank</xf:label>
+                    <xf:value>FLUSH or POUR FLUSH to septic tank</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FLUSH or POUR FLUSH to pit latrine</xf:label>
+                    <xf:value>FLUSH or POUR FLUSH to pit latrine</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FLUSH or POUR FLUSH to somewhere else</xf:label>
+                    <xf:value>FLUSH or POUR FLUSH to somewhere else</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FLUSH do not where</xf:label>
+                    <xf:value>FLUSH do not where</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>PIT ventilated improved</xf:label>
+                    <xf:value>PIT ventilated improved</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>PIT with slab</xf:label>
+                    <xf:value>PIT with slab</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>PIT without slab or open pit</xf:label>
+                    <xf:value>PIT without slab or open pit</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>COMPOSTING toilet</xf:label>
+                    <xf:value>COMPOSTING toilet</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>BUCKET toilet</xf:label>
+                    <xf:value>BUCKET toilet</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>HANGING toilet or latrine</xf:label>
+                    <xf:value>HANGING toilet or latrine</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>NO TOILET bush or field</xf:label>
+                    <xf:value>NO TOILET bush or field</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>OTHER</xf:label>
+                    <xf:value>OTHER</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="toilet_share">
+               <xf:label>Do you share this toilet factuality with other households?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="wlth_toilet_numotherhholds">
+               <xf:label>How many households use this toilet facility?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="wlth_hhcook">
+               <xf:label>What is the main type of cooking fuel used in your household?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Electricity</xf:label>
+                    <xf:value>Electricity</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>LPG</xf:label>
+                    <xf:value>LPG</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Natural gas</xf:label>
+                    <xf:value>Natural gas</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Biogas</xf:label>
+                    <xf:value>Biogas</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Kerosene</xf:label>
+                    <xf:value>Kerosene</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Coal lignite</xf:label>
+                    <xf:value>Coal lignite</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Charcoal</xf:label>
+                    <xf:value>Charcoal</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Wood</xf:label>
+                    <xf:value>Wood</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Straw shrub grass</xf:label>
+                    <xf:value>Straw shrub grass</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Agricultural crop</xf:label>
+                    <xf:value>Agricultural crop</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Animal dung</xf:label>
+                    <xf:value>Animal dung</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No food cooked in household</xf:label>
+                    <xf:value>No food cooked in household</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other</xf:label>
+                    <xf:value>Other</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_hhfloor">
+               <xf:label>What is the main material of flooring in your house? (Interviewer may choose to observe)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Earth or sand</xf:label>
+                    <xf:value>Earth or sand</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Dung</xf:label>
+                    <xf:value>Dung</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Wood planks</xf:label>
+                    <xf:value>Wood planks</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Palm or bamboo</xf:label>
+                    <xf:value>Palm or bamboo</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Parquet or polished wood</xf:label>
+                    <xf:value>Parquet or polished wood</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Vinyl or asphalt strips</xf:label>
+                    <xf:value>Vinyl or asphalt strips</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Ceramic tiles</xf:label>
+                    <xf:value>Ceramic tiles</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Cement</xf:label>
+                    <xf:value>Cement</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Carpet</xf:label>
+                    <xf:value>Carpet</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other</xf:label>
+                    <xf:value>Other</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_roof">
+               <xf:label>Main material of roof? (Interview may choose to observe)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>NATURAL no roof</xf:label>
+                    <xf:value>NATURAL no roof</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>NATURAL thatch or palm leaf</xf:label>
+                    <xf:value>NATURAL thatch or palm leaf</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>NATURAL sod</xf:label>
+                    <xf:value>NATURAL sod</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY rustic mat</xf:label>
+                    <xf:value>RUDIMENTARY rustic mat</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY palm or bamboo</xf:label>
+                    <xf:value>RUDIMENTARY palm or bamboo</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY wood planks</xf:label>
+                    <xf:value>RUDIMENTARY wood planks</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY cardboard</xf:label>
+                    <xf:value>RUDIMENTARY cardboard</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED metal</xf:label>
+                    <xf:value>FINISHED metal</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED wood</xf:label>
+                    <xf:value>FINISHED wood</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED calamine or cement fiber</xf:label>
+                    <xf:value>FINISHED calamine or cement fiber</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED ceramic tiles</xf:label>
+                    <xf:value>FINISHED ceramic tiles</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED cement</xf:label>
+                    <xf:value>FINISHED cement</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED roofing shingles</xf:label>
+                    <xf:value>FINISHED roofing shingles</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>OTHER</xf:label>
+                    <xf:value>OTHER</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_extwalls">
+               <xf:label>Main material of exterior walls? (Interviewer may choose to observe)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>NATURAL no walls</xf:label>
+                    <xf:value>NATURAL no walls</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>NATURAL cane palm or trunks</xf:label>
+                    <xf:value>NATURAL cane palm or trunks</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>NATURAL dirt</xf:label>
+                    <xf:value>NATURAL dirt</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY bamboo with mud</xf:label>
+                    <xf:value>RUDIMENTARY bamboo with mud</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY stone with mud</xf:label>
+                    <xf:value>RUDIMENTARY stone with mud</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY uncovered adobe</xf:label>
+                    <xf:value>RUDIMENTARY uncovered adobe</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY plywood</xf:label>
+                    <xf:value>RUDIMENTARY plywood</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY cardboard</xf:label>
+                    <xf:value>RUDIMENTARY cardboard</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>RUDIMENTARY reused wood</xf:label>
+                    <xf:value>RUDIMENTARY reused wood</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED cement</xf:label>
+                    <xf:value>FINISHED cement</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED stone with lime or cement</xf:label>
+                    <xf:value>FINISHED stone with lime or cement</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED bricks</xf:label>
+                    <xf:value>FINISHED bricks</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED cement blocks</xf:label>
+                    <xf:value>FINISHED cement blocks</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED covered adobe</xf:label>
+                    <xf:value>FINISHED covered adobe</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FINISHED wood planks or shingles</xf:label>
+                    <xf:value>FINISHED wood planks or shingles</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>OTHER</xf:label>
+                    <xf:value>OTHER</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_elect">
+               <xf:label>Does your household have electricity?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_radio">
+               <xf:label>Radio?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_tv">
+               <xf:label>Television?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_mobphone">
+               <xf:label>Mobile phone?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_nonmobphone">
+               <xf:label>Non-mobile phone?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_refridg">
+               <xf:label>Refrigerator?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_watch">
+               <xf:label>Watch?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_bicycle">
+               <xf:label>Bicycle?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_motocyc">
+               <xf:label>Motorcycle or scooter?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_animaldrawncart">
+               <xf:label>Animal-drawn cart?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_car">
+               <xf:label>Car or truck?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_boat_motor">
+               <xf:label>Boat with motor?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="wlth_hhagland">
+               <xf:label>Does any member of this household own any agricultural land?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="wlth_hectaresownland">
+               <xf:label>How many hectares of agricultural land do members of this household own? IF 950 or more, enter "950"</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="wlth_ownfarmanimals">
+               <xf:label>Does this household own any livestock, herds, other farm animals, or poultry?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="wlth_numcattle">
+               <xf:label>How many cattle? (Enter "0" if none)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="wlth_milkcowsbulls">
+               <xf:label>How many milk cows or bulls? (Enter "0" if none)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="wlth_horsesdonkeysmules">
+               <xf:label>How many horses, donkeys, mules? (Enter "0" if none)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="wlth_goats">
+               <xf:label>How many goats?  (Enter "0" if none)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="wlth_sheep">
+               <xf:label>How many sheep? (Enter "0" if none)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="wlth_chickens">
+               <xf:label>How many chickens?  (Enter "0" if none)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="wlth_bankaccount">
+               <xf:label>Does any member of this household have a bank account?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:output bind="Prompt1356176371311">
+               <xf:label>HANDWASHING SECTION</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:select1 bind="handwash_observe_yn">
+               <xf:label>Please show me where members of your household most often wash their hands.</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Observed</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Not observed--not in dwelling-yard-plot</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No permission to see</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Not observed--other reason</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="handwash_station">
+               <xf:label>Presence of a designated place to wash  hands?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="handwash_water_present">
+               <xf:label>OBSERVATION ONLY: Observe presence of water at the place for handwashing.</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>WATER IS AVAILABLE</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>WATER IS NOT AVAILABLE</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="handwash_cleaning_agent">
+               <xf:label>OBSERVATION ONLY: observe presence of soap, detergent, or other cleaning agent.</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>SOAP OR DETERGENT</xf:label>
+                    <xf:value>SOAP OR DETERGENT</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>ASH-MUD-SAND</xf:label>
+                    <xf:value>ASH-MUD-SAND</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>NONE</xf:label>
+                    <xf:value>NONE</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:output bind="Prompt1358572577517">
+               <xf:label>KNOWLEDGE OF COMMUNITY VOLUNTEER WORKER</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:select1 bind="chw_presence_yn">
+               <xf:label>Do you know the name of the community volunteer who in the past 2 years was helping the children under 5 years of age get the best antimalarial medicine treatment whenever they had a case of fever?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>yes</xf:label>
+                    <xf:value>yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>no</xf:label>
+                    <xf:value>no</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:output bind="Prompt1358622580042">
+               <xf:label>MALARIA TESTING INDICATOR, FOR THOSE 5 YEARS OLD AND OLDERFor those 0-4 years, fever and malaria testing is asked about in the "child" module.</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:input bind="fevero5_last2weeks_num">
+               <xf:label>How many persons aged 5 years or more in your household had fever in the last 2 weeks</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="fevero5_bloodtaken_num">
+               <xf:label>Of those with fever in the last 2 weeks, how many of those persons had blood taken for testing for malaria?Enter zero if no persons had fever in the last two weeks.</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:output bind="This_portion_of_the_interview">
+               <xf:label>END OF THIS FORM. Close the record for this household by clicking ``Save as Complete`` on next screen. Proceed to the next form.</xf:label>
+               <hint/>
+          </xf:output>
+     </body>
+</html>

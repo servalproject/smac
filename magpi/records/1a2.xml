@@ -1,0 +1,32 @@
+<?xml version='1.0' ?>
+<nz_redcross_1a_people id="nz-redcross-1a-people" version="3">
+  <intro_note />
+  <village_name />
+  <household_head />
+  <household_population>
+    <adult_male />
+    <adult_female />
+    <child_01 />
+    <child_02 />
+    <baby_01 />
+    <total_population />
+  </household_population>
+  <household_casualties>
+    <dead />
+    <injured />
+    <missing />
+    <special_needs />
+  </household_casualties>
+  <household>
+    <damaged_house />
+    <usable_kitchen />
+    <household_location />
+    <household_photo />
+  </household>
+  <start>2014-05-07T05:18:59.467-07</start>
+  <end>2014-05-07T05:19:11.827-07</end>
+  <deviceid>359372042147975</deviceid>
+  <meta>
+    <instanceID>uuid:5f29c5eb-7a29-4cc4-bf5c-5eb4bda9b4fa</instanceID>
+  </meta>
+</nz_redcross_1a_people>

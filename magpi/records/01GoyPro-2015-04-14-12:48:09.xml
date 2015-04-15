@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<meta>
+		<email>potato</email>
+		<password>kartoffel</password>
+		<formid>111055708</formid>
+		<lastsubmittime>2015-04-14 12:48:09</lastsubmittime>
+		<endrecordtime>2015-04-14 12:48:09</endrecordtime>
+		<startrecordtime>2015-04-14 12:47:50</startrecordtime>
+		<version>2.5</version>
+		<uuid>606044c5ae181046-1429004870842</uuid>
+		<geotag>
+			<longitude>0</longitude>
+			<latitude>0</latitude>
+		</geotag>
+	</meta>
+	<data>
+		<counties>County1</counties>
+		<county_1_schools>school3</county_1_schools>
+		<school1_details>mixed</school1_details>
+		<county_2_schools>~</county_2_schools>
+		<school2_details_copy>~</school2_details_copy>
+		<county_3_schools>~</county_3_schools>
+		<school3_details>~</school3_details>
+		<county_4_schools>~</county_4_schools>
+		<school4_details>~</school4_details>
+		<prompt__1397581086664>~</prompt__1397581086664>
+	</data>
+</form>

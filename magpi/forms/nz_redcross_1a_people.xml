@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <h:head>
+    <h:title>NZ Red Cross - Disaster Assessment Form: 1 A - People</h:title>
+    <model>
+      <instance>
+        <nz_redcross_1a_people id="nz-redcross-1a-people" version="4">
+          <intro_note/>
+          <village_name/>
+          <household_head/>
+          <household_population>
+            <adult_male/>
+            <adult_female/>
+            <child_01/>
+            <child_02/>
+            <baby_01/>
+            <total_population/>
+          </household_population>
+          <household_casualties>
+            <dead/>
+            <injured/>
+            <missing/>
+            <special_needs/>
+          </household_casualties>
+          <household>
+            <damaged_house/>
+            <damage_details/>
+            <usable_kitchen/>
+            <household_location/>
+            <household_photo/>
+          </household>
+          <start/>
+          <end/>
+          <deviceid/>
+          <meta>
+            <instanceID/>
+          </meta>
+        </nz_redcross_1a_people>
+      </instance>
+      <bind nodeset="/nz_redcross_1a_people/intro_note" readonly="true()" type="string"/>
+      <bind nodeset="/nz_redcross_1a_people/village_name" type="string"/>
+      <bind nodeset="/nz_redcross_1a_people/household_head" type="string"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1a_people/household_population/adult_male" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1a_people/household_population/adult_female" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1a_people/household_population/child_01" type="int"/>
+      <bind constraint=". &gt;= 0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1a_people/household_population/child_02" type="int"/>
+      <bind constraint=". &gt;=0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1a_people/household_population/baby_01" type="int"/>
+      <bind calculate="/nz_redcross_1a_people/household_population/adult_male + /nz_redcross_1a_people/household_population/adult_female + /nz_redcross_1a_people/household_population/child_01 + /nz_redcross_1a_people/household_population/child_02 + /nz_redcross_1a_people/household_population/baby_01" nodeset="/nz_redcross_1a_people/household_population/total_population" type="string"/>
+      <bind constraint=". &gt;=0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1a_people/household_casualties/dead" type="int"/>
+      <bind constraint=". &gt;=0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1a_people/household_casualties/injured" type="int"/>
+      <bind constraint=". &gt;=0" jr:constraintMsg="Negative values not allowed" nodeset="/nz_redcross_1a_people/household_casualties/missing" type="int"/>
+      <bind nodeset="/nz_redcross_1a_people/household_casualties/special_needs" type="string"/>
+      <bind nodeset="/nz_redcross_1a_people/household/damaged_house" type="select1"/>
+      <bind nodeset="/nz_redcross_1a_people/household/damage_details" relevant="selected(/nz_redcross_1a_people/household/damaged_house, 'yes')" type="string"/>
+      <bind nodeset="/nz_redcross_1a_people/household/usable_kitchen" type="select1"/>
+      <bind nodeset="/nz_redcross_1a_people/household/household_location" type="geopoint"/>
+      <bind nodeset="/nz_redcross_1a_people/household/household_photo" type="binary"/>
+      <bind jr:preload="timestamp" jr:preloadParams="start" nodeset="/nz_redcross_1a_people/start" type="dateTime"/>
+      <bind jr:preload="timestamp" jr:preloadParams="end" nodeset="/nz_redcross_1a_people/end" type="dateTime"/>
+      <bind jr:preload="property" jr:preloadParams="deviceid" nodeset="/nz_redcross_1a_people/deviceid" type="string"/>
+      <bind calculate="concat('uuid:', uuid())" nodeset="/nz_redcross_1a_people/meta/instanceID" readonly="true()" type="string"/>
+    </model>
+  </h:head>
+  <h:body>
+    <input ref="/nz_redcross_1a_people/intro_note">
+      <label>All questions are important, only skip questions when absolutely necessary</label>
+    </input>
+    <input ref="/nz_redcross_1a_people/village_name">
+      <label>What is the name of the village/settlement?</label>
+    </input>
+    <input ref="/nz_redcross_1a_people/household_head">
+      <label>What is the name of the head of household?</label>
+    </input>
+    <group ref="/nz_redcross_1a_people/household_population">
+      <label>Household Population</label>
+      <input ref="/nz_redcross_1a_people/household_population/adult_male">
+        <label>How many adult males live in the household?</label>
+      </input>
+      <input ref="/nz_redcross_1a_people/household_population/adult_female">
+        <label>How many adult females live in the household?</label>
+      </input>
+      <input ref="/nz_redcross_1a_people/household_population/child_01">
+        <label>How many children aged 5 - 16 live in the household?</label>
+      </input>
+      <input ref="/nz_redcross_1a_people/household_population/child_02">
+        <label>How many children aged 1 - 5 live in the household?</label>
+      </input>
+      <input ref="/nz_redcross_1a_people/household_population/baby_01">
+        <label>How many babies aged 0 - 1 lives in the household?</label>
+      </input>
+    </group>
+    <group ref="/nz_redcross_1a_people/household_casualties">
+      <label>Casualties/Sick/Special Needs</label>
+      <input ref="/nz_redcross_1a_people/household_casualties/dead">
+        <label>How many people are deceased?</label>
+      </input>
+      <input ref="/nz_redcross_1a_people/household_casualties/injured">
+        <label>How many people are injured?</label>
+      </input>
+      <input ref="/nz_redcross_1a_people/household_casualties/missing">
+        <label>How many people are missing?</label>
+      </input>
+      <input ref="/nz_redcross_1a_people/household_casualties/special_needs">
+        <label>Are there any special needs?</label>
+      </input>
+    </group>
+    <group ref="/nz_redcross_1a_people/household">
+      <label>House Information</label>
+      <select1 ref="/nz_redcross_1a_people/household/damaged_house">
+        <label>Is the house damaged?</label>
+        <item>
+          <label>Yes</label>
+          <value>yes</value>
+        </item>
+        <item>
+          <label>No</label>
+          <value>no</value>
+        </item>
+      </select1>
+      <input ref="/nz_redcross_1a_people/household/damage_details">
+        <label>Provide details of the damage</label>
+      </input>
+      <select1 ref="/nz_redcross_1a_people/household/usable_kitchen">
+        <label>Is the kitchen usable?</label>
+        <item>
+          <label>Yes</label>
+          <value>yes</value>
+        </item>
+        <item>
+          <label>No</label>
+          <value>no</value>
+        </item>
+      </select1>
+      <input ref="/nz_redcross_1a_people/household/household_location">
+        <label>Record the location of this household</label>
+        <hint>GPS coordinates can only be collected when outside.</hint>
+      </input>
+      <upload mediatype="image/*" ref="/nz_redcross_1a_people/household/household_photo">
+        <label>Take a photo to help illustrate the damage</label>
+      </upload>
+    </group>
+  </h:body>
+</h:html>

@@ -1,0 +1,683 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>RDT_Subform</title>
+          <xf:model dd:formid="9212068602" dd:geotag="off" id="RDT_Subform">
+               <xf:instance>
+                    <data>
+                         <prompt__1405942872793/>
+                         <r_num/>
+                         <r_outlet/>
+                         <r1/>
+                         <r2/>
+                         <r3/>
+                         <r3_other/>
+                         <r4/>
+                         <r5/>
+                         <r5_other/>
+                         <r6/>
+                         <r7/>
+                         <r8/>
+                         <r9m/>
+                         <r9y/>
+                         <r10m/>
+                         <r10y/>
+                         <r11/>
+                         <r12/>
+                         <r13/>
+                         <r14/>
+                         <r15a/>
+                         <r15b/>
+                         <r16/>
+                         <r17a/>
+                         <r17b/>
+                         <R18/>
+                         <R18a/>
+                         <r19/>
+                         <r19_other/>
+                         <r20/>
+                         <Image2/>
+                         <Subform_list/>
+                         <prompt__1406807384647/>
+                         <prompt__1406616177534/>
+                    </data>
+               </xf:instance>
+               <bind id="prompt__1405942872793"
+                    nodeset="/data/prompt__1405942872793" type="xsd:information"/>
+               <bind id="r_num" nodeset="/data/r_num" required="true()" type="xsd:integer"/>
+               <bind id="r_outlet" nodeset="/data/r_outlet"
+                    required="true()" type="xsd:radio"/>
+               <bind id="r1" nodeset="/data/r1" required="true()" type="xsd:string"/>
+               <bind id="r2" nodeset="/data/r2" required="true()" type="xsd:checkbox"/>
+               <bind id="r3" nodeset="/data/r3" required="true()" type="xsd:checkbox"/>
+               <bind id="r3_other" nodeset="/data/r3_other"
+                    relevant="not( not( ( selected( /data/r3 , 'X' ) ) ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="r4" nodeset="/data/r4" required="true()" type="xsd:string"/>
+               <bind id="r5" nodeset="/data/r5" required="true()" type="xsd:radio"/>
+               <bind id="r5_other" nodeset="/data/r5_other"
+                    relevant="not( not( ( selected( /data/r5 , '996' ) ) ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="r6" nodeset="/data/r6" required="true()" type="xsd:string"/>
+               <bind id="r7" nodeset="/data/r7" required="true()" type="xsd:radio"/>
+               <bind id="r8" nodeset="/data/r8"
+                    relevant="not( ( selected( /data/r7 , '8' ) )  or  ( selected( /data/r7 , '0' ) ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="r9m" nodeset="/data/r9m"
+                    relevant="not( ( selected( /data/r7 , '8' ) )  or  ( selected( /data/r7 , '0' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="r9y" nodeset="/data/r9y"
+                    relevant="not( ( selected( /data/r7 , '8' ) )  or  ( selected( /data/r7 , '0' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="r10m" nodeset="/data/r10m"
+                    relevant="not( ( selected( /data/r7 , '8' ) )  or  ( selected( /data/r7 , '0' ) ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="r10y" nodeset="/data/r10y"
+                    relevant="not( ( selected( /data/r7 , '8' ) )  or  ( selected( /data/r7 , '0' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="r11" nodeset="/data/r11"
+                    relevant="not( ( selected( /data/r7 , '8' ) )  or  ( selected( /data/r7 , '0' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="r12" nodeset="/data/r12" required="true()" type="xsd:integer"/>
+               <bind id="r13" nodeset="/data/r13" required="true()" type="xsd:radio"/>
+               <bind id="r14" nodeset="/data/r14" required="true()" type="xsd:radio"/>
+               <bind id="r15a" nodeset="/data/r15a"
+                    relevant="not( ( selected( /data/r14 , 'Don_t_know' ) )  or  ( selected( /data/r14 , 'No' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="r15b" nodeset="/data/r15b"
+                    relevant="not( ( selected( /data/r14 , 'Don_t_know' ) )  or  ( selected( /data/r14 , 'No' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="r16" nodeset="/data/r16" required="true()" type="xsd:radio"/>
+               <bind id="r17a" nodeset="/data/r17a"
+                    relevant="not( ( selected( /data/r16 , 'Don_t_know' ) )  or  ( selected( /data/r16 , 'No' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="r17b" nodeset="/data/r17b"
+                    relevant="not( ( selected( /data/r16 , 'Don_t_know' ) )  or  ( selected( /data/r16 , 'No' ) ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="R18" nodeset="/data/R18" required="true()" type="xsd:integer"/>
+               <bind id="R18a" nodeset="/data/R18a" required="true()" type="xsd:integer"/>
+               <bind id="r19" nodeset="/data/r19" required="true()" type="xsd:checkbox"/>
+               <bind id="r19_other" nodeset="/data/r19_other"
+                    relevant="not( not( ( selected( /data/r19 , 'Z' ) ) ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="r20" nodeset="/data/r20" required="true()" type="xsd:string"/>
+               <bind id="Image2" nodeset="/data/Image2" type="xsd:image"/>
+               <bind id="Subform_list" nodeset="/data/Subform_list" type="xsd:subformlist"/>
+               <bind id="prompt__1406807384647"
+                    nodeset="/data/prompt__1406807384647" type="xsd:information"/>
+               <bind id="prompt__1406616177534"
+                    nodeset="/data/prompt__1406616177534" type="xsd:information"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:output bind="prompt__1405942872793">
+               <xf:label>Rapid Diagnostic Test Audit Sheet (RDT)&#xd;
+&#xd;
+Collect all of the RDTs in a pile and complete the audit questions for each RDT.</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:input bind="r_num">
+               <xf:label>Product Number</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="r_outlet">
+               <xf:label>Record the outlet type</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Outlet with only 1 dispensing point for medicines/diagnostics</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Outpatient department / dispensary used by all patients</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Adult outpatient department/ dispensary/ clinic</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Child outpatient department/ dispensary/clinic</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Antenatal/ maternity clinic</xf:label>
+                    <xf:value>5</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>ART / HIV/AIDS clinic</xf:label>
+                    <xf:value>6</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Private dispensing unit within a public health facility</xf:label>
+                    <xf:value>7</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Laboratory</xf:label>
+                    <xf:value>8</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Comprehensive clinic / other (specify in comments</xf:label>
+                    <xf:value>9</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="r1">
+               <xf:label>Record the brand name</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select bind="r2">
+               <xf:label>Record the antigen test &#xd;
+(select all that apply)</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Not Indicated</xf:label>
+                    <xf:value>Z</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>HRP2</xf:label>
+                    <xf:value>A</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>pLDH</xf:label>
+                    <xf:value>B</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Aldolase</xf:label>
+                    <xf:value>C</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:select bind="r3">
+               <xf:label>Record the parasite species</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Not Indicated</xf:label>
+                    <xf:value>Z</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Pf</xf:label>
+                    <xf:value>A</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Pv</xf:label>
+                    <xf:value>B</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Po</xf:label>
+                    <xf:value>C</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>pm</xf:label>
+                    <xf:value>D</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>pan</xf:label>
+                    <xf:value>E</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>vom/Pvom</xf:label>
+                    <xf:value>F</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other</xf:label>
+                    <xf:value>X</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:input bind="r3_other">
+               <xf:label>If you chose other in the last question, please specify:</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="r4">
+               <xf:label>Record manufacturer</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="r5">
+               <xf:label>Country of manufacture</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Benin</xf:label>
+                    <xf:value>20</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Belgium</xf:label>
+                    <xf:value>18</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Cambodia</xf:label>
+                    <xf:value>30</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Canada</xf:label>
+                    <xf:value>32</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>China</xf:label>
+                    <xf:value>37</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Cyprus</xf:label>
+                    <xf:value>45</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Democratic republic of the Congo</xf:label>
+                    <xf:value>47</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>France</xf:label>
+                    <xf:value>63</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Germany</xf:label>
+                    <xf:value>68</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>India</xf:label>
+                    <xf:value>81</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Italy</xf:label>
+                    <xf:value>87</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Kenya</xf:label>
+                    <xf:value>92</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Madagascar</xf:label>
+                    <xf:value>105</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Morocco</xf:label>
+                    <xf:value>119</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Myanmar</xf:label>
+                    <xf:value>121</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Nigeria</xf:label>
+                    <xf:value>130</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Pakistan</xf:label>
+                    <xf:value>136</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Senegal</xf:label>
+                    <xf:value>159</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>South Africa</xf:label>
+                    <xf:value>168</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>South Korea</xf:label>
+                    <xf:value>169</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Spain</xf:label>
+                    <xf:value>170</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Switzerland</xf:label>
+                    <xf:value>176</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Tanzania</xf:label>
+                    <xf:value>179</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Thailand</xf:label>
+                    <xf:value>180</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Uganda</xf:label>
+                    <xf:value>190</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>United Kingdom</xf:label>
+                    <xf:value>193</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>United States</xf:label>
+                    <xf:value>194</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Vietnam</xf:label>
+                    <xf:value>200</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No country on package</xf:label>
+                    <xf:value>888</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other, specify</xf:label>
+                    <xf:value>996</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="r5_other">
+               <xf:label>If you chose other in the last question, please specify:</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="r6">
+               <xf:label>Record Lot Number</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="r7">
+               <xf:label>Does the product have the low cost RDT checkmark logo? Show prompt card.</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Don't know</xf:label>
+                    <xf:value>8</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="r8">
+               <xf:label>What is the name of your supply company for this product?&#xd;
+Record name</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="r9m">
+               <xf:label>When did you first place an order for this product? &#xd;
+&#xd;
+Record month</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>January</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>February</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>March</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>April</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>May</xf:label>
+                    <xf:value>5</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>June</xf:label>
+                    <xf:value>6</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>July</xf:label>
+                    <xf:value>7</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>August</xf:label>
+                    <xf:value>8</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>September</xf:label>
+                    <xf:value>9</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>October</xf:label>
+                    <xf:value>10</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>November</xf:label>
+                    <xf:value>11</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>December</xf:label>
+                    <xf:value>12</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="r9y">
+               <xf:label>Record Year</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="r10m">
+               <xf:label>What was the date of your most recent order for this product? &#xd;
+&#xd;
+Record month</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>January</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>February</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>March</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>April</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>May</xf:label>
+                    <xf:value>5</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>June</xf:label>
+                    <xf:value>6</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>July</xf:label>
+                    <xf:value>7</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>August</xf:label>
+                    <xf:value>8</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>September</xf:label>
+                    <xf:value>9</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>October</xf:label>
+                    <xf:value>10</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>November</xf:label>
+                    <xf:value>11</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>December</xf:label>
+                    <xf:value>12</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="r10y">
+               <xf:label>Record  Year</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="r11">
+               <xf:label>How many RDT cassettes did you purchase for your most recent order?&#xd;
+&#xd;
+record 9998 = don’t know</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="r12">
+               <xf:label>What was the total number of tests sold/ distributed /used in the last 7 days to individual consumers?&#xd;
+&#xd;
+0 = None&#xd;
+998 = Don’t know&#xd;
+997 = Refused</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="r13">
+               <xf:label>Has this test been stocked out at any point in the past 3 months</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Don't know</xf:label>
+                    <xf:value>Don_t_know</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="r14">
+               <xf:label>9.a  Do you or other staff use this brand of RDT to test clients here at this facility/outlet?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Don't know</xf:label>
+                    <xf:value>Don_t_know</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="r15a">
+               <xf:label>What is the total cost for an adult to have a test conducted with this RDT, including RDT cost and service fee? (USh)&#xd;
+&#xd;
+0 = free&#xd;
+99998 = don’t know   &#xd;
+99995 = does not provide for adult&#xd;
+99997 = refused</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="r15b">
+               <xf:label>What is the total cost for a child under five to have a test conducted with this RDT, including RDT cost and service fee?&#xd;
+&#xd;
+0 = free&#xd;
+99998 = don’t know    &#xd;
+99995 = does not provide for child &#xd;
+99997 = refused</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="r16">
+               <xf:label>Does this facility/outlet provide this brand of RDT for clients to take away for testing somewhere else?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>Yes</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>No</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Don't know</xf:label>
+                    <xf:value>Don_t_know</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="r17a">
+               <xf:label>What is the total cost of this RDT to buy this test and take away for testing an adult somewhere else ?&#xd;
+&#xd;
+0 = free&#xd;
+99998 = don’t know   &#xd;
+99995 = does not provide for adult &#xd;
+99997 = refused</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="r17b">
+               <xf:label>What is the total cost of this RDT to buy this test and take away for testing a child somewhere else?&#xd;
+&#xd;
+0 = free&#xd;
+99998 = don’t know   &#xd;
+99995 = does not provide for child&#xd;
+99997 = refused</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="R18">
+               <xf:label>For the outlet’s most recent wholesale purchase, what was the wholesale cost of this RDT? &#xd;
+Record price &#xd;
+&#xd;
+0 = free&#xd;
+999998 = don’t know   &#xd;
+999997 = refused</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="R18a">
+               <xf:label>Record number of RDTs purchased for the wholesale price</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select bind="r19">
+               <xf:label>Why do you stock this RDT [SHOW RDT]?&#xd;
+(Do not read list )	&#xd;
+Select all responses given</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Free supply</xf:label>
+                    <xf:value>A</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Profitable</xf:label>
+                    <xf:value>B</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Recommended by the government</xf:label>
+                    <xf:value>C</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Low price</xf:label>
+                    <xf:value>D</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Customer demand or preference</xf:label>
+                    <xf:value>E</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Positive brand reputation</xf:label>
+                    <xf:value>F</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Don’t know</xf:label>
+                    <xf:value>X</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other</xf:label>
+                    <xf:value>Z</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:input bind="r19_other">
+               <xf:label>If you chose other in the last question, please specify:</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="r20">
+               <xf:label>Record comments about this RDT</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Image2">
+               <xf:label>Image2</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Subform_list">
+               <xf:label>Subform list</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:output bind="prompt__1406807384647">
+               <xf:label>To enter more RDTs or another sub-outlet, enter another subform</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:output bind="prompt__1406616177534">
+               <xf:label>End of RDT Audit</xf:label>
+               <hint/>
+          </xf:output>
+     </body>
+</html>

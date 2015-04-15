@@ -1,0 +1,196 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>01GoyPro</title>
+          <xf:model dd:formid="111055708" dd:geotag="off" id="01GoyPro">
+               <xf:instance>
+                    <data>
+                         <counties/>
+                         <county_1_schools/>
+                         <school1_details/>
+                         <county_2_schools/>
+                         <school2_details_copy/>
+                         <county_3_schools/>
+                         <school3_details/>
+                         <county_4_schools/>
+                         <school4_details/>
+                         <prompt__1397581086664/>
+                    </data>
+               </xf:instance>
+               <bind id="counties" nodeset="/data/counties" type="xsd:dropdown"/>
+               <bind id="county_1_schools"
+                    nodeset="/data/county_1_schools"
+                    relevant="not( isblank( /data/counties ) ) and not( selected( /data/counties , 'County3' ) ) and not( selected( /data/counties , 'County2' ) ) and not( selected( /data/counties , 'County4' ) )" type="xsd:dropdown"/>
+               <bind id="school1_details"
+                    nodeset="/data/school1_details"
+                    relevant="not( isblank( /data/counties ) ) and not( selected( /data/counties , 'County3' ) ) and not( selected( /data/counties , 'County2' ) ) and not( selected( /data/counties , 'County4' ) ) and not( isblank( /data/county_1_schools ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="county_2_schools"
+                    nodeset="/data/county_2_schools"
+                    relevant="not( not( ( isblank( /data/school1_details ) ) ) ) and not( isblank( /data/counties ) ) and not( selected( /data/counties , 'County3' ) ) and not( selected( /data/counties , 'County4' ) ) and not( isblank( /data/county_1_schools ) )" type="xsd:dropdown"/>
+               <bind id="school2_details_copy"
+                    nodeset="/data/school2_details_copy"
+                    relevant="not( not( ( isblank( /data/school1_details ) ) ) ) and not( isblank( /data/counties ) ) and not( selected( /data/counties , 'County3' ) ) and not( selected( /data/counties , 'County4' ) ) and not( isblank( /data/county_1_schools ) ) and not( isblank( /data/county_2_schools ) )" type="xsd:string"/>
+               <bind id="county_3_schools"
+                    nodeset="/data/county_3_schools"
+                    relevant="not( not( ( isblank( /data/school1_details ) ) ) ) and not( isblank( /data/counties ) ) and not( selected( /data/counties , 'County4' ) ) and not( isblank( /data/county_1_schools ) ) and not( isblank( /data/county_2_schools ) )" type="xsd:dropdown"/>
+               <bind id="school3_details"
+                    nodeset="/data/school3_details"
+                    relevant="not( not( ( isblank( /data/school1_details ) ) ) ) and not( isblank( /data/counties ) ) and not( selected( /data/counties , 'County4' ) ) and not( isblank( /data/county_1_schools ) ) and not( isblank( /data/county_2_schools ) ) and not( isblank( /data/county_3_schools ) )" type="xsd:string"/>
+               <bind id="county_4_schools"
+                    nodeset="/data/county_4_schools"
+                    relevant="not( not( ( isblank( /data/school1_details ) ) ) ) and not( isblank( /data/counties ) ) and not( isblank( /data/county_1_schools ) ) and not( isblank( /data/county_2_schools ) ) and not( isblank( /data/county_3_schools ) )" type="xsd:dropdown"/>
+               <bind id="school4_details"
+                    nodeset="/data/school4_details"
+                    relevant="not( not( ( isblank( /data/school1_details ) ) ) ) and not( isblank( /data/counties ) ) and not( isblank( /data/county_1_schools ) ) and not( isblank( /data/county_2_schools ) ) and not( isblank( /data/county_3_schools ) ) and not( isblank( /data/county_4_schools ) )" type="xsd:string"/>
+               <bind id="prompt__1397581086664"
+                    nodeset="/data/prompt__1397581086664" type="xsd:information"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:select1 bind="counties">
+               <xf:label>county names</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>County1</xf:label>
+                    <xf:value>County1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>County2</xf:label>
+                    <xf:value>County2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>County3</xf:label>
+                    <xf:value>County3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>County4</xf:label>
+                    <xf:value>County4</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="county_1_schools">
+               <xf:label>county 1 schools  gfs</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>school1</xf:label>
+                    <xf:value>school1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school2</xf:label>
+                    <xf:value>school2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school3</xf:label>
+                    <xf:value>school3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school4</xf:label>
+                    <xf:value>school4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school5</xf:label>
+                    <xf:value>school5</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="school1_details">
+               <xf:label>1 school details</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="county_2_schools">
+               <xf:label>county 2 schools </xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>school1</xf:label>
+                    <xf:value>school1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school2</xf:label>
+                    <xf:value>school2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school3</xf:label>
+                    <xf:value>school3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school4</xf:label>
+                    <xf:value>school4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school5</xf:label>
+                    <xf:value>school5</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="school2_details_copy">
+               <xf:label>2 school details</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="county_3_schools">
+               <xf:label>county 3 schools </xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>school1</xf:label>
+                    <xf:value>school1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school2</xf:label>
+                    <xf:value>school2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school3</xf:label>
+                    <xf:value>school3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school4</xf:label>
+                    <xf:value>school4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school5</xf:label>
+                    <xf:value>school5</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="school3_details">
+               <xf:label>3 school details</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="county_4_schools">
+               <xf:label>county 4 schools </xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>school1</xf:label>
+                    <xf:value>school1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school2</xf:label>
+                    <xf:value>school2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school3</xf:label>
+                    <xf:value>school3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school4</xf:label>
+                    <xf:value>school4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>school5</xf:label>
+                    <xf:value>school5</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="school4_details">
+               <xf:label>4 school details</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:output bind="prompt__1397581086664">
+               <xf:label>End</xf:label>
+               <hint/>
+          </xf:output>
+     </body>
+</html>

@@ -1,0 +1,22 @@
+#!/bin/csh
+rm -fr out ; mkdir out
+mkdir -p recipes
+cd recipes
+rm *
+cp ../stats.dat .
+foreach form ( ../forms/*.xhtml ) 
+  echo $form
+  ../../smac recipe xhcreate ${form}
+end
+cd ..
+
+set count=1
+foreach record ( records/*.xml )
+  echo ../smac recipe strip ${record} sd/${count}.stripped
+  ../smac recipe strip  ${record} sd/${count}.stripped
+  echo ../smac recipe compress recipes sd/${count}.stripped sd/${count}.sd
+  ../smac recipe compress recipes sd/${count}.stripped sd/${count}.sd
+  echo ../smac recipe decompress recipes sd/${count}.sd ../out
+  ../smac recipe decompress recipes sd/${count}.sd ../out
+  @ count = $count + 1
+end

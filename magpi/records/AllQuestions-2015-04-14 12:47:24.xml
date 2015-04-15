@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<meta>
+		<email>potato</email>
+		<password>kartoffel</password>
+		<formid>1000183</formid>
+		<lastsubmittime>2015-04-14 12:47:25</lastsubmittime>
+		<endrecordtime>2015-04-14 12:47:24</endrecordtime>
+		<startrecordtime>2015-04-14 12:46:59</startrecordtime>
+		<version>2.5</version>
+		<uuid>606044c5ae181046-1429004819336</uuid>
+		<geotag>
+			<longitude>0</longitude>
+			<latitude>0</latitude>
+		</geotag>
+	</meta>
+	<data>
+		<Text>~</Text>
+		<integer>2</integer>
+		<Decimal>3.7</Decimal>
+		<Dropdown>option_2</Dropdown>
+		<radio_button>option_2</radio_button>
+		<checkbox>option_2</checkbox>
+		<date>14-03-2015</date>
+		<Gps_question>~</Gps_question>
+	</data>
+</form>
