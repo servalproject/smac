@@ -132,6 +132,9 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	    } else if (!strcasecmp(attr[i+1],"xsd:radio")) {
 	      // So is radio
 	      node_type = strdup("select1");
+	    } else if (!strcasecmp(attr[i+1],"xsd:checkbox")) {
+	      // ... and checkbox
+	      node_type = strdup("select1");
 	    } else {
 	      const char *attribute=attr[i+1];
 	      // Skip "XXX:" prefixes on types
