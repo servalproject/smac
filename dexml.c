@@ -163,9 +163,10 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,
 	      r=sscanf(tag,"%s id=\"%[^\"]\" version=\"%[^\"]\"",
 		       exit_tag,name_part,version_part);
 	    }
-	    if (r==3)
+	    if (r==3) {
 	      fprintf(stderr,"ODK form name is %s.%s\n",
 		      name_part,version_part);
+	    }
 	    in_instance++;
 
 	  }
@@ -179,15 +180,11 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,
 	  if (!strncasecmp(form_name,tag,strlen(form_name)))
 	    {
 	      in_instance++;
-	      printf("Found start of instance via <%s> (in_instance=%d)\n",
-		     tag,in_instance);
 	    }
 	  if ((!strncasecmp(form_name,&tag[1],strlen(form_name)))
 	      &&tag[0]=='/')
 	    {
 	      in_instance--;
-	      printf("Found end of instance via <%s> (in_instance=%d)\n",
-		     tag,in_instance);
 	    }
 	}
 	taglen=0;
