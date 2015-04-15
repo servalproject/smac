@@ -86,12 +86,12 @@ start(void *data, const char *el, const char **attr) //This function is called  
         
         if (in_instance_first) { // First node since we are in instance, it's the Form Name that we want to get
             in_instance_first = 0;
-            formName  = calloc (strlen(el), sizeof(char*));
-            memcpy (formName, el,strlen(el));
             for (i = 0; attr[i]; i += 2) { 
                 if (!strcasecmp("version",attr[i])) {
-                    formVersion = calloc (strlen(attr[i+1]), sizeof(char*));
-					memcpy (formVersion, attr[i+1], strlen(attr[i+1]));
+		  formVersion = strdup(attr[i+1]);
+                }
+                if (!strcasecmp("id",attr[i])) {
+		  formName = strdup(attr[i+1]);
                 }
             }
         }
@@ -314,20 +314,14 @@ int recipe_create(char *input)
     }
 
     //Create output for RECIPE
-    strcpy(filename,formname);
-    strcat(filename,".");
-    strcat(filename,formversion);
-    strcat(filename,".recipe");
+    snprintf(filename,512,"%s.%s.recipe",formname,formversion);
     fprintf(stderr,"Writing recipe to '%s'\n",filename);
     f=fopen(filename,"w");
     fprintf(f,"%s",recipetext);
     fclose(f);
 
     //Create output for TEMPLATE
-    strcpy(filename,formname);
-    strcat(filename,".");
-    strcat(filename,formversion);
-    strcat(filename,".template");
+    snprintf(filename,512,"%s.%s.template",formname,formversion);
     fprintf(stderr,"Writing template to '%s'\n",filename);
     f=fopen(filename,"w");
     fprintf(f,"%s",templatetext);
