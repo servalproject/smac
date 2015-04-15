@@ -8,6 +8,10 @@ foreach form ( ../forms/*.xhtml )
   echo $form
   ../../smac recipe xhcreate ${form}
 end
+foreach form ( ../forms/*.xml ) 
+  echo $form
+  ../../smac recipe create ${form}
+end
 cd ..
 
 cd sd
