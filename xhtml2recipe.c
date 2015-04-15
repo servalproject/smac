@@ -305,7 +305,7 @@ void end_xhtml(void *data, const char *el) //This function is called  by the XML
     str = calloc (4096, sizeof(char*));
     strcpy (str, "</");
     strcat (str, el);
-    strcat (str, ">");
+    strcat (str, ">\n");
     xhtml2template[xhtml2templateLen++] = str;
   }
 }  
@@ -432,12 +432,7 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
       fprintf(stderr,"ERROR: %s:%d: %s() template text overflow.\n",
 	      __FILE__,__LINE__,__FUNCTION__);      
       return -1;
-    }
-    if (appendto(templatetext,templateLen,templateMaxLen,"\n")) {
-      fprintf(stderr,"ERROR: %s:%d: %s() template text overflow.\n",
-	      __FILE__,__LINE__,__FUNCTION__);      
-      return -1;
-    }
+    }    
   }
 
   snprintf(formname,1024,"%s",xhtmlFormName);
