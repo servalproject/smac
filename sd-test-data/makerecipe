@@ -29,3 +29,4 @@ foreach record ( records/*.xml )
   ../smac recipe decompress recipes sd/${count}.sd out
   @ count = $count + 1
 end
+
