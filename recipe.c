@@ -1389,21 +1389,21 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     char stripped[65536];
     char xml_data[1048576];
     int xml_len=0;
-    if (argc<5) {
-      fprintf(stderr,"usage: smac recipe strip <formname> <xml input> [stripped output].\n");
+    if (argc<4) {
+      fprintf(stderr,"usage: smac recipe strip <xml input> [stripped output].\n");
       exit(-1);
     }
-    xml_len=recipe_load_file(argv[4],xml_data,sizeof(xml_data));
+    xml_len=recipe_load_file(argv[3],xml_data,sizeof(xml_data));
     int stripped_len=xml2stripped(NULL,xml_data,xml_len,stripped,sizeof(stripped));
     if (stripped_len<0) {
-      fprintf(stderr,"Failed to strip '%s'\n",argv[4]);
+      fprintf(stderr,"Failed to strip '%s'\n",argv[3]);
       exit(-1);
     }
-    if (argv[5]==NULL) printf("%s",stripped);
+    if (argv[4]==NULL) printf("%s",stripped);
     else {
-      FILE *f=fopen(argv[5],"w");
+      FILE *f=fopen(argv[4],"w");
       if (!f) {
-	fprintf(stderr,"Failed to write stripped output to '%s'\n",argv[5]);
+	fprintf(stderr,"Failed to write stripped output to '%s'\n",argv[4]);
 	exit(-1);
       }
       fprintf(f,"%s",stripped);
