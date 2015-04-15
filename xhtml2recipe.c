@@ -325,11 +325,11 @@ int xhtml_recipe_create(char *input)
   xmltext = malloc(MAXCHARS);
   size = fread(xmltext, sizeof(char), MAXCHARS, f);
 
-  char recipetext[4096];
-  int recipeLen=4096;
+  char recipetext[65536];
+  int recipeLen=65536;
 
-  char templatetext[16384];
-  int templateLen=16384;
+  char templatetext[65536];
+  int templateLen=65536;
 
   char formname[1024];
   char formversion[1024];
