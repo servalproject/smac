@@ -10,6 +10,9 @@ foreach form ( ../forms/*.xhtml )
 end
 cd ..
 
+cd sd
+rm *
+cd ..
 set count=1
 foreach record ( records/*.xml )
   echo ../smac recipe strip ${record} sd/${count}.stripped
