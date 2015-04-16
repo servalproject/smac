@@ -1,14 +1,28 @@
 #!/bin/csh    
 
-    foreach uuid ( `cat sd/*.stripped | egrep "uuid=|instanceID" | cut -f2 -d=` )
-	set input=`grep -l "$uuid" records/*`;
-	set output=`grep -l "$uuid" out/*/*xml`;
+foreach uuid ( `cat sd/*.stripped | egrep "uuid=|instanceID" | cut -f2 -d=` )
 
 	echo "uuid: $uuid";
-	echo "      input = $input";
-	echo "      output = $output";
+	set input=`grep -l "$uuid" records/*`;
+	echo "      input = $input"
+	set output=`grep -l "$uuid" out/*/*xml`;
+	echo "      output = $output"
+	set stripped=`grep -l "$uuid" sd/*.stripped`;
+	echo "      stripped = $stripped"    
+	set formidcount=`egrep -i "^formid=" $stripped | cut -f2 -d= | wc -l`
+	set formid=`egrep -i "^formid=" $stripped | cut -f2 -d=`
+	if ( $formidcount > 1 ) then
+	    echo "Record contains more than one form id: sub-forms are not yet supported -- ignoring"
+    	else
+	    echo "      formid = $formid"
+	    set recipe=recipe/${formid}.recipe
+	    echo "      recipe = $recipe"
 
-	if ( "x$input" != "x" && "x$output" != "x" ) then
-	    diff -w $input $output
+	    if ( "x${input}" != "x") then 
+		    if ("x${output}" != "x" ) then
+			diff -w "$input" "$output"
+		endif
+	    endif
 	endif
+	echo "------"
     end
