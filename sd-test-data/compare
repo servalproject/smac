@@ -1,6 +1,14 @@
-#!/bin/csh
-foreach uuid ( `cat sd/*.stripped | egrep "uuid=|instanceID" | cut -f2 -d=` )
-    set input=`grep -l "$uuid" records/*`
-    set output=`grep -l "$uuid" out/*/*xml`
-    echo $uuid $input $output	
-end
+#!/bin/csh    
+
+    foreach uuid ( `cat sd/*.stripped | egrep "uuid=|instanceID" | cut -f2 -d=` )
+	set input=`grep -l "$uuid" records/*`;
+	set output=`grep -l "$uuid" out/*/*xml`;
+
+	echo "uuid: $uuid";
+	echo "      input = $input";
+	echo "      output = $output";
+
+	if ( "x$input" != "x" && "x$output" != "x" ) then
+	    diff -w $input $output
+	endif
+    end
