@@ -40,6 +40,25 @@ int defragmentAndDecrypt(char *inputdir,char *outputdir,char *passphrase);
 int recipe_create(char *input);
 int xhtml_recipe_create(char *input);
 
+#ifdef ANDROID
+time_t timegm(struct tm *tm)
+{
+    time_t ret;
+    char *tz;
+
+   tz = getenv("TZ");
+    setenv("TZ", "", 1);
+    tzset();
+    ret = mktime(tm);
+    if (tz)
+        setenv("TZ", tz, 1);
+    else
+        unsetenv("TZ");
+    tzset();
+    return ret;
+}
+#endif
+
 int recipe_parse_fieldtype(char *name)
 {
   if (!strcasecmp(name,"integer")) return FIELDTYPE_INTEGER;
