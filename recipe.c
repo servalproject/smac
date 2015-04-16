@@ -381,10 +381,9 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       // SMAC has a bug with encoding large ranges, so break into smaller pieces
       time_t t = 0;
       int b;
-      b=range_decode_equiprobable(c,0x80); t|=(b<<24);
-      b=range_decode_equiprobable(c,0x100); t|=(b<<16);
-      b=range_decode_equiprobable(c,0x100); t|=(b<<8);
-      b=range_decode_equiprobable(c,0x100); t|=(b<<0);
+      t=range_decode_equiprobable(c,0x8000)<<16;
+      t|=range_decode_equiprobable(c,0x10000);
+      printf("TIMEDATE: decoding t=%d\n",(int)t);
       struct tm tm;
       gmtime_r(&t,&tm);
       sprintf(value,"%04d-%02d-%02dT%02d:%02d:%02d+00:00",
@@ -595,11 +594,10 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       normalised_value=t;
 
       int b;
-      b=(t>>24)&0x7f; range_encode_equiprobable(c,0x80,b);
-      b=(t>>16)&0xff; range_encode_equiprobable(c,0x100,b);
-      b=(t>>8)&0xff; range_encode_equiprobable(c,0x100,b);
-      b=(t>>0)&0xff; range_encode_equiprobable(c,0x100,b);
-      return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+      b=range_encode_equiprobable(c,0x8000,t>>16);
+      b=range_encode_equiprobable(c,0x10000,t&0xffff);
+      printf("TIMEDATE: encoding t=%d\n",(int)t);
+      return b;
     }
   case FIELDTYPE_MAGPITIMEDATE:
     {
