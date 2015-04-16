@@ -385,10 +385,11 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       t|=range_decode_equiprobable(c,0x10000);
       printf("TIMEDATE: decoding t=%d\n",(int)t);
       struct tm tm;
-      gmtime_r(&t,&tm);
+      // gmtime_r(&t,&tm);
+      localtime_r(&t,&tm);
       sprintf(value,"%04d-%02d-%02dT%02d:%02d:%02d+00:00",
 	      tm.tm_year+1900,tm.tm_mon+1,tm.tm_mday,
-	      tm.tm_hour,tm.tm_hour,tm.tm_min);
+	      tm.tm_hour,tm.tm_min,tm.tm_sec);
       return 0;
     }
   case FIELDTYPE_MAGPITIMEDATE:
