@@ -19,7 +19,7 @@
 <household>
 <damaged_house />
 <usable_kitchen />
-<household_location />
+<household_location>-35 138</household_location>
 <household_photo />
 </household>
 <start>2014-05-07T05:18:59.467-07</start>
