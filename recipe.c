@@ -863,6 +863,8 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
 	  range_coder_free(c);
 	  return -1;
 	}
+	printf("  the value is '%s'\n",value);
+	
 	int r2=snprintf(&out[written],out_size-written,"%s=%s\n",
 			recipe->fields[field].name,value);
 	if (r2>0) written+=r2;
@@ -1181,8 +1183,8 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 
   LOGI("About to call recipe_decompress");
   char recipe_name[1024]="";
-  char out_buffer[1024];
-  int r=recipe_decompress(h,recipe_dir,buffer,st.st_size,out_buffer,1024,
+  char out_buffer[1048576];
+  int r=recipe_decompress(h,recipe_dir,buffer,st.st_size,out_buffer,1048576,
 			  recipe_name);
   LOGI("Got back from recipe_decompress: r=%d, fd=%d, st.st_size=%d, buffer=%p",
        r,fd,(int)st.st_size,buffer);
