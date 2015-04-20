@@ -23,6 +23,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#ifdef ANDROID
+#include <jni.h>
+#include <android/log.h>
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "libsmac", __VA_ARGS__))
+#endif
 
 char *implied_meta_fields =
   "email:string:0:0:0\n"
@@ -97,6 +102,10 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
   char    *node_name = "", *node_type = "", *node_constraint = "", *str = "";
   int     i ;
 
+#ifdef ANDROID
+  LOGI("start_xhtml: saw <%s>",el);
+#endif
+  
   if (xhtml_in_instance) { // We are between <instance> tags, so we want to get everything to create template file
     str = calloc (4096, sizeof(char*));
     strcpy (str, "<");
@@ -288,7 +297,11 @@ void characterdata_xhtml(void *data, const char *el, int len)
 void end_xhtml(void *data, const char *el) //This function is called  by the XML library each time it sees an ending of a tag
 {
   char *str = "";
-  
+
+#ifdef ANDROID
+  LOGI("end_xhtml: saw <%s>",el);
+#endif
+
   if (xhtmlSelectElem && ((!strcasecmp("xf:select1",el))||(!strcasecmp("xf:select",el))))  {
     xhtmlSelectElem = NULL;
   }
@@ -386,15 +399,26 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
   XML_SetElementHandler(parser, start_xhtml, end_xhtml);    
   // Tell expat to use function characterData()
   XML_SetCharacterDataHandler(parser,characterdata_xhtml);
+
+#ifdef ANDROID
+  LOGI("About to call XML_Parse() with %d bytes of input",size);
+#endif
   
   //Parse Xml Text
   if (XML_Parse(parser, xmltext, strlen(xmltext), XML_TRUE) ==
       XML_STATUS_ERROR) {
+#ifdef ANDROID
+    LOGI("XML_Parse() failed");
+#endif
     fprintf(stderr,
 	    "ERROR: %s: Cannot parse , file may be too large or not well-formed XML\n",
 	    __FUNCTION__);
     return (1);
   }
+
+#ifdef ANDROID
+  LOGI("XML_Parse() succeeded, xhtml2recipeLen = %d",xhtml2recipeLen);
+#endif
   
   // Build recipe output
   int recipeMaxLen=*recipeLen;

@@ -119,8 +119,11 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     char the_form_name[1024];
     char the_form_version[1024];
 
-    LOGI("Using form specification to create recipe on the fly");
+    LOGI("Using form specification to create recipe on the fly (magpi_mode=%d, form spec = %d bytes)",
+	 magpi_mode,strlen(xmlform_c));
 
+    LOGI("Form specification is: %s",xmlform_c);
+    
     int r;
     if (magpi_mode)
       r=xhtmlToRecipe(xmlform_c,strlen(xmlform_c),
@@ -137,6 +140,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     }
 
     LOGI("Have %d bytes of recipe text.",r);
+    if (recipetextLen<10) return error_message(env,"Could not convert form specification to recipe");
 
     
     formname_c=form_name; formversion_c=form_version;
@@ -144,10 +148,16 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     if (!recipe) {
       char message[1024];
       snprintf(message,1024,"Could not set recipe");
+      LOGI("Failed to read recipe from buffer");
       return error_message(env,message);
     }
+
+    LOGI("Read recipe from buffer (%d bytes)",recipetextLen);
+    LOGI("Recipe is:\n%s\n",recipetext);
   }
 
+  LOGI("About to run xml2stripped");
+  
   // Transform XML to stripped data first.
   int stripped_len;
 
@@ -158,15 +168,22 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   if (stripped_len>0) {
     // Produce succinct data
 
+    LOGI("About to read stats file %s",smacdat_c);
+
     // Get stats handle
     stats_handle *h=stats_new_handle(smacdat_c);
 
+    stats_load_tree(h);
+    LOGI("Loaded entire stats tree");
+    
     if (!h) {
       recipe_free(recipe);
       char message[1024];
       snprintf(message,1024,"Could not read SMAC stats file %s",smacdat_c);
       return error_message(env,message);
     }
+
+    LOGI("Read stats, now about to call recipe_compresS()");
 
     // Compress stripped data to form succinct data
     succinct_len=recipe_compress(h,recipe,stripped,stripped_len,succinct,sizeof(succinct));

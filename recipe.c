@@ -23,8 +23,10 @@
 #include <android/log.h>
  
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "libsmac", __VA_ARGS__))
+#define C LOGI("%s:%d: checkpoint",__FILE__,__LINE__);
 #else
 #define LOGI(...)
+#define C
 #endif
 
 #include "charset.h"
@@ -825,9 +827,6 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 		fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
 			r->formhash[0],r->formhash[1],r->formhash[2],
 			r->formhash[3],r->formhash[4],r->formhash[5]);
-		LOGI("Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
-		     r->formhash[0],r->formhash[1],r->formhash[2],
-		     r->formhash[3],r->formhash[4],r->formhash[5]);
 	      }
 	      if (!memcmp(formhash,r->formhash,6)) {
 		return r;
@@ -866,20 +865,14 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
     return -1;
   }
 
-  LOGI("%s:%d",__FILE__,__LINE__);
-
   // Make new range coder with 1KB of space
   range_coder *c=range_new_coder(1024);
-
-  LOGI("%s:%d",__FILE__,__LINE__);
 
   // Point range coder bit stream to input buffer
   bcopy(in,c->bit_stream,in_len);
   c->bit_stream_length=in_len*8;
   range_decode_prefetch(c);
   
-  LOGI("%s:%d",__FILE__,__LINE__);
-
   // Read form id hash from the succinct data stream.
   unsigned char formhash[6];
   int i;
@@ -888,11 +881,7 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
 	 formhash[0],formhash[1],formhash[2],
 	 formhash[3],formhash[4],formhash[5]);
 
-  LOGI("%s:%d",__FILE__,__LINE__);
-
   struct recipe *recipe=recipe_find_recipe(recipe_dir,formhash);
-
-  LOGI("%s:%d",__FILE__,__LINE__);
 
   if (!recipe) {
     snprintf(recipe_error,1024,"No recipe provided.\n");
@@ -951,6 +940,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
     indicate whether it is present.  This can be optimised later.
   */
 
+  
   if (!recipe) {
     snprintf(recipe_error,1024,"No recipe provided.\n");
     return -1;
@@ -1020,7 +1010,8 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
     }
   }
   printf("Read %d data lines, %d values.\n",line_number,value_count);
-
+  LOGI("Read %d data lines, %d values.\n",line_number,value_count);
+  
   int field;
 
   for(field=0;field<recipe->field_count;field++) {
@@ -1031,6 +1022,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
     if (i<value_count) {
       // Field present
       printf("Found field #%d ('%s')\n",field,recipe->fields[field].name);
+      LOGI("Found field #%d ('%s')\n",field,recipe->fields[field].name);
       // Record that the field is present.
       range_encode_equiprobable(c,2,1);
       // Now, based on type of field, encode it.
@@ -1042,6 +1034,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 		   recipe->fields[field].type);
 	  return -1;
 	}
+      LOGI(" ... encoded");
     } else {
       // Field missing: record this fact and nothing else.
       printf("No field #%d ('%s')\n",field,recipe->fields[field].name);
