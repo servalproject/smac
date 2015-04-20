@@ -1,7 +1,6 @@
 CC=gcc
-COPT=-g -Wall -O3 -std=c99
-CFLAGS=-g -Wall -O3 -Inacl/include -std=c99
-LIBS=-lm -lexpat
+CFLAGS=-g -Wall -O3 -Inacl/include -std=gnu99 -I. -DHAVE_BCOPY=1 -DHAVE_MEMMOVE=1
+LIBS=-lm
 DEFS=
 
 OBJS=	main.o \
@@ -48,6 +47,14 @@ OBJS=	main.o \
 	nacl/src/crypto_core_salsa20_ref/core.o \
 	nacl/src/crypto_stream_salsa20_ref/xor.o \
 	nacl/src/crypto_stream_salsa20_ref/stream.o \
+	\
+	xmlparse.o \
+	xmlrole.o \
+	xmltok_impl.o \
+	xmltok_ns.o \
+	xmltok.o \
+        \
+	timegm.o
 
 HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h Makefile
 
