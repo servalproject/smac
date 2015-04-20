@@ -59,14 +59,13 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   // Read public key hex
   snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
   LOGI("Opening recipient public key file %s",filename);
-  char publickeyhex[1024]="";
+
+  // Default to public key of Serval succinct data server
+  char publickeyhex[1024]="74f3a36029b0e60084d42bd9cafa3f2b26fe802b0a6f024ff00451481c9bba4a";
+
   {
     FILE *f=fopen(filename,"r");
-    if (!f) {
-      char message[1024];
-      snprintf(message,1024,"Failed to open public key file");
-      return error_message(env,message);
-    } else {
+    if (f) {
       int r=fread(publickeyhex,1,1023,f);
       if (r<64) {
 	char message[1024];
