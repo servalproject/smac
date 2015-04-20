@@ -289,6 +289,43 @@ int recipe_load_file(char *filename,char *out,int out_size)
   return stat.st_size;
 }
 
+struct recipe *recipe_read_from_specification(char *xmlform_c)
+{
+  int magpi_mode =0;
+  if (xmlform_c&&(!strncasecmp("<html",xmlform_c,5))) magpi_mode=1;
+  int r;
+
+  printf("start of form: '%c%c%c%c%c%c%c%c%c%c'\n",
+	 xmlform_c[0],xmlform_c[1],xmlform_c[2],xmlform_c[3],xmlform_c[4],
+	 xmlform_c[5],xmlform_c[6],xmlform_c[7],xmlform_c[8],xmlform_c[9]
+	 );
+
+  char form_name[1024];
+  char form_version[1024];
+  char recipetext[65536];
+  int recipetextLen=65536;
+  char templatetext[1048576];
+  int templatetextLen=1048576;
+
+  printf("magpi_mode=%d\n",magpi_mode);
+  
+  if (magpi_mode)
+    r=xhtmlToRecipe(xmlform_c,strlen(xmlform_c),
+		    form_name,form_version,
+		    recipetext,&recipetextLen,
+		    templatetext,&templatetextLen);
+  else
+    r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
+		  form_name,form_version,
+		  recipetext,&recipetextLen,
+		  templatetext,&templatetextLen);
+
+  if (r<0) return NULL;
+
+  return recipe_read(form_name,recipetext,recipetextLen);
+  
+}
+
 struct recipe *recipe_read_from_file(char *filename)
 {
   struct recipe *recipe=NULL;
@@ -399,7 +436,6 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     {
       // SMAC has a bug with encoding large ranges, so break into smaller pieces
       time_t t = 0;
-      int b;
       t=range_decode_equiprobable(c,0x8000)<<16;
       t|=range_decode_equiprobable(c,0x10000);
       printf("TIMEDATE: decoding t=%d\n",(int)t);
@@ -1058,6 +1094,19 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
     if (sscanf((const char *)&buffer[i],"formid=%[^\n]",formid)==1) break;
   }
 
+  unsigned char *stripped=buffer;
+  int stripped_len = stat.st_size;
+  
+  if (!formid[0]) {
+    // Input file is not a stripped file. Perhaps it is a record to be compressed?
+    stripped=calloc(65536,1);
+    stripped_len=xml2stripped(NULL,(const char *)buffer,stat.st_size,(char *)stripped,65536);
+
+    for(int i=0;i<stripped_len;i++) {
+      if (sscanf((const char *)&stripped[i],"formid=%[^\n]",formid)==1) break;
+    }
+  } 
+  
   if (!formid[0]) {
     fprintf(stderr,"stripped file contains no formid field to identify matching recipe\n");
     return -1;
@@ -1067,10 +1116,19 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
   
   sprintf(recipe_file,"%s/%s.recipe",recipe_dir,formid);
   struct recipe *recipe=recipe_read_from_file(recipe_file);
+  // A form can be given in place of the recipe directory
+  if (!recipe) {
+    printf("Trying to load '%s' as a form specification to convert to recipe\n",
+	   recipe_dir);
+    char form_spec_text[1048576];
+    int form_spec_len=recipe_load_file(recipe_dir,form_spec_text,sizeof(form_spec_text));
+    if (r<1) printf("read %d bytes (error = %s)\n",form_spec_len,recipe_error);
+    recipe=recipe_read_from_specification(form_spec_text);
+  }
   if (!recipe) return -1;
   
   unsigned char out_buffer[1024];
-  int r=recipe_compress(h,recipe,(char *)buffer,stat.st_size,out_buffer,1024);
+  int r=recipe_compress(h,recipe,(char *)stripped,stripped_len,out_buffer,1024);
 
   munmap(buffer,stat.st_size); close(fd);
 

@@ -55,3 +55,10 @@ int stripped2xml(char *stripped,int stripped_len,char *template,int template_len
 int xml2stripped(const char *form_name, const char *xml,int xml_len,char *stripped,int stripped_size);
 
 int generateMaps(char *recipeDir, char *outputDir);
+
+int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
+		  char *recipetext,int *recipeLen,
+		  char *templatetext,int *templateLen);
+int xmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
+		char *recipetext,int *recipeLen,
+		char *templatetext,int *templateLen);
