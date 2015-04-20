@@ -43,8 +43,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
  jstring formname,
  jstring formversion,
  jstring succinctpath,
- jint mtu,
- jint magpi_mode)
+ jint mtu)
 {
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
   const char *formname_c= (*env)->GetStringUTFChars(env,formname,0);
@@ -56,6 +55,12 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   unsigned char succinct[1024];
   int succinct_len=0;
   char filename[1024];
+
+  int magpi_mode=0;
+
+  // Automatically detect Magpi forms versus ODK ones.
+  // Magpi forms are HTML documents, where as ODK uses XML ones.
+  if (xmlform_c&&(!strncmp("<html",xmlform_c))) magpi_mode=1;
 
   // Read public key hex
   snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
