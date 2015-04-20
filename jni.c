@@ -102,15 +102,19 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     int recipetextLen=65536;
     char templatetext[65536];
     int templatetextLen=65536;
+
+    char the_form_name[1024];
+    char the_form_version[1024];
+    
     int r;
     if (magpi_mode)
       r=xhtmlToRecipe(xmlform_c,strlen(xmlform_c),
-		      form_name,form_version,
+		      the_form_name,the_form_version,
 		      recipetext,&recipetextLen,
 		      templatetext,&templatetextLen);
     else
       r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
-		      form_name,form_version,
+		      the_form_name,the_form_version,
 		      recipetext,&recipetextLen,
 		      templatetext,&templatetextLen);
     if (r) {
