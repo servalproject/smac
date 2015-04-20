@@ -43,7 +43,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
  jstring formname,
  jstring formversion,
  jstring succinctpath,
- jint mtu)
+ jint mtu,
+ jint magpi_mode)
 {
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
   const char *formname_c= (*env)->GetStringUTFChars(env,formname,0);
@@ -51,7 +52,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
   const char *xmlform_c= (*env)->GetStringUTFChars(env,xmlformspecification,0);
   
-  char stripped[8192];
+  char stripped[65536];
   unsigned char succinct[1024];
   int succinct_len=0;
   char filename[1024];
@@ -92,8 +93,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     }    
   } else {
     // Create recipe from form specification
-    char recipetext[8192];
-    int recipetextLen=8192;
+    char recipetext[65536];
+    int recipetextLen=65536;
     char templatetext[65536];
     int templatetextLen=65536;
     int r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
@@ -113,7 +114,12 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   }
 
   // Transform XML to stripped data first.
-  int stripped_len=xml2stripped(formname_c,xmldata,strlen(xmldata),stripped,8192);
+  int stripped_len;
+
+  if (magpi_mode)
+    stripped_len = =xhtml2stripped(formname_c,xmldata,strlen(xmldata),stripped,sizeof(stripped));
+  else
+    stripped_len = =xml2stripped(formname_c,xmldata,strlen(xmldata),stripped,sizeof(stripped));
 
   LOGI("Stripped data is %d bytes long",stripped_len);
   
