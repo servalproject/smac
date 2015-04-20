@@ -60,7 +60,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
 
   // Automatically detect Magpi forms versus ODK ones.
   // Magpi forms are HTML documents, where as ODK uses XML ones.
-  if (xmlform_c&&(!strncmp("<html",xmlform_c))) magpi_mode=1;
+  if (xmlform_c&&(!strncasecmp("<html",xmlform_c,5))) magpi_mode=1;
 
   // Read public key hex
   snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
