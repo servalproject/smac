@@ -43,6 +43,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
  jstring formname,
  jstring formversion,
  jstring succinctpath,
+ jstring smacdat,
  jint mtu)
 {
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
@@ -50,6 +51,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   const char *formversion_c= (*env)->GetStringUTFChars(env,formversion,0);
   const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
   const char *xmlform_c= (*env)->GetStringUTFChars(env,xmlformspecification,0);
+  const char *smacdat_c= (*env)->GetStringUTFChars(env,smacdat,0);
   
   char stripped[65536];
   unsigned char succinct[1024];
@@ -157,14 +159,12 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     // Produce succinct data
 
     // Get stats handle
-    char filename[1024];
-    snprintf(filename,1024,"%s/smac.dat",path);
-    stats_handle *h=stats_new_handle(filename);
+    stats_handle *h=stats_new_handle(smacdat_c);
 
     if (!h) {
       recipe_free(recipe);
       char message[1024];
-      snprintf(message,1024,"Could not read SMAC stats file %s",filename);
+      snprintf(message,1024,"Could not read SMAC stats file %s",smacdat_c);
       return error_message(env,message);
     }
 
@@ -176,6 +176,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     // Clean up after ourselves
     stats_handle_free(h);
     recipe_free(recipe);
+    char filename[1024];
     snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
 
     if (succinct_len<1) {
