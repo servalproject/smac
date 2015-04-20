@@ -56,12 +56,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   int succinct_len=0;
   char filename[1024];
 
-  int magpi_mode=0;
-
-  // Automatically detect Magpi forms versus ODK ones.
-  // Magpi forms are HTML documents, where as ODK uses XML ones.
-  if (xmlform_c&&(!strncasecmp("<html",xmlform_c,5))) magpi_mode=1;
-
   // Read public key hex
   snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
   LOGI("Opening recipient public key file %s",filename);
@@ -102,7 +96,14 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     int recipetextLen=65536;
     char templatetext[65536];
     int templatetextLen=65536;
-    int r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
+    int r;
+    if (magpi_mode)
+      r=xhtmlToRecipe(xmlform_c,strlen(xmlform_c),
+		      form_name,form_version,
+		      recipetext,&recipetextLen,
+		      templatetext,&templatetextLen);
+    else
+      r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
 		      form_name,form_version,
 		      recipetext,&recipetextLen,
 		      templatetext,&templatetextLen);
@@ -121,10 +122,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   // Transform XML to stripped data first.
   int stripped_len;
 
-  if (magpi_mode)
-    stripped_len = xhtml2stripped(formname_c,xmldata,strlen(xmldata),stripped,sizeof(stripped));
-  else
-    stripped_len = xml2stripped(formname_c,xmldata,strlen(xmldata),stripped,sizeof(stripped));
+  stripped_len = xml2stripped(formname_c,xmldata,strlen(xmldata),stripped,sizeof(stripped));
 
   LOGI("Stripped data is %d bytes long",stripped_len);
   
