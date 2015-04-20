@@ -63,13 +63,15 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   if (xmlform_c&&(!strncasecmp("<html",xmlform_c,5))) magpi_mode=1;
 
   // Read public key hex
-  snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
-  LOGI("Opening recipient public key file %s",filename);
 
   // Default to public key of Serval succinct data server
   char publickeyhex[1024]="74f3a36029b0e60084d42bd9cafa3f2b26fe802b0a6f024ff00451481c9bba4a";
 
+  if (path&&formname_c&&formversion_c)
   {
+    snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
+    LOGI("recipe: Opening recipient public key file %s",filename);
+
     FILE *f=fopen(filename,"r");
     if (f) {
       int r=fread(publickeyhex,1,1023,f);
@@ -77,12 +79,21 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
 	char message[1024];
 	snprintf(message,1024,"Failed to read from public key file");
 	return error_message(env,message);
+	LOGI("recipe: failed to load publickeyhex from file (using default value)");
       }
       publickeyhex[r]=0;
     }
-    while(publickeyhex[strlen(publickeyhex)-1]<' ') publickeyhex[strlen(publickeyhex)-1]=0;
+
+    // Trim CR/LF from end
+    if (publickeyhex[0]) {
+      while(publickeyhex[strlen(publickeyhex)-1]<' ')
+	publickeyhex[strlen(publickeyhex)-1]=0;
+    }
+    
     fclose(f);
   }
+
+  LOGI("recipe: have publixkeyhex = '%s'",publickeyhex);
 
   struct recipe *recipe=NULL;
   
@@ -105,7 +116,9 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
 
     char the_form_name[1024];
     char the_form_version[1024];
-    
+
+    LOGI("Using form specification to create recipe on the fly");
+
     int r;
     if (magpi_mode)
       r=xhtmlToRecipe(xmlform_c,strlen(xmlform_c),
@@ -120,6 +133,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     if (r) {
       return error_message(env,"Could not create recipe from form specification");
     }
+
+    LOGI("Have %d bytes of recipe text.",r);
+
+    
     formname_c=form_name; formversion_c=form_version;
     recipe = recipe_read(form_name,recipetext,recipetextLen);    
     if (!recipe) {
