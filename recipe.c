@@ -643,7 +643,10 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	printf("r=%d\n",r);
 	return -1;
       }
+#if defined(__sgi) || defined(__sun)
+#else
       tm.tm_gmtoff=tzm*60+tzh*3600;
+#endif
       tm.tm_year-=1900;
       tm.tm_mon-=1;
       time_t t = mktime(&tm);

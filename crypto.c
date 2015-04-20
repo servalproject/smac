@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <alloca.h>
 #include <dirent.h>
 #include "md5.h"
 #include "crypto_box.h"

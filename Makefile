@@ -1,7 +1,7 @@
 CC=gcc
-COPT=-g -Wall -O3
-CFLAGS=-g -Wall -O3 -Inacl/include
-LIBS=-lexpat
+COPT=-g -Wall -O3 -std=c99
+CFLAGS=-g -Wall -O3 -Inacl/include -std=c99
+LIBS=-lm -lexpat
 DEFS=
 
 OBJS=	main.o \
