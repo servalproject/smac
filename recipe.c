@@ -1122,7 +1122,7 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
 	   recipe_dir);
     char form_spec_text[1048576];
     int form_spec_len=recipe_load_file(recipe_dir,form_spec_text,sizeof(form_spec_text));
-    if (r<1) printf("read %d bytes (error = %s)\n",form_spec_len,recipe_error);
+    if (form_spec_len<1) printf("read %d bytes (error = %s)\n",form_spec_len,recipe_error);
     recipe=recipe_read_from_specification(form_spec_text);
   }
   if (!recipe) return -1;
