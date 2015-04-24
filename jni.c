@@ -16,7 +16,7 @@
 #define MAX_FRAGMENTS 64
 int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
 			     char *fragments[MAX_FRAGMENTS],int *fragment_count,
-			     int mtu,char *publickeyhex);
+			     int mtu,char *publickeyhex,int debug);
 void recipe_free(struct recipe *recipe);
 int recipe_compress(stats_handle *h,struct recipe *recipe,
 		    char *in,int in_len, unsigned char *out, int out_size);
