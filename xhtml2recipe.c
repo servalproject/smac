@@ -102,10 +102,6 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 {   
   char    *node_name = "", *node_type = "", *node_constraint = "", *str = "";
   int     i ;
-
-#ifdef ANDROID
-  LOGI("start_xhtml: saw <%s>",el);
-#endif
   
   if (xhtml_in_instance) { // We are between <instance> tags, so we want to get everything to create template file
     str = calloc (4096, sizeof(char*));
@@ -298,10 +294,6 @@ void characterdata_xhtml(void *data, const char *el, int len)
 void end_xhtml(void *data, const char *el) //This function is called  by the XML library each time it sees an ending of a tag
 {
   char *str = "";
-
-#ifdef ANDROID
-  LOGI("end_xhtml: saw <%s>",el);
-#endif
 
   if (xhtmlSelectElem && ((!strcasecmp("xf:select1",el))||(!strcasecmp("xf:select",el))))  {
     xhtmlSelectElem = NULL;
