@@ -91,7 +91,8 @@ int dump_bytes(char *m,unsigned char *b,int n)
 
 /* Encrypt a message */
 int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
-		   unsigned char *out,int *out_len, unsigned char *nonce, int nonce_len)
+		   unsigned char *out,int *out_len, unsigned char *nonce,
+		   int nonce_len, int debug)
 {
   // Generate temporary keypair for use when encrypting this message.
   // This key is then discarded after so that only the recipient can decrypt it once
@@ -99,7 +100,14 @@ int encryptMessage(unsigned char *public_key,unsigned char *in, int in_len,
 
   unsigned char pk[crypto_box_PUBLICKEYBYTES];
   unsigned char sk[crypto_box_SECRETKEYBYTES];
-  crypto_box_keypair(pk,sk);
+  if (!debug)
+    crypto_box_keypair(pk,sk);
+  else {
+    // In debug mode, use a secret key of all zeroes
+    bzero(sk,crypto_box_SECRETKEYBYTES);
+    crypto_box_public_from_private(pk, sk);
+  }
+  
 
   /* Output message will consist of encrypted version of original preceded by 
      crypto_box_ZEROBYTES which will hold the authentication information.
@@ -226,7 +234,7 @@ int base64_append(char *out,int *out_offset,unsigned char *bytes,int count)
   
 int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
 			     char *fragments[MAX_FRAGMENTS],int *fragment_count,
-			     int mtu,char *publickeyhex)
+			     int mtu,char *publickeyhex,int debug)
 {
   unsigned char nonce[crypto_box_NONCEBYTES];
   int nonce_len=6;
@@ -246,7 +254,7 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
   int out_len=0;
   
   encryptMessage(pk,in_buffer,in_len,
-		 out_buffer,&out_len,nonce,nonce_len);
+		 out_buffer,&out_len,nonce,nonce_len, debug);
 
   /* Work out how many bytes per fragment:
 
@@ -288,7 +296,8 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
   return 0;
 }
 
-int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex)
+int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex,
+		       int debug)
 {
   /* Read a file, encrypt it, break it into fragments and write them into the output
      directory. */
@@ -308,7 +317,7 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex
   int fragment_count=0;
   
   encryptAndFragmentBuffer(in_buffer,r,fragments,&fragment_count,
-			   mtu,publickeyhex);
+			   mtu,publickeyhex, debug);
 
   if (fragment_count<1) return 0;
   
@@ -413,7 +422,7 @@ int reassembleAndDecrypt(struct fragment_set *f,char *outputdir,
 			       offset,
 			       nonce,msg_pk,sk);
   if (result) {
-    printf("decryption of %s failed\n",f->prefix);
+    printf("decryption of %s failed (crypto box returned = %d)\n",f->prefix,result);
     return -1;
   }
   printf("Decrypted %s\n",f->prefix);

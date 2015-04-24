@@ -44,7 +44,8 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
  jstring formversion,
  jstring succinctpath,
  jstring smacdat,
- jint mtu)
+ jint mtu,
+ jint debug)
 {
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
   const char *formname_c= (*env)->GetStringUTFChars(env,formname,0);
@@ -212,7 +213,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
   char *fragments[MAX_FRAGMENTS];
   int fragment_count=0;
   encryptAndFragmentBuffer(succinct,succinct_len,fragments,&fragment_count,mtu,
-			   publickeyhex);
+			   publickeyhex,debug);
 
   LOGI("Succinct data formed into %d fragments",fragment_count);
   
