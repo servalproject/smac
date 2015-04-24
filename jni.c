@@ -126,11 +126,15 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     LOGI("Form specification is: %s",xmlform_c);
     
     int r;
-    if (magpi_mode)
+    if (magpi_mode) {
       r=xhtmlToRecipe(xmlform_c,strlen(xmlform_c),
 		      the_form_name,the_form_version,
 		      recipetext,&recipetextLen,
 		      templatetext,&templatetextLen);
+      // Magpi forms are identified solely by the numeric formid
+      strcpy(the_form_name,the_form_version);
+      the_form_version[0]=0;
+    }
     else
       r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
 		      the_form_name,the_form_version,
@@ -140,12 +144,13 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
       return error_message(env,"Could not create recipe from form specification");
     }
 
-    LOGI("Have %d bytes of recipe text.",recipetextLen);
+    LOGI("Have %d bytes of recipe text (name='%s', version='%s')",
+	 recipetextLen,the_form_name,the_form_version);
     if (recipetextLen<10) return error_message(env,"Could not convert form specification to recipe");
 
     
     formname_c=form_name; formversion_c=form_version;
-    recipe = recipe_read(form_name,recipetext,recipetextLen);    
+    recipe = recipe_read(the_form_name,recipetext,recipetextLen);    
     if (!recipe) {
       char message[1024];
       snprintf(message,1024,"Could not set recipe");
