@@ -454,6 +454,8 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 
   snprintf(formname,1024,"%s",xhtmlFormName);
   snprintf(formversion,1024,"%s",xhtmlFormVersion);
+  LOGI("xhtmlToRecipe(): formname='%s'",formname);
+  LOGI("xhtmlToRecipe(): formversion='%s'",formversion);
   
   XML_ParserFree(parser);
   fprintf(stderr, "\n\nSuccessfully parsed %i characters !\n", (int)size);
