@@ -189,7 +189,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     // Compress stripped data to form succinct data
     succinct_len=recipe_compress(h,recipe,stripped,stripped_len,succinct,sizeof(succinct));
 
-    LOGI("Binary succinct data is %d bytes long",stripped_len);
+    LOGI("Binary succinct data is %d bytes long",succinct_len);
 
     // Clean up after ourselves
     stats_handle_free(h);
