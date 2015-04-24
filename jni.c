@@ -133,7 +133,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
 		      templatetext,&templatetextLen);
       // Magpi forms are identified solely by the numeric formid
       strcpy(the_form_name,the_form_version);
-      the_form_version[0]=0;
+      strcpy(the_form_version,"this should not be used");
     }
     else
       r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
@@ -158,10 +158,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
       return error_message(env,message);
     }
 
-    LOGI("Read recipe from buffer (%d bytes). Hash = ",
+    LOGI("Read recipe from buffer (%d bytes). Hash = %02x%02x%02x%02x%02x%02x",
 	 recipetextLen,
-	 recipe->hash[0],recipe->hash[1],recipe->hash[2],
-	 recipe->hash[3],recipe->hash[4],recipe->hash[5]
+	 recipe->formhash[0],recipe->formhash[1],recipe->formhash[2],
+	 recipe->formhash[3],recipe->formhash[4],recipe->formhash[5]
 	 );
     LOGI("Recipe is:\n%s\n",recipetext);
   }
