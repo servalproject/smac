@@ -140,7 +140,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
       return error_message(env,"Could not create recipe from form specification");
     }
 
-    LOGI("Have %d bytes of recipe text.",recipeTextLen);
+    LOGI("Have %d bytes of recipe text.",recipetextLen);
     if (recipetextLen<10) return error_message(env,"Could not convert form specification to recipe");
 
     
