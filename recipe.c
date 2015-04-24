@@ -148,8 +148,8 @@ int recipe_form_hash(char *recipe_file,unsigned char *formhash,
   recipe_name[j]=0;
   
   MD5_Init(&md5);
-  if (0) fprintf(stderr,"Calculating recipe file formhash from '%s' (%d chars)\n",
-		 recipe_name,(int)strlen(recipe_name));
+  LOGI("Calculating recipe file formhash from '%s' (%d chars)\n",
+       recipe_name,(int)strlen(recipe_name));
   MD5_Update(&md5,recipe_name,strlen(recipe_name));
   MD5_Final(hash,&md5);
   
