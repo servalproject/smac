@@ -158,7 +158,11 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
       return error_message(env,message);
     }
 
-    LOGI("Read recipe from buffer (%d bytes)",recipetextLen);
+    LOGI("Read recipe from buffer (%d bytes). Hash = ",
+	 recipetextLen,
+	 recipe->hash[0],recipe->hash[1],recipe->hash[2],
+	 recipe->hash[3],recipe->hash[4],recipe->hash[5]
+	 );
     LOGI("Recipe is:\n%s\n",recipetext);
   }
 
