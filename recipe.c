@@ -174,7 +174,8 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 
   // Get recipe hash
   recipe_form_hash(formname,recipe->formhash,recipe->formname);
-
+  LOGI("recipe_read(): Computing formhash based on form name '%s'",formname);
+  
   int i;
   int l=0;
   int line_number=1;
@@ -826,7 +827,7 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
 	    struct recipe *r=recipe_read_from_file(recipe_path);
 	    if (0) fprintf(stderr,"Is %s a recipe?\n",recipe_path);
 	    if (r) {
-	      if (0) {
+	      if (1) {
 		fprintf(stderr,"Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",recipe_path,
 			r->formhash[0],r->formhash[1],r->formhash[2],
 			r->formhash[3],r->formhash[4],r->formhash[5]);
