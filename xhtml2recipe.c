@@ -418,7 +418,7 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 
   // Start with implied fields
   strcpy(recipetext,implied_meta_fields);
-  recipeLen=strlen(recipetext);
+  *recipeLen=strlen(recipetext);
 
   // Now add explicit fields
   for(i=0;i<xhtml2recipeLen;i++){
