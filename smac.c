@@ -85,9 +85,14 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
     b5to0|=(b6<<6);
     b5to0|=(b7<<7);
     m[0]=b5to0;
-   
-    for(i=1;m[i-1];i++) {
-      m[i]=range_decode_equiprobable(c,256);
+
+    // Also stop decoding if there are too many bytes (2K should be a reasonable
+    // limit).
+    for(i=1;m[i-1]&&(i<2048);i++) {
+      int r=range_decode_equiprobable(c,256);
+      // ... or if we hit the end of the compressed bit stream.
+      if (r==-1) break;
+      else m[i]=r;
       printf("Read byte 0x%02x\n",m[i]);
     }
     *len_out=i-1;
