@@ -651,7 +651,13 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
 {
   unsigned int new_low,new_high;
 
-  if (c->bits_used>=c->bit_stream_length) return -1;
+  // If there are no more bits, and low and high are the same, then we have no more
+  // data from which to decode
+  if ((c->bits_used>=c->bit_stream_length)
+      &&(c->low>=c->high))
+    {
+      return -1;
+    }
   
   if (range_check(c,0 /* don't abort if things go wrong */)) {
     if (c->debug) fprintf(stderr,"range check failed at %s:%d\n",__FILE__,__LINE__);
