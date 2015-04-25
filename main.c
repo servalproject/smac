@@ -115,6 +115,9 @@ int main(int argc,char *argv[])
 #else
   stats_handle *h=stats_new_handle("stats.dat");
 #endif
+
+  // Load complete tree
+  stats_load_tree(h);
   
   if (!h) {
     char working_dir[1024];
