@@ -1047,6 +1047,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
     } else {
       // Field missing: record this fact and nothing else.
       printf("No field #%d ('%s')\n",field,recipe->fields[field].name);
+      LOGI("No field #%d ('%s')\n",field,recipe->fields[field].name);
       range_encode_equiprobable(c,2,0);
     }
   }
