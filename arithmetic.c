@@ -332,9 +332,7 @@ int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
 }
 
 int range_decode_equiprobable(range_coder *c,int alphabet_size)
-{
-  if (c->bits_used>=c->bit_stream_length) return -1;
-  
+{  
   if (alphabet_size>=0x400000) {
     unsigned int high=range_decode_equiprobable(c,1+(alphabet_size/0x10000));
     unsigned int low=range_decode_equiprobable(c,0x10000);
