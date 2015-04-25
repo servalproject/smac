@@ -1043,7 +1043,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 		   recipe->fields[field].type);
 	  return -1;
 	}
-      LOGI(" ... encoded");
+      LOGI(" ... encoded value '%s'",values[i]);
     } else {
       // Field missing: record this fact and nothing else.
       printf("No field #%d ('%s')\n",field,recipe->fields[field].name);
