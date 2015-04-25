@@ -356,7 +356,6 @@ int xhtml_recipe_create(char *input)
   snprintf(filename,512,"%s.recipe",formversion);
   fprintf(stderr,"Writing recipe to '%s'\n",filename);
   f=fopen(filename,"w");
-  fprintf(f,"%s",implied_meta_fields);
   fprintf(f,"%s",recipetext);
   fclose(f);
 
@@ -416,7 +415,12 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
   // Build recipe output
   int recipeMaxLen=*recipeLen;
   *recipeLen=0;
-  
+
+  // Start with implied fields
+  strcpy(recipetext,implied_meta_fields);
+  recipeLen=strlen(recipetext);
+
+  // Now add explicit fields
   for(i=0;i<xhtml2recipeLen;i++){
     if (appendto(recipetext,recipeLen,recipeMaxLen,xhtml2recipe[i])) {
       fprintf(stderr,"ERROR: %s:%d: %s() recipe text overflow.\n",
