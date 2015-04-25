@@ -425,6 +425,11 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_ENUM:
     normalised_value=range_decode_equiprobable(c,recipe->fields[fieldnumber]
 					       .enum_count);
+    if (normalised_value<0||normalised_value>=recipe->fields[fieldnumber].enum_count)      {
+      printf("enum: range_decode_equiprobable returned illegal value %d for range %d..%d\n",
+	     normalised_value,0,recipe->fields[fieldnumber].enum_count-1);
+      return -1;
+    }
     sprintf(value,"%s",recipe->fields[fieldnumber].enum_values[normalised_value]);
     printf("enum: decoding %s as %d of %d\n",
 	   value,normalised_value,recipe->fields[fieldnumber].enum_count);
