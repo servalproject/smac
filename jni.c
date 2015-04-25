@@ -155,6 +155,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
       char message[1024];
       snprintf(message,1024,"Could not set recipe");
       LOGI("Failed to read recipe from buffer");
+      LOGI("Recipe is:\n%s",recipetext);
       return error_message(env,message);
     }
 
