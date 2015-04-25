@@ -1466,6 +1466,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       while ((de=readdir(dir))!=NULL) {
 	snprintf(filename,1024,"%s/%s",argv[4],de->d_name);
 	LOGI("Trying to decompress %s as succinct data message\n",filename);
+	printf("Trying to decompress %s as succinct data message\n",filename);
 	if (recipe_decompress_file(h,argv[3],filename,argv[5])==-1) {
 	  if (0) fprintf(stderr,"Error decompressing %s: %s",filename,recipe_error);
 	  LOGI("Failed to decompress %s as succinct data message\n",filename);
