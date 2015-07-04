@@ -47,12 +47,20 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
  jint mtu,
  jint debug)
 {
+  LOGI("  xml2succinctfragments ENTRY");
+  
   const char *xmldata= (*env)->GetStringUTFChars(env,xmlforminstance,0);
-  const char *formname_c= (*env)->GetStringUTFChars(env,formname,0);
-  const char *formversion_c= (*env)->GetStringUTFChars(env,formversion,0);
-  const char *path= (*env)->GetStringUTFChars(env,succinctpath,0);
+  LOGI("  xml2succinctfragments E2");
+  const char *formname_c= NULL; // (*env)->GetStringUTFChars(env,formname,0);
+  LOGI("  xml2succinctfragments E3");
+  const char *formversion_c=  NULL; // (*env)->GetStringUTFChars(env,formversion,0);
+  LOGI("  xml2succinctfragments E4");
+  const char *path= NULL; // (*env)->GetStringUTFChars(env,succinctpath,0);
+  LOGI("  xml2succinctfragments E5");
   const char *xmlform_c= (*env)->GetStringUTFChars(env,xmlformspecification,0);
+  LOGI("  xml2succinctfragments E6");
   const char *smacdat_c= (*env)->GetStringUTFChars(env,smacdat,0);
+  LOGI("  xml2succinctfragments E7");
   
   char stripped[65536];
   unsigned char succinct[1024];
@@ -61,17 +69,22 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
 
   int magpi_mode=0;
 
+  LOGI("  xml2succinctfragments checkpoing 1");
+  
   // Automatically detect Magpi forms versus ODK ones.
   // Magpi forms are HTML documents, where as ODK uses XML ones.
   if (xmlform_c&&(!strncasecmp("<html",xmlform_c,5))) magpi_mode=1;
 
   // Read public key hex
 
+  LOGI("  xml2succinctfragments checkpoing 2: magpi_mode = %d",magpi_mode);
+  
   // Default to public key of Serval succinct data server
   char publickeyhex[1024]="74f3a36029b0e60084d42bd9cafa3f2b26fe802b0a6f024ff00451481c9bba4a";
 
   if (path&&formname_c&&formversion_c)
   {
+    LOGI("recipe: Expecting public key file");
     snprintf(filename,1024,"%s/%s.%s.publickey",path,formname_c,formversion_c);
     LOGI("recipe: Opening recipient public key file %s",filename);
 
@@ -95,7 +108,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     
     fclose(f);
   }
-
+  
   LOGI("recipe: have publixkeyhex = '%s'",publickeyhex);
 
   struct recipe *recipe=NULL;
