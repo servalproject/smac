@@ -31,8 +31,8 @@
 #endif
 
 char *implied_meta_fields =
-  "email:string:0:0:0\n"
-  "password:string:0:0:0\n"
+  "userid:string:0:0:0\n"
+  "accesstoken:string:0:0:0\n"
   "formid:string:0:0:0\n"
   "lastsubmittime:magpitimestamp:0:0:0\n"
   "endrecordtime:magpitimestamp:0:0:0\n"
@@ -42,8 +42,8 @@ char *implied_meta_fields =
   "latitude:float:-90:90:0\n"
   "longitude:float:-200:200:0\n";
 char *implied_meta_fields_template =
-  "<email>$email$</email>\n"
-  "<password>$password$</password>\n"
+  "<userid>$userid$</userid>\n"
+  "<accesstoken>$accesstoken$</accesstoken>\n"
   "<formid>$formid$</formid>\n"
   "<lastsubmittime>$lastsubmittime$</lastsubmittime>\n"
   "<endrecordtime>$endrecordtime$</endrecordtime>\n"
