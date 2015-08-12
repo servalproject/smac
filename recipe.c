@@ -679,9 +679,21 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	return -1;
       }
       // tm.tm_gmtoff=tzm*60+tzh*3600;
+
+      // Don't apply timezone to Magpi timestamps, since they lack any timzeone
+      // information.
+      char *tz = getenv("TZ");
+      setenv("TZ", "", 1);
+      tzset();
+
       tm.tm_year-=1900;
       tm.tm_mon-=1;
       time_t t = timegm(&tm);
+
+      if (tz) setenv("TZ", tz, 1);
+      else unsetenv("TZ");
+      tzset();      
+
       normalised_value=t;
       return range_encode_equiprobable(c,0x7fffffff,normalised_value);
     }
