@@ -394,8 +394,12 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_INTEGER:
     minimum=recipe->fields[fieldnumber].minimum;
     maximum=recipe->fields[fieldnumber].maximum;
-    normalised_value=range_decode_equiprobable(c,maximum-minimum+1);
-    sprintf(value,"%d",normalised_value+minimum);
+    normalised_value=range_decode_equiprobable(c,maximum-minimum+2);
+    if (normalised_value==maximum-minimum+1) {
+      // out of range value, so decode it as a string.
+      r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
+    } else 
+      sprintf(value,"%d",normalised_value+minimum);
     return 0;
   case FIELDTYPE_FLOAT:
     {
@@ -590,9 +594,20 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     maximum=recipe->fields[fieldnumber].maximum;
     if (maximum<=minimum) {
       fprintf(stderr,"Illegal range: min=%d, max=%d\n",minimum,maximum);
+      LOGI("Illegal range: min=%d, max=%d\n",minimum,maximum);
       return -1;
     }
-    return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
+    if (normalised_value<0||normalised_value>(maximum-minimum+1)) {
+      fprintf(stderr,"Illegal value: min=%d, max=%d, value=%d\n",
+                     minimum,maximum,atoi(value));
+      LOGI("Illegal value: min=%d, max=%d, value=%d\n",
+                     minimum,maximum,atoi(value));
+      range_encode_equiprobable(c,maximum-minimum+2,maximum-minimum+1);
+      int r=stats3_compress_append(c,(unsigned char *)value,strlen(value),stats,
+				   NULL);
+      return r;
+    }
+    return range_encode_equiprobable(c,maximum-minimum+2,normalised_value);
   case FIELDTYPE_FLOAT:
     {
       float f = atof(value);
