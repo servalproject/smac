@@ -437,11 +437,10 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       {
 	if (range_decode_equiprobable(c,2)) {
 	  // Field value is present
-	  int id=k+1;
 	  if (vlen) {
 	    value[vlen++]='|'; value[vlen]=0;
 	  }
-	  sprintf(&value[vlen],"%d",id);
+	  sprintf(&value[vlen],"%s",recipe->fields[fieldnumber].enum_values[k]);
 	  vlen=strlen(value);
 	}
       }
@@ -783,16 +782,24 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       return -1;
   case FIELDTYPE_MULTISELECT:
     {
-      // Multiselect has numeric values for each item selected, with a pipe
+      // Multiselect has labels for each item selected, with a pipe
       // character in between.  We encode each as a boolean using 1 bit.
       unsigned long long bits=0;
-      int v;
       int o=0;
       // Generate bitmask of selected items
       while (o<strlen(value)) {
-	v=atoi(&value[o]);
-	bits|=(1<<v);
-	while (value[o]!='|'&&value[o]) o++;
+	char valuetext[1024];
+	int vtlen=0;
+	while (value[o]!='|'&&value[o]) {
+	  if (vtlen<1000) valuetext[vtlen++]=value[o];
+	  o++;
+	}
+	valuetext[vtlen]=0;
+	int v;
+	for(v=0;v<recipe->fields[fieldnumber].enum_count;v++)
+	  if (!strcasecmp(valuetext,recipe->fields[fieldnumber].enum_values[v]))
+	    break;
+	if (v<recipe->fields[fieldnumber].enum_count) bits|=(1<<v);
 	if (value[o]=='|') o++;
       }
       // Encode each checkbox using a single bit
