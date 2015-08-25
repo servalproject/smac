@@ -809,6 +809,7 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	  int n=((bits>>o)&1);
 	  range_encode_equiprobable(c,2,n);
 	}
+      return 0;
       break;
     }
   case FIELDTYPE_ENUM:
