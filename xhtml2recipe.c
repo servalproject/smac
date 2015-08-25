@@ -139,8 +139,8 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
 	      // So is radio
 	      node_type = strdup("select1");
 	    } else if (!strcasecmp(attr[i+1],"xsd:checkbox")) {
-	      // ... and checkbox
-	      node_type = strdup("select1");
+	      // ... and checkbox (which is like radio, but allows multiple selections)
+	      node_type = strdup("selectn");
 	    } else {
 	      const char *attribute=attr[i+1];
 	      // Skip "XXX:" prefixes on types
@@ -159,12 +159,20 @@ start_xhtml(void *data, const char *el, const char **attr) //This function is ca
       //Lets build output
       fprintf(stderr,"Parsing field %s:%s\n", node_name,node_type);  
 
-      if ((!strcasecmp(node_type,"select"))||(!strcasecmp(node_type,"select1"))) // Select, special case we need to wait later to get all informations (ie the range)
+      if ((!strcasecmp(node_type,"select"))
+	  ||(!strcasecmp(node_type,"select1"))
+	  ) // Select, special case we need to wait later to get all informations (ie the range)
 	{
 	  snprintf(temp,1024,"%s:enum:0:0:0:",node_name);	 
 	  selects[xhtmlSelectsLen] = strdup(temp);
 	  xhtmlSelectsLen++;
-	} 
+	}
+      else if (!strcasecmp(node_type,"selectn")) // multiple-choice checkbox (allows multiple selections at the same time)
+	{
+	  snprintf(temp,1024,"%s:multi:0:0:0:",node_name);
+	  selects[xhtmlSelectsLen] = strdup(temp);
+	  xhtmlSelectsLen++;	  
+	}
       else if ((!strcasecmp(node_type,"decimal"))
 	       ||(!strcasecmp(node_type,"integer"))
 	       ||(!strcasecmp(node_type,"int"))) // Integers and decimal

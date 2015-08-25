@@ -28,6 +28,8 @@
 // Like time of day, but takes a particular string format of date
 // (a slightly different format for magpi)
 #define FIELDTYPE_MAGPITIMEDATE 12
+// Like _ENUM, but allows multiple choices to be selected
+#define FIELDTYPE_MULTISELECT 13
 
 struct field {
   char *name;

@@ -84,6 +84,7 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"uuid")) return FIELDTYPE_UUID;
   if (!strcasecmp(name,"magpiuuid")) return FIELDTYPE_MAGPIUUID;
   if (!strcasecmp(name,"enum")) return FIELDTYPE_ENUM;
+  if (!strcasecmp(name,"multi")) return FIELDTYPE_MULTISELECT;
   
   return -1;
 }
@@ -211,7 +212,7 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 	    recipe->fields[recipe->field_count].maximum=max;
 	    recipe->fields[recipe->field_count].precision=precision;
 
-	    if (fieldtype==FIELDTYPE_ENUM) {
+	    if (fieldtype==FIELDTYPE_ENUM||fieldtype==FIELDTYPE_MULTISELECT) {
 	      char enum_value[1024];
 	      int e=0;
 	      int en=0;
@@ -395,8 +396,9 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     minimum=recipe->fields[fieldnumber].minimum;
     maximum=recipe->fields[fieldnumber].maximum;
     normalised_value=range_decode_equiprobable(c,maximum-minimum+2);
-    if (normalised_value==maximum-minimum+1) {
+    if (normalised_value==(maximum-minimum+1)) {
       // out of range value, so decode it as a string.
+      fprintf(stderr,"FIELDTYPE_INTEGER: Illegal value - decoding string representation.\n");
       r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
     } else 
       sprintf(value,"%d",normalised_value+minimum);
@@ -426,6 +428,26 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     sprintf(value,"%d",normalised_value);
     return 0;
     break;
+  case FIELDTYPE_MULTISELECT:
+    {
+      int k;
+      int vlen=0;
+      // Get bitmap of enum fields
+      for(k=0;k<recipe->fields[fieldnumber].enum_count;k++)
+      {
+	if (range_decode_equiprobable(c,2)) {
+	  // Field value is present
+	  int id=k+1;
+	  if (vlen) {
+	    value[vlen++]='|'; value[vlen]=0;
+	  }
+	  sprintf(&value[vlen],"%d",id);
+	  vlen=strlen(value);
+	}
+      }
+      return 0;
+      break;
+    }
   case FIELDTYPE_ENUM:
     normalised_value=range_decode_equiprobable(c,recipe->fields[fieldnumber]
 					       .enum_count);
@@ -759,6 +781,29 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     return range_encode_equiprobable(c,361*112000,ilon);
     } else
       return -1;
+  case FIELDTYPE_MULTISELECT:
+    {
+      // Multiselect has numeric values for each item selected, with a pipe
+      // character in between.  We encode each as a boolean using 1 bit.
+      unsigned long long bits=0;
+      int v;
+      int o=0;
+      // Generate bitmask of selected items
+      while (o<strlen(value)) {
+	v=atoi(&value[o]);
+	bits|=(1<<v);
+	while (value[o]!='|'&&value[o]) o++;
+	if (value[o]=='|') o++;
+      }
+      // Encode each checkbox using a single bit
+      for(o=0;o<recipe->fields[fieldnumber].enum_count;o++)
+	{
+	  // Work out whether box is ticked
+	  int n=((bits>>o)&1);
+	  range_encode_equiprobable(c,2,n);
+	}
+      break;
+    }
   case FIELDTYPE_ENUM:
     {
       for(normalised_value=0;
