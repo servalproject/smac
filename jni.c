@@ -26,10 +26,11 @@ jobjectArray error_message(JNIEnv * env, char *message)
   LOGI("%s",message);
       
   jobjectArray result=
-    (jobjectArray)(*env)->NewObjectArray(env,1,
+    (jobjectArray)(*env)->NewObjectArray(env,2,
 					 (*env)->FindClass(env,"java/lang/String"),
 					 (*env)->NewStringUTF(env,""));
-  (*env)->SetObjectArrayElement(env,result,0,(*env)->NewStringUTF(env,message));
+  (*env)->SetObjectArrayElement(env,result,0,(*env)->NewStringUTF(env,"ERROR"));
+  (*env)->SetObjectArrayElement(env,result,1,(*env)->NewStringUTF(env,message));
 
   return result;
 }
