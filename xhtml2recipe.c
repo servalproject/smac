@@ -424,10 +424,6 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 	    __FUNCTION__);
     return (1);
   }
-
-#ifdef ANDROID
-  LOGI("XML_Parse() succeeded, xhtml2recipeLen = %d",xhtml2recipeLen);
-#endif
   
   // Build recipe output
   int recipeMaxLen=*recipeLen;
@@ -484,5 +480,11 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
   fprintf(stderr, "\n\nSuccessfully parsed %i characters !\n", (int)size);
   fprintf(stderr,"xhtmlFormName=%s, xhtmlFormVersion=%s\n",
 	  xhtmlFormName,xhtmlFormVersion);
+
+#ifdef ANDROID
+  LOGI("XML_Parse() succeeded, xhtml2recipeLen = %d, recipeLen=%d",
+       xhtml2recipeLen,*recipeLen);
+#endif
+  
   return (0);
 }
