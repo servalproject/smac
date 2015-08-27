@@ -333,6 +333,15 @@ int xhtml_recipe_create(char *input)
   size_t size;
   char *xmltext;
 
+  // Reset parser state.
+  xhtml2templateLen = 0;
+  xhtml2recipeLen = 0;
+  xhtml_in_instance = 0;
+  xhtmlSelectsLen = 0;
+  xhtmlSelectElem = NULL;
+  xhtmlSelectFirst = 1;
+  xhtml_in_value = 0;
+  
   if (!f) {
     fprintf(stderr,"Could not read XHTML file '%s'\n",input);
     return -1;
