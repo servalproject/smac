@@ -490,7 +490,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       tm.tm_year=range_decode_equiprobable(c,10000);
       tm.tm_mon=range_decode_equiprobable(c,12);
       tm.tm_mday=range_decode_equiprobable(c,31);
-      tm.tm_hour=range_decode_equiprobable(c,24);
+      tm.tm_hour=range_decode_equiprobable(c,25);
       tm.tm_min=range_decode_equiprobable(c,60);
       tm.tm_sec=range_decode_equiprobable(c,62);
       
