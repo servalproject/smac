@@ -31,6 +31,7 @@
 // Like _ENUM, but allows multiple choices to be selected
 #define FIELDTYPE_MULTISELECT 13
 
+#define MAX_ENUM_VALUES 1024
 struct field {
   char *name;
 
@@ -38,7 +39,7 @@ struct field {
   int minimum;
   int maximum;
   int precision; // meaning differs based on field type
-  char *enum_values[32];
+  char *enum_values[MAX_ENUM_VALUES];
   int enum_count;
 };
 

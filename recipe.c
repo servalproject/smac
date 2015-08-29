@@ -180,13 +180,13 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
   int i;
   int l=0;
   int line_number=1;
-  char line[1024];
-  char name[1024],type[1024];
+  char line[16384];
+  char name[16384],type[16384];
   int min,max,precision;
-  char enumvalues[1024];
+  char enumvalues[16384];
 
   for(i=0;i<=buffer_size;i++) {
-    if (l>1000) { 
+    if (l>16380) { 
       snprintf(recipe_error,1024,"line:%d:Line too long.\n",line_number);
       recipe_free(recipe); return NULL; }
     if ((i==buffer_size)||(buffer[i]=='\n')||(buffer[i]=='\r')) {
@@ -221,7 +221,7 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 		if ((enumvalues[i]==',')||(enumvalues[i]==0)) {
 		  // End of field
 		  enum_value[e]=0;
-		  if (en>=32) {
+		  if (en>=MAX_ENUM_VALUES) {
 		    snprintf(recipe_error,1024,"line:%d:enum has too many values (max=32)\n",line_number);
 		    recipe_free(recipe);
 		    return NULL;
@@ -1203,9 +1203,11 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
   char recipe_file[1024];
   
   sprintf(recipe_file,"%s/%s.recipe",recipe_dir,formid);
+  printf("Trying to load '%s' as a recipe\n",recipe_file);
   struct recipe *recipe=recipe_read_from_file(recipe_file);
   // A form can be given in place of the recipe directory
   if (!recipe) {
+    printf("That failed due it: %s\n",recipe_error);
     printf("Trying to load '%s' as a form specification to convert to recipe\n",
 	   recipe_dir);
     char form_spec_text[1048576];
