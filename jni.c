@@ -221,19 +221,24 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     char filename[1024];
     snprintf(filename,1024,"%s/%s.%s.recipe",path,formname_c,formversion_c);
 
+    LOGI("Cleaned up after ourselves");
+
     if (succinct_len<1) {
       recipe_free(recipe);
       char message[1024];
       snprintf(message,1024,"recipe_compess failed with recipe file %s. h=%p, recipe=%p, stripped_len=%d",filename,h,recipe,stripped_len);
+      LOGI("Exiting due to failure to produce valid Succinct Data output.");
       return error_message(env,message);
     }
   } else {
+    LOGI("Failed to strop XML using recipe file -- exiting.");
     recipe_free(recipe);
     char message[1024];
     snprintf(message,1024,"Failed to strip XML using recipe file %s.",filename);
     return error_message(env,message);
   }
 
+  LOGI("Fragmenting succinct data record");
   char *fragments[MAX_FRAGMENTS];
   int fragment_count=0;
   encryptAndFragmentBuffer(succinct,succinct_len,fragments,&fragment_count,mtu,
