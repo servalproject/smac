@@ -764,8 +764,7 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     }
     return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
   case FIELDTYPE_LATLONG:
-    LOGI("Geopoint value is:");
-    LOGI(value);
+    LOGI("Geopoint value is: [%s]",value);
     if (sscanf(value,"%f %f",&lat,&lon)!=2) return -1;
     if (lat<-90||lat>90||lon<-180||lon>180) return -1;
     ilat=lroundf(lat);
