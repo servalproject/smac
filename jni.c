@@ -224,7 +224,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     LOGI("Cleaned up after ourselves");
 
     if (succinct_len<1) {
-      recipe_free(recipe);
+      LOGI("Failed to compress XML - reporting error and exiting");
       char message[1024];
       snprintf(message,1024,"recipe_compess failed with recipe file %s. stripped_len=%d",filename,stripped_len);
       LOGI("Exiting due to failure to produce valid Succinct Data output.");
