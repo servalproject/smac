@@ -226,7 +226,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_servalproject_succinctdata_jni_xml2succi
     if (succinct_len<1) {
       recipe_free(recipe);
       char message[1024];
-      snprintf(message,1024,"recipe_compess failed with recipe file %s. h=%p, recipe=%p, stripped_len=%d",filename,h,recipe,stripped_len);
+      snprintf(message,1024,"recipe_compess failed with recipe file %s. stripped_len=%d",filename,stripped_len);
       LOGI("Exiting due to failure to produce valid Succinct Data output.");
       return error_message(env,message);
     }
