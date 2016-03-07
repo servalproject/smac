@@ -1117,7 +1117,8 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
     if (i<value_count) {
       // Field present
       printf("Found field #%d ('%s')\n",field,recipe->fields[field].name);
-      LOGI("Found field #%d ('%s')\n",field,recipe->fields[field].name);
+      LOGI("Found field #%d ('%s', value '%s')\n",
+	   field,recipe->fields[field].name,values[i]);
       // Record that the field is present.
       range_encode_equiprobable(c,2,1);
       // Now, based on type of field, encode it.
