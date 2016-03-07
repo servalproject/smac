@@ -1078,12 +1078,16 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
   int line_number=1;
   char line[1024];
   char key[1024],value[1024];
+  int ignoreLine=0;
 
   for(i=0;i<=in_len;i++) {
-    if (l>1000) { 
+    if (l==1000) { 
       snprintf(recipe_error,1024,"line:%d:Data line too long.\n",line_number);
-      return -1; }
+      ignoreLine=1;
+      }
+    if (l<1000) {
     if ((i==in_len)||(in[i]=='\n')||(in[i]=='\r')) {
+      if (!ignoreLine) {
       if (value_count>1000) {
 	snprintf(recipe_error,1024,"line:%d:Too many data lines (must be <=1000).\n",line_number);
 	return -1;
@@ -1101,9 +1105,12 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 	  return -1;
 	}
       }
-      line_number++; l=0;
+      line_number++; }
+       ignoreLine=0;
+       l=0;
     } else {
       line[l++]=in[i];
+    } 
     }
   }
   printf("Read %d data lines, %d values.\n",line_number,value_count);
