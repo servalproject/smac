@@ -142,6 +142,18 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,
 	    ODK Collect on the other hand provides the form name as an
 	    id attribute of a tag which follows an <instance> tag.
 	  */
+	  if (!strncasecmp("dd:subform ",tag,strlen("dd:subform"))) {
+	      // Beginning of sub form
+	      interesting_tag=0;
+	      int b=snprintf(&stripped[stripped_ofs],stripped_size-stripped_ofs,"{\n");
+	      if (b>0) stripped_ofs+=b;
+	    }
+	  if (!strncasecmp("/dd:subform ",tag,strlen("/dd:subform"))) {
+	      // End of sub form
+	      interesting_tag=0;
+	      int b=snprintf(&stripped[stripped_ofs],stripped_size-stripped_ofs,"}\n");
+	      if (b>0) stripped_ofs+=b;
+	    }
 	  if (!strncasecmp("form",tag,strlen("form")))
 	    {
 	      //	    if (!in_instance) printf("Found start of instance\n");
