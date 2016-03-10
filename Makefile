@@ -13,6 +13,7 @@ OBJS=	main.o \
 	map.o \
 	dexml.o \
 	md5.o \
+	subforms.o \
 	\
 	unicode.o \
 	case.o \
@@ -56,7 +57,7 @@ OBJS=	main.o \
         \
 	timegm.o
 
-HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h Makefile
+HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h subforms.h Makefile
 
 all: smac arithmetic gen_stats
 
