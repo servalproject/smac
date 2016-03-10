@@ -96,8 +96,28 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	  record_free(record);
 	  return NULL;
 	}
+	// Find the question field name, so that we can promote it to our caller
+	char *question=NULL;
+	for(i=0;i<current_record->field_count;i++) {
+	  if (!strcmp("question",current_record->fields[i].key)) {
+	    // Found it
+	    question=current_record->fields[i].value;
+	  }
+	}
+	if (!question) {
+	    snprintf(recipe_error,1024,"line:%d:No 'question' value in sub-form.\n",
+		     line_number);
+	  record_free(record);
+	  return NULL;
+	}
+	
+	// Step back out to parent
 	current_record->fields[record->field_count].subrecord
 	  =current_record->fields[record->field_count].subrecord->parent;
+
+	// Update key name for sub-form we have exited to match the question name
+	current_record->fields[record->field_count-1].key=strdup(question);
+	
       } else if ((l>0)&&(line[0]!='#')) {
 	if (sscanf(line,"%[^=]=%[^\n]",key,value)==2) {
 	  if (current_record->field_count>=MAX_FIELDS) {
