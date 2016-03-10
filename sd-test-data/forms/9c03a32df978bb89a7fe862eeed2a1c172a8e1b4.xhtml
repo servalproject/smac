@@ -1,0 +1,625 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>Wash_Samoa_1507_short</title>
+          <xf:model dd:formid="9214086012" dd:geotag="on" id="Wash_Samoa_1507_short">
+               <xf:instance>
+                    <data>
+                         <Village/>
+                         <Assessor/>
+                         <FP_Name/>
+                         <FP_Tel/>
+                         <FP_Rel/>
+                         <HH_Last/>
+                         <HH_First/>
+                         <HH_Sex/>
+                         <HH_Age/>
+                         <Male65_Pop/>
+                         <Male65_PwD/>
+                         <Male65_CI/>
+                         <Female65_Pop/>
+                         <Female65_PwD/>
+                         <Female65_CI/>
+                         <MaleAdult_Pop/>
+                         <FemaleAdult_Pop/>
+                         <MaleYouth_Pop/>
+                         <FemaleYouth_Pop/>
+                         <MaleChild_Pop/>
+                         <FemaleChild_Pop/>
+                         <MaleBaby_Pop/>
+                         <FemaleBaby_Pop/>
+                         <Main_House/>
+                         <Altitude/>
+                         <Water/>
+                         <Toilet/>
+                         <Kitchen/>
+                         <Guttering/>
+                         <SWA_Dist/>
+                         <Roof/>
+                         <Repairs/>
+                         <SubHouse1_Type/>
+                         <SubHouse1_Pop/>
+                         <HH_Income/>
+                         <HH_Expense/>
+                         <Income1_Type/>
+                         <Income1_Desc/>
+                         <Income1_Amt/>
+                         <Income2_Type/>
+                         <Income2_Desc/>
+                         <Income2_Amt/>
+                         <prompt__1437801947497/>
+                    </data>
+               </xf:instance>
+               <bind id="Village" jr:preload="autofill"
+                    jr:preloadParams="Village" nodeset="/data/Village"
+                    required="true()" type="xsd:string"/>
+               <bind id="Assessor" jr:preload="autofill"
+                    jr:preloadParams="Assessor" nodeset="/data/Assessor"
+                    required="true()" type="xsd:string"/>
+               <bind id="FP_Name" nodeset="/data/FP_Name"
+                    required="true()" type="xsd:string"/>
+               <bind id="FP_Tel" nodeset="/data/FP_Tel" type="xsd:string"/>
+               <bind id="FP_Rel" nodeset="/data/FP_Rel"
+                    required="true()" type="xsd:string"/>
+               <bind id="HH_Last" nodeset="/data/HH_Last"
+                    required="true()" type="xsd:string"/>
+               <bind id="HH_First" nodeset="/data/HH_First"
+                    required="true()" type="xsd:string"/>
+               <bind id="HH_Sex" nodeset="/data/HH_Sex"
+                    required="true()" type="xsd:radio"/>
+               <bind id="HH_Age" nodeset="/data/HH_Age"
+                    required="true()" type="xsd:integer"/>
+               <bind id="Male65_Pop" nodeset="/data/Male65_Pop" type="xsd:integer"/>
+               <bind id="Male65_PwD" nodeset="/data/Male65_PwD"
+                    relevant="not( /data/Male65_Pop  =  0 )" type="xsd:string"/>
+               <bind id="Male65_CI" nodeset="/data/Male65_CI"
+                    relevant="not( /data/Male65_Pop  =  0 )" type="xsd:string"/>
+               <bind id="Female65_Pop" nodeset="/data/Female65_Pop" type="xsd:integer"/>
+               <bind id="Female65_PwD" nodeset="/data/Female65_PwD" type="xsd:string"/>
+               <bind id="Female65_CI" nodeset="/data/Female65_CI" type="xsd:string"/>
+               <bind id="MaleAdult_Pop" nodeset="/data/MaleAdult_Pop" type="xsd:integer"/>
+               <bind id="FemaleAdult_Pop"
+                    nodeset="/data/FemaleAdult_Pop" type="xsd:integer"/>
+               <bind id="MaleYouth_Pop" nodeset="/data/MaleYouth_Pop" type="xsd:integer"/>
+               <bind id="FemaleYouth_Pop"
+                    nodeset="/data/FemaleYouth_Pop" type="xsd:integer"/>
+               <bind id="MaleChild_Pop" nodeset="/data/MaleChild_Pop" type="xsd:integer"/>
+               <bind id="FemaleChild_Pop"
+                    nodeset="/data/FemaleChild_Pop" type="xsd:integer"/>
+               <bind id="MaleBaby_Pop" nodeset="/data/MaleBaby_Pop" type="xsd:integer"/>
+               <bind id="FemaleBaby_Pop" nodeset="/data/FemaleBaby_Pop" type="xsd:integer"/>
+               <bind id="Main_House" nodeset="/data/Main_House"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Altitude" nodeset="/data/Altitude"
+                    required="true()" type="xsd:integer"/>
+               <bind id="Water" nodeset="/data/Water" required="true()" type="xsd:checkbox"/>
+               <bind id="Toilet" nodeset="/data/Toilet"
+                    required="true()" type="xsd:checkbox"/>
+               <bind id="Kitchen" nodeset="/data/Kitchen" type="xsd:checkbox"/>
+               <bind id="Guttering" nodeset="/data/Guttering"
+                    required="true()" type="xsd:radio"/>
+               <bind id="SWA_Dist" nodeset="/data/SWA_Dist" type="xsd:integer"/>
+               <bind id="Roof" nodeset="/data/Roof" required="true()" type="xsd:radio"/>
+               <bind id="Repairs" nodeset="/data/Repairs"
+                    required="true()" type="xsd:radio"/>
+               <bind id="SubHouse1_Type" nodeset="/data/SubHouse1_Type"
+                    required="true()" type="xsd:radio"/>
+               <bind id="SubHouse1_Pop" nodeset="/data/SubHouse1_Pop"
+                    relevant="not( isblank( /data/SubHouse1_Type ) ) and not( selected( /data/SubHouse1_Type , '0' ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="HH_Income" nodeset="/data/HH_Income"
+                    required="true()" type="xsd:radio"/>
+               <bind id="HH_Expense" nodeset="/data/HH_Expense"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Income1_Type" nodeset="/data/Income1_Type"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Income1_Desc" nodeset="/data/Income1_Desc"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="Income1_Amt" nodeset="/data/Income1_Amt"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="Income2_Type" nodeset="/data/Income2_Type"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Income2_Desc" nodeset="/data/Income2_Desc"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) ) and not( selected( /data/Income2_Type , '0' ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="Income2_Amt" nodeset="/data/Income2_Amt"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) ) and not( selected( /data/Income2_Type , '0' ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="prompt__1437801947497"
+                    nodeset="/data/prompt__1437801947497" type="xsd:information"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:input bind="Village">
+               <xf:label>Welcome to the Household Survey Form&#xd;
+&#xd;
+Please enter the name of the village you are surveying</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Assessor">
+               <xf:label>Please enter your name</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FP_Name">
+               <xf:label>Please find a family member who can provide you with information about the household.  &#xd;
+&#xd;
+What is this person's Name? </xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FP_Tel">
+               <xf:label>What is this person's Telephone Number?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FP_Rel">
+               <xf:label>What is the Relationship between this person and the Head of the Household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="HH_Last">
+               <xf:label>What is the Household Head's Last Name?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="HH_First">
+               <xf:label>What is the Household Head's First Name?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="HH_Sex">
+               <xf:label>Is the Household Head Male or Female?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Male</xf:label>
+                    <xf:value>M</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Female</xf:label>
+                    <xf:value>F</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="HH_Age">
+               <xf:label>What Age is the Household Head?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Male65_Pop">
+               <xf:label>How many Males aged 65 or over are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Male65_PwD">
+               <xf:label>Do any of these Males aged 65 or over have Disabilities?  &#xd;
+&#xd;
+If so, please give the Numbers of people with each type of Disability using the codes below:  &#xd;
+P = Physical&#xd;
+M= Mental&#xd;
+S= Sensory- blind, deaf or mute&#xd;
+&#xd;
+(For example if there are 2 people with physical disabilities and 1 blind person, enter 2P, 1S) </xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Male65_CI">
+               <xf:label>Do any of these Males aged 65 or over have Chronic Illnesses?  &#xd;
+&#xd;
+If so, please give the Numbers of people with each type of Illness using the codes below:  &#xd;
+V = HIV/Aids&#xd;
+D = Diabetes&#xd;
+C = Cancer&#xd;
+A = Asthma&#xd;
+T = TB&#xd;
+L = Leprosy&#xd;
+H = Heart&#xd;
+O = Others&#xd;
+&#xd;
+(For example, if there is a person with Diabetes and another with Heart problems, enter 1D, 1H)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Female65_Pop">
+               <xf:label>How many Females aged 65 or over are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Female65_PwD">
+               <xf:label>Do any of these Females aged 65 or over have Disabilities?  &#xd;
+&#xd;
+If so, please give the Numbers of people with each type of Disability using the codes below:  &#xd;
+P = Physical&#xd;
+M= Mental&#xd;
+S= Sensory- blind, deaf or mute&#xd;
+&#xd;
+(For example if there are 2 people with physical disabilities and 1 blind person, enter 2P, 1S) </xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Female65_CI">
+               <xf:label>Do any of these Females aged 65 or over have Chronic Illnesses?  &#xd;
+&#xd;
+If so, please give the Numbers of people with each type of Illness using the codes below:  &#xd;
+V = HIV/Aids&#xd;
+D = Diabetes&#xd;
+C = Cancer&#xd;
+A = Asthma&#xd;
+T = TB&#xd;
+L = Leprosy&#xd;
+H = Heart&#xd;
+O = Others&#xd;
+&#xd;
+(For example, if there is a person with Diabetes and another with Heart problems, enter 1D, 1H)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="MaleAdult_Pop">
+               <xf:label>How many Males aged 18-64 are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FemaleAdult_Pop">
+               <xf:label>How many Females aged 18-64 are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="MaleYouth_Pop">
+               <xf:label>How many Male Youths aged 5 - 17 are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FemaleYouth_Pop">
+               <xf:label>How many Female Youths aged 5 - 17 are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="MaleChild_Pop">
+               <xf:label>How many Male Children aged 3 months to 5 years are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FemaleChild_Pop">
+               <xf:label>How many Female Children aged 3 months to 5 years are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="MaleBaby_Pop">
+               <xf:label>How many Male Babies aged up to 3 months are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FemaleBaby_Pop">
+               <xf:label>How many Female Babies aged up to 3 months are there in the household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="Main_House">
+               <xf:label>What type of building is the Main House?&#xd;
+(See guide for pictures of houses.)  </xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Open Samoan Fale</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Open Samoan Fale with  Extension</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Closed Samoan Fale</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Closed Samoan Fale with Extension</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Open European</xf:label>
+                    <xf:value>5</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Open European with Extension</xf:label>
+                    <xf:value>6</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Closed European House</xf:label>
+                    <xf:value>7</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Closed European House with Extension</xf:label>
+                    <xf:value>8</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>European House 2-floors</xf:label>
+                    <xf:value>9</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Samoan Fale 2-floors</xf:label>
+                    <xf:value>10</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Faleo’o</xf:label>
+                    <xf:value>11</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Faleapa Laititi</xf:label>
+                    <xf:value>12</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="Altitude">
+               <xf:label>What is the altitude (in metres) of the Main House (Please estimate if you do not know) </xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select bind="Water">
+               <xf:label>Please tick which water supplies are available</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Tap – metered</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Tap – unmetered (SWA)</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Independent water scheme</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Water tank – roofing</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Water tank – SWA pipes</xf:label>
+                    <xf:value>5</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Well / spring</xf:label>
+                    <xf:value>6</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Others: barrels,  drums, tarpaulin</xf:label>
+                    <xf:value>7</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No water supply</xf:label>
+                    <xf:value>8</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:select bind="Toilet">
+               <xf:label>Please tick what toilet facilities are available</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Flush toilet</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>VIP latrine (long-drop land)</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Open pit privy (long-drop land)</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Long-drop (sea)</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No toilet</xf:label>
+                    <xf:value>no_toilet</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:select bind="Kitchen">
+               <xf:label>Please tick what kitchen facilities are available</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Indoor Kitchen</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Outdoor Kitchen</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No cooking facility</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:select1 bind="Guttering">
+               <xf:label>Does main house have Guttering?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Yes</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="SWA_Dist">
+               <xf:label>How far (metres) is it from the SWA pipeline to the house?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="Roof">
+               <xf:label>What is the Roof made of?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Lau</xf:label>
+                    <xf:value>L</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Apa</xf:label>
+                    <xf:value>A</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="Repairs">
+               <xf:label>Does the house need Repairs to the Roof or Facing for water tank connection?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>No</xf:label>
+                    <xf:value>N</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>To Roof</xf:label>
+                    <xf:value>R</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>To Facing</xf:label>
+                    <xf:value>F</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="SubHouse1_Type">
+               <xf:label>What type of building is Sub Household No 1?&#xd;
+(See guide for pictures of houses.)  </xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Open Samoan Fale</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Open Samoan Fale with  Extension</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Closed Samoan Fale</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Closed Samoan Fale with Extension</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Open European</xf:label>
+                    <xf:value>5</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Open European with Extension</xf:label>
+                    <xf:value>6</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Closed European House</xf:label>
+                    <xf:value>7</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Closed European House with Extension</xf:label>
+                    <xf:value>8</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>European House 2-floors</xf:label>
+                    <xf:value>9</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Samoan Fale 2-floors</xf:label>
+                    <xf:value>10</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Faleo’o</xf:label>
+                    <xf:value>11</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Faleapa Laititi</xf:label>
+                    <xf:value>12</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>There in no Sub-Household 1</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="SubHouse1_Pop">
+               <xf:label>How many people live in Sub-Household 1?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="HH_Income">
+               <xf:label>What is the Total Household Income per Week</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Less than $50</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>$50 to $100</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>$100 to $150</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>$150 to $498</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>$499 or over</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="HH_Expense">
+               <xf:label>What are the Total Household Expenses per Week</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Less than $50</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>$50 to $100</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>$100 to $150</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>$150 to $498</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>$499 or over</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="Income1_Type">
+               <xf:label>What type of employment provides the first source of Income</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Paid or Salaried Employment</xf:label>
+                    <xf:value>P</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Self Employed</xf:label>
+                    <xf:value>SE</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>None</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="Income1_Desc">
+               <xf:label>Please describe this source of Income (e.g. farmer – plantation, farmer – livestock, fisherman, teacher, shop owner, resort owner, mechanic, electrician, builder, remittances, etc.)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Income1_Amt">
+               <xf:label>Approximately how much money comes from this source of income</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="Income2_Type">
+               <xf:label>What type of employment provides the next source of Income</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Paid or Salaried Employment</xf:label>
+                    <xf:value>P</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Self Employed</xf:label>
+                    <xf:value>SE</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>None</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="Income2_Desc">
+               <xf:label>Please describe this source of Income (e.g. farmer – plantation, farmer – livestock, fisherman, teacher, shop owner, resort owner, mechanic, electrician, builder, remittances, etc.)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Income2_Amt">
+               <xf:label>Approximately how much money comes from this source of income</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:output bind="prompt__1437801947497">
+               <xf:label>Thank You - This is the end of the survey for this Household</xf:label>
+               <hint/>
+          </xf:output>
+     </body>
+</html>

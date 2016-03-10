@@ -1,0 +1,58 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>school</title>
+          <xf:model dd:formid="111054457" dd:geotag="off" id="school">
+               <xf:instance>
+                    <data>
+                         <prompt__1395386566472/>
+                         <name_of_primary_school/>
+                         <highiest_education_level/>
+                         <name_of_high_school/>
+                    </data>
+               </xf:instance>
+               <bind id="prompt__1395386566472"
+                    nodeset="/data/prompt__1395386566472" type="xsd:information"/>
+               <bind id="name_of_primary_school"
+                    nodeset="/data/name_of_primary_school" type="xsd:string"/>
+               <bind id="highiest_education_level"
+                    nodeset="/data/highiest_education_level" type="xsd:radio"/>
+               <bind id="name_of_high_school"
+                    nodeset="/data/name_of_high_school" type="xsd:string"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:output bind="prompt__1395386566472">
+               <xf:label>Education Background</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:input bind="name_of_primary_school">
+               <xf:label>name of primary school</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="highiest_education_level">
+               <xf:label>highiest education level</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>high school</xf:label>
+                    <xf:value>high_school</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>college</xf:label>
+                    <xf:value>college</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="name_of_high_school">
+               <xf:label>name of high school</xf:label>
+               <hint/>
+          </xf:input>
+     </body>
+</html>

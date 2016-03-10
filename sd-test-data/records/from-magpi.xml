@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<meta>
+		<email>gardners</email>
+		<password>mpi12345</password>
+		<formid>9214079997</formid>
+		<lastsubmittime>2015-06-15 20:47:07</lastsubmittime>
+		<endrecordtime>2015-06-15 20:47:06</endrecordtime>
+		<startrecordtime>2015-06-15 20:45:07</startrecordtime>
+		<version>2.5</version>
+		<uuid>325023b515302608-1434365107891</uuid>
+		<geotag>
+			<longitude>0</longitude>
+			<latitude>0</latitude>
+		</geotag>
+	</meta>
+	<data>
+		<prompt__1428973251972>~</prompt__1428973251972>
+		<Disaster>succinct data test</Disaster>
+		<Community>test</Community>
+		<District>mt.isa</District>
+		<Province>quernsland</Province>
+		<Assessor>paul gs</Assessor>
+		<Date>15-06-2015</Date>
+		<Household_Head__Name>paul</Household_Head__Name>
+		<Income_Source>2</Income_Source>
+		<Other_Occupation>~</Other_Occupation>
+		<MALE_ADULTS>1</MALE_ADULTS>
+		<FEMALE_ADULTS>1</FEMALE_ADULTS>
+		<MALE_CHILDREN>0</MALE_CHILDREN>
+		<FEMALE_CHILDREN>1</FEMALE_CHILDREN>
+		<MALE_BABIES>1</MALE_BABIES>
+		<FEMALE_BABIES>0</FEMALE_BABIES>
+		<SPECIAL_NEEDS>0</SPECIAL_NEEDS>
+		<INJURED>0</INJURED>
+		<DEAD>0</DEAD>
+		<MISSING>0</MISSING>
+		<DAMAGE_HOUSE>0</DAMAGE_HOUSE>
+		<DAMAGED_HOUSEHOLD_ITEMS>~</DAMAGED_HOUSEHOLD_ITEMS>
+		<WATER>0</WATER>
+		<TOILETS>1</TOILETS>
+		<LIGHTING>1</LIGHTING>
+		<KITCHEN>1</KITCHEN>
+		<COMMENTS>~</COMMENTS>
+		<prompt__1428978927481>~</prompt__1428978927481>
+	</data>
+

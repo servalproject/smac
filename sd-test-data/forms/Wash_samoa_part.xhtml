@@ -1,0 +1,193 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>Wash_Samoa_1507_short</title>
+          <xf:model dd:formid="9214086012" dd:geotag="on" id="Wash_Samoa_1507_short">
+               <xf:instance>
+                    <data>
+                         <Village/>
+                         <Assessor/>
+                         <FP_Name/>
+                         <FP_Tel/>
+                         <FP_Rel/>
+                         <HH_Last/>
+                         <HH_First/>
+                         <HH_Sex/>
+                         <HH_Age/>
+                         <Male65_Pop/>
+                         <Male65_PwD/>
+                         <Male65_CI/>
+                         <Female65_Pop/>
+                         <Female65_PwD/>
+                         <Female65_CI/>
+                         <MaleAdult_Pop/>
+                         <FemaleAdult_Pop/>
+                         <MaleYouth_Pop/>
+                         <FemaleYouth_Pop/>
+                         <MaleChild_Pop/>
+                         <FemaleChild_Pop/>
+                         <MaleBaby_Pop/>
+                         <FemaleBaby_Pop/>
+                         <Main_House/>
+                         <Altitude/>
+                         <Water/>
+                         <Toilet/>
+                         <Kitchen/>
+                         <Guttering/>
+                         <SWA_Dist/>
+                         <Roof/>
+                         <Repairs/>
+                         <SubHouse1_Type/>
+                         <SubHouse1_Pop/>
+                         <HH_Income/>
+                         <HH_Expense/>
+                         <Income1_Type/>
+                         <Income1_Desc/>
+                         <Income1_Amt/>
+                         <Income2_Type/>
+                         <Income2_Desc/>
+                         <Income2_Amt/>
+                         <prompt__1437801947497/>
+                    </data>
+               </xf:instance>
+               <bind id="Village" jr:preload="autofill"
+                    jr:preloadParams="Village" nodeset="/data/Village"
+                    required="true()" type="xsd:string"/>
+               <bind id="Assessor" jr:preload="autofill"
+                    jr:preloadParams="Assessor" nodeset="/data/Assessor"
+                    required="true()" type="xsd:string"/>
+               <bind id="FP_Name" nodeset="/data/FP_Name"
+                    required="true()" type="xsd:string"/>
+               <bind id="FP_Tel" nodeset="/data/FP_Tel" type="xsd:string"/>
+               <bind id="FP_Rel" nodeset="/data/FP_Rel"
+                    required="true()" type="xsd:string"/>
+               <bind id="HH_Last" nodeset="/data/HH_Last"
+                    required="true()" type="xsd:string"/>
+               <bind id="HH_First" nodeset="/data/HH_First"
+                    required="true()" type="xsd:string"/>
+               <bind id="HH_Sex" nodeset="/data/HH_Sex"
+                    required="true()" type="xsd:radio"/>
+               <bind id="HH_Age" nodeset="/data/HH_Age"
+                    required="true()" type="xsd:integer"/>
+               <bind id="Male65_Pop" nodeset="/data/Male65_Pop" type="xsd:integer"/>
+               <bind id="Male65_PwD" nodeset="/data/Male65_PwD"
+                    relevant="not( /data/Male65_Pop  =  0 )" type="xsd:string"/>
+               <bind id="Male65_CI" nodeset="/data/Male65_CI"
+                    relevant="not( /data/Male65_Pop  =  0 )" type="xsd:string"/>
+               <bind id="Female65_Pop" nodeset="/data/Female65_Pop" type="xsd:integer"/>
+               <bind id="Female65_PwD" nodeset="/data/Female65_PwD" type="xsd:string"/>
+               <bind id="Female65_CI" nodeset="/data/Female65_CI" type="xsd:string"/>
+               <bind id="MaleAdult_Pop" nodeset="/data/MaleAdult_Pop" type="xsd:integer"/>
+               <bind id="FemaleAdult_Pop"
+                    nodeset="/data/FemaleAdult_Pop" type="xsd:integer"/>
+               <bind id="MaleYouth_Pop" nodeset="/data/MaleYouth_Pop" type="xsd:integer"/>
+               <bind id="FemaleYouth_Pop"
+                    nodeset="/data/FemaleYouth_Pop" type="xsd:integer"/>
+               <bind id="MaleChild_Pop" nodeset="/data/MaleChild_Pop" type="xsd:integer"/>
+               <bind id="FemaleChild_Pop"
+                    nodeset="/data/FemaleChild_Pop" type="xsd:integer"/>
+               <bind id="MaleBaby_Pop" nodeset="/data/MaleBaby_Pop" type="xsd:integer"/>
+               <bind id="FemaleBaby_Pop" nodeset="/data/FemaleBaby_Pop" type="xsd:integer"/>
+               <bind id="Main_House" nodeset="/data/Main_House"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Altitude" nodeset="/data/Altitude"
+                    required="true()" type="xsd:integer"/>
+               <bind id="Water" nodeset="/data/Water" required="true()" type="xsd:checkbox"/>
+               <bind id="Toilet" nodeset="/data/Toilet"
+                    required="true()" type="xsd:checkbox"/>
+               <bind id="Kitchen" nodeset="/data/Kitchen" type="xsd:checkbox"/>
+               <bind id="Guttering" nodeset="/data/Guttering"
+                    required="true()" type="xsd:radio"/>
+               <bind id="SWA_Dist" nodeset="/data/SWA_Dist" type="xsd:integer"/>
+               <bind id="Roof" nodeset="/data/Roof" required="true()" type="xsd:radio"/>
+               <bind id="Repairs" nodeset="/data/Repairs"
+                    required="true()" type="xsd:radio"/>
+               <bind id="SubHouse1_Type" nodeset="/data/SubHouse1_Type"
+                    required="true()" type="xsd:radio"/>
+               <bind id="SubHouse1_Pop" nodeset="/data/SubHouse1_Pop"
+                    relevant="not( isblank( /data/SubHouse1_Type ) ) and not( selected( /data/SubHouse1_Type , '0' ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="HH_Income" nodeset="/data/HH_Income"
+                    required="true()" type="xsd:radio"/>
+               <bind id="HH_Expense" nodeset="/data/HH_Expense"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Income1_Type" nodeset="/data/Income1_Type"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Income1_Desc" nodeset="/data/Income1_Desc"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="Income1_Amt" nodeset="/data/Income1_Amt"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="Income2_Type" nodeset="/data/Income2_Type"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Income2_Desc" nodeset="/data/Income2_Desc"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) ) and not( selected( /data/Income2_Type , '0' ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="Income2_Amt" nodeset="/data/Income2_Amt"
+                    relevant="not( isblank( /data/Income1_Type ) ) and not( selected( /data/Income1_Type , '0' ) ) and not( selected( /data/Income2_Type , '0' ) )"
+                    required="true()" type="xsd:integer"/>
+               <bind id="prompt__1437801947497"
+                    nodeset="/data/prompt__1437801947497" type="xsd:information"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:input bind="Village">
+               <xf:label>Welcome to the Household Survey Form&#xd;
+&#xd;
+Please enter the name of the village you are surveying</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Assessor">
+               <xf:label>Please enter your name</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FP_Name">
+               <xf:label>Please find a family member who can provide you with information about the household.  &#xd;
+&#xd;
+What is this person's Name? </xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FP_Tel">
+               <xf:label>What is this person's Telephone Number?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FP_Rel">
+               <xf:label>What is the Relationship between this person and the Head of the Household?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="HH_Last">
+               <xf:label>What is the Household Head's Last Name?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="HH_First">
+               <xf:label>What is the Household Head's First Name?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="HH_Sex">
+               <xf:label>Is the Household Head Male or Female?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Male</xf:label>
+                    <xf:value>M</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Female</xf:label>
+                    <xf:value>F</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="HH_Age">
+               <xf:label>What Age is the Household Head?</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Male65_Pop">
+               <xf:label>How many Males aged...

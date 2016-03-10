@@ -1,0 +1,283 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>Pacific_IDA_Form</title>
+          <xf:model dd:formid="9214079997" dd:geotag="on" id="Pacific_IDA_Form">
+               <xf:instance>
+                    <data>
+                         <prompt__1428973251972/>
+                         <Disaster/>
+                         <Community/>
+                         <District/>
+                         <Province/>
+                         <Assessor/>
+                         <Date/>
+                         <Household_Head__Name/>
+                         <Income_Source/>
+                         <Other_Occupation/>
+                         <MALE_ADULTS/>
+                         <FEMALE_ADULTS/>
+                         <MALE_CHILDREN/>
+                         <FEMALE_CHILDREN/>
+                         <MALE_BABIES/>
+                         <FEMALE_BABIES/>
+                         <SPECIAL_NEEDS/>
+                         <INJURED/>
+                         <DEAD/>
+                         <MISSING/>
+                         <DAMAGE_HOUSE/>
+                         <DAMAGED_HOUSEHOLD_ITEMS/>
+                         <WATER/>
+                         <TOILETS/>
+                         <LIGHTING/>
+                         <KITCHEN/>
+                         <COMMENTS/>
+                         <prompt__1428978927481/>
+                    </data>
+               </xf:instance>
+               <bind id="prompt__1428973251972"
+                    nodeset="/data/prompt__1428973251972" type="xsd:information"/>
+               <bind id="Disaster" jr:preload="autofill"
+                    jr:preloadParams="Disaster" nodeset="/data/Disaster"
+                    required="true()" type="xsd:string"/>
+               <bind id="Community" jr:preload="autofill"
+                    jr:preloadParams="Community"
+                    nodeset="/data/Community" required="true()" type="xsd:string"/>
+               <bind id="District" jr:preload="autofill"
+                    jr:preloadParams="District" nodeset="/data/District"
+                    required="true()" type="xsd:string"/>
+               <bind id="Province" jr:preload="autofill"
+                    jr:preloadParams="Province" nodeset="/data/Province" type="xsd:string"/>
+               <bind id="Assessor" jr:preload="autofill"
+                    jr:preloadParams="Assessor" nodeset="/data/Assessor"
+                    required="true()" type="xsd:string"/>
+               <bind id="Date" jr:preload="autofill"
+                    jr:preloadParams="Date" nodeset="/data/Date"
+                    required="true()" type="xsd:date"/>
+               <bind id="Household_Head__Name"
+                    nodeset="/data/Household_Head__Name"
+                    required="true()" type="xsd:string"/>
+               <bind id="Income_Source" nodeset="/data/Income_Source"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Other_Occupation"
+                    nodeset="/data/Other_Occupation"
+                    relevant="not( selected( /data/Income_Source , '5' ) ) and not( selected( /data/Income_Source , '4' ) ) and not( selected( /data/Income_Source , '3' ) ) and not( selected( /data/Income_Source , '2' ) ) and not( selected( /data/Income_Source , '1' ) )"
+                    required="true()" type="xsd:string"/>
+               <bind id="MALE_ADULTS" nodeset="/data/MALE_ADULTS" type="xsd:integer"/>
+               <bind id="FEMALE_ADULTS" nodeset="/data/FEMALE_ADULTS" type="xsd:integer"/>
+               <bind id="MALE_CHILDREN" nodeset="/data/MALE_CHILDREN" type="xsd:integer"/>
+               <bind id="FEMALE_CHILDREN"
+                    nodeset="/data/FEMALE_CHILDREN" type="xsd:integer"/>
+               <bind id="MALE_BABIES" nodeset="/data/MALE_BABIES" type="xsd:integer"/>
+               <bind id="FEMALE_BABIES" nodeset="/data/FEMALE_BABIES" type="xsd:integer"/>
+               <bind id="SPECIAL_NEEDS" nodeset="/data/SPECIAL_NEEDS" type="xsd:integer"/>
+               <bind id="INJURED" nodeset="/data/INJURED" type="xsd:integer"/>
+               <bind id="DEAD" nodeset="/data/DEAD" type="xsd:integer"/>
+               <bind id="MISSING" nodeset="/data/MISSING" type="xsd:integer"/>
+               <bind id="DAMAGE_HOUSE" nodeset="/data/DAMAGE_HOUSE"
+                    required="true()" type="xsd:radio"/>
+               <bind id="DAMAGED_HOUSEHOLD_ITEMS"
+                    nodeset="/data/DAMAGED_HOUSEHOLD_ITEMS" type="xsd:string"/>
+               <bind id="WATER" nodeset="/data/WATER" required="true()" type="xsd:radio"/>
+               <bind id="TOILETS" nodeset="/data/TOILETS"
+                    required="true()" type="xsd:radio"/>
+               <bind id="LIGHTING" nodeset="/data/LIGHTING"
+                    required="true()" type="xsd:radio"/>
+               <bind id="KITCHEN" nodeset="/data/KITCHEN"
+                    required="true()" type="xsd:radio"/>
+               <bind id="COMMENTS" nodeset="/data/COMMENTS" type="xsd:string"/>
+               <bind id="prompt__1428978927481"
+                    nodeset="/data/prompt__1428978927481" type="xsd:information"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:output bind="prompt__1428973251972">
+               <xf:label>PACIFIC INITIAL DAMAGE ASSESSMENT FORM</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:input bind="Disaster">
+               <xf:label>Disaster Event Name</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Community">
+               <xf:label>Name of Community (village, settlement, ward, etc.)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="District">
+               <xf:label>Name of District/Island</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Province">
+               <xf:label>Name of Province (if applicable)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Assessor">
+               <xf:label>Name of Person Conducting Assessment</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Date">
+               <xf:label>Date</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Household_Head__Name">
+               <xf:label>Name of Household Head - Can be either male or female whichever is the surviving head/rawa ni tagane se yalewa</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="Income_Source">
+               <xf:label>What is the Household's Main Source Of Income</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Business Owner</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Permanent Worker</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Casual Worker</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Farmer</xf:label>
+                    <xf:value>4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Fisherman</xf:label>
+                    <xf:value>5</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Other</xf:label>
+                    <xf:value>Other</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="Other_Occupation">
+               <xf:label>Please describe OTHER OCCUPATION</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="MALE_ADULTS">
+               <xf:label>How many MALE ADULTS in the household (16 years and above)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FEMALE_ADULTS">
+               <xf:label>How many FEMALE ADULTS in the household (16 years and above)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="MALE_CHILDREN">
+               <xf:label>How many MALE CHILDREN in the household (6 to 15 years)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FEMALE_CHILDREN">
+               <xf:label>How many FEMALE CHILDREN in the household (6 to 15 years)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="MALE_BABIES">
+               <xf:label>How many MALE BABIES in the household (0 to 5 years)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="FEMALE_BABIES">
+               <xf:label>How many FEMALE BABIES in the household (0 to 5 years)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="SPECIAL_NEEDS">
+               <xf:label>How many people with SPECIAL NEEDS (infants, disabled, etc.) in the household</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="INJURED">
+               <xf:label>How many members of the household are INJURED</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="DEAD">
+               <xf:label>How many members of the household are DEAD</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="MISSING">
+               <xf:label>How many members of the household are MISSING</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="DAMAGE_HOUSE">
+               <xf:label>How much DAMAGE to the DWELLING HOUSE</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>OK (no or very minimal damage)</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Partly Damaged</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Destroyed</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="DAMAGED_HOUSEHOLD_ITEMS">
+               <xf:label>List any DAMAGED HOUSEHOLD ITEMS (furniture, bedding, utensils, etc.)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="WATER">
+               <xf:label>What is the status of the WATER SUPPLY for the household</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Good</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Damaged</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="TOILETS">
+               <xf:label>What is the status of the TOILETS for the household</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Good</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Damaged</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="LIGHTING">
+               <xf:label>What is the status of the LIGHTING for the household</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Good</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Damaged</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="KITCHEN">
+               <xf:label>What is the status of the KITCHEN for the household</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Good</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Damaged</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="COMMENTS">
+               <xf:label>Do you have any COMMENTS ABOUT THIS HOUSEHOLD</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:output bind="prompt__1428978927481">
+               <xf:label>THANK YOU - Please move to the next household</xf:label>
+               <hint/>
+          </xf:output>
+     </body>
+</html>

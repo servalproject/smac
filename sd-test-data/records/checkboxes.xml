@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<meta>
+		<accesstoken>089837662d664f8d9267fd8029f3b92c</accesstoken>
+		<<userid>gardners</<userid>
+		<formid>9214087882</formid>
+		<lastsubmittime>2015-08-25 12:33:33</lastsubmittime>
+		<endrecordtime>2015-08-25 12:32:52</endrecordtime>
+		<startrecordtime>2015-08-25 12:32:38</startrecordtime>
+		<version>2.5</version>
+		<uuid>d44f625e9f23ac37-1440471758895</uuid>
+		<geotag>
+			<longitude>138.5717223</longitude>
+			<latitude>-35.0083887</latitude>
+		</geotag>
+	</meta>
+	<data>
+		<Select_some_boxes>this_one|or_this_one|choose_me|or_me</Select_some_boxes>
+	</data>
+</form>
