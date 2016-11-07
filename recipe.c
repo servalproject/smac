@@ -421,6 +421,14 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       fprintf(stderr,"sign=%d, exp=%d, mantissa=%x, f=%f\n",
 	      sign,exponent,mantissa,f);
       sprintf(value,"%f",f);
+      // Trim trailing 0s after the decimal place
+      if (strstr(value,".")) {
+	while(value[0]&&(value[strlen(value)-1]=='0')) 
+	  value[strlen(value)-1]=0;
+	// and trailing decimal place
+	if(value[0]&&(value[strlen(value)-1]=='.')) 
+	  value[strlen(value)-1]=0;
+      }
       return 0;
     }
   case FIELDTYPE_BOOLEAN:
@@ -501,20 +509,26 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     }
   case FIELDTYPE_DATE:
     // Date encoded using:
-    // normalised_value=y*372+(m-1)*31+(d-1);
-    // So year = value / 372 ...
+    // normalised_value=y*31*31+(m-1)*31+(d-1);
+    // (this allows US versus rest of the world confusion of dates to be preserved
+    // correctly).
+    // So year = value / 31*31 ...
     {
-      if (precision==0) precision=22;
+      if (precision==0) precision=24;
       int minimum=0;
-      int maximum=10000*372;
-      maximum=maximum>> (22-precision);
+      int maximum=10000*31*31;
+      maximum=maximum>> (24-precision);
+      int separator_is_slash=range_decode_equiprobable(c,2);
       int normalised_value = range_decode_equiprobable(c,maximum-minimum+1);
-      int year = normalised_value / 372;
-      int day_of_year = normalised_value - (year*372);
+      int year = normalised_value / (31*31);
+      int day_of_year = normalised_value - (year*31*31);
       int month = day_of_year/31+1;
       int day_of_month = day_of_year%31+1;
-      // American date format for Magpi
-      sprintf(value,"%02d-%02d-%04d",month,day_of_month,year);
+      // American versus rest of us date ordering is preserved from parsing`
+      if (separator_is_slash)
+	sprintf(value,"%04d/%02d/%04d",year,month,day_of_month);
+      else
+	sprintf(value,"%02d-%02d-%04d",day_of_month,month,year);
       return 0;
     }
   case FIELDTYPE_UUID:
@@ -770,28 +784,35 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     }
   case FIELDTYPE_DATE:
     // ODK does YYYY/MM/DD
-    // Magpi does DD-MM-YYYY
-    // The different delimiter allows us to discern between the two
+    // Magpi does MM-DD-YYYY.  Some other things may do DD-MM-YYYY
+    // The different delimiter allows us to discern between the two main formats.
+    // For US versus Standard MDY vs DMY ordering, we really don't have any choice
+    // but to remember it. So as a result, we allow months to be 1-31 as well.
     fprintf(stderr,"Parsing FIELDTYPE_DATE value '%s'\n",value);
-    if (sscanf(value,"%d/%d/%d",&y,&m,&d)==3) { }
-    else if (sscanf(value,"%d-%d-%d",&d,&m,&y)==3) { }
+    int separator=0;
+    if (sscanf(value,"%d/%d/%d",&y,&m,&d)==3) { separator='/'; }
+    else if (sscanf(value,"%d-%d-%d",&d,&m,&y)==3) { separator='-'; }
     else return -1;
 
     // XXX Not as efficient as it could be (assumes all months have 31 days)
-    if (y<1||y>9999||m<1||m>12||d<1||d>31) {
+    if (y<1||y>9999||m<1||m>31||d<1||d>31) {
       fprintf(stderr,"Invalid field value\n");
       return -1;
     }
-    normalised_value=y*372+(m-1)*31+(d-1);
+    normalised_value=y*(31*31)+(m-1)*31+(d-1);
     minimum=0;
-    maximum=10000*372;
-    if (precision==0) precision=22; // 2^21 < maximum < 2^22
-    if (precision<22) {
-      normalised_value=normalised_value >> (22 - precision);
-      minimum=minimum >> (22 - precision);
-      maximum=maximum >> (22 - precision);
+    maximum=10000*31*31;
+    if (precision==0) precision=24; // 2^23 < maximum < 2^24
+    if (precision<24) {
+      normalised_value=normalised_value >> (24 - precision);
+      minimum=minimum >> (24 - precision);
+      maximum=maximum >> (24 - precision);
       maximum+=1; // make sure that normalised_value cannot = maximum
     }
+    if (separator=='/')
+      range_encode_equiprobable(c,2,1);
+    else
+      range_encode_equiprobable(c,2,0);
     return range_encode_equiprobable(c,maximum-minimum+1,normalised_value);
   case FIELDTYPE_LATLONG:
     // Allow space or comma between LAT and LONG
