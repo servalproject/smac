@@ -681,20 +681,50 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   case FIELDTYPE_TIMEDATE:
     {
       struct tm tm;
-      int tzh=0,tzm=0;
+      int tzh=0,tzm=0,csec;
       int r;
       bzero(&tm,sizeof(tm));
-      if ((r=sscanf(value,"%d-%d-%dT%d:%d:%d.%*d+%d:%d",
+      if ((r=sscanf(value,"%d-%d-%dT%d:%d:%d.%d%d:%d",
 		 &tm.tm_year,&tm.tm_mon,&tm.tm_mday,
 		 &tm.tm_hour,&tm.tm_min,&tm.tm_sec,
-		    &tzh,&tzm))<6) {
+		    &csec,&tzh,&tzm))<6) {
 	printf("r=%d\n",r);
 	return -1;
       }
+      
+       // Validate fields
+      if (tm.tm_year<0||tm.tm_year>2299) return -1;
+      if (tm.tm_mon<1||tm.tm_mon>12) return -1;
+      if (tm.tm_mday<1||tm.tm_mday>31) return -1;
+      if (tm.tm_hour<0||tm.tm_hour>24) return -1;
+      if (tm.tm_min<0||tm.tm_min>59) return -1;
+      if (tm.tm_sec<0||tm.tm_sec>61) return -1;
+      if (csec>99) return -1;
+      if (tzh<-15||tzh>15) return -1;
+      if (tzm<0||tzm>59) return -1;
+
 #if defined(__sgi) || defined(__sun)
 #else
       tm.tm_gmtoff=tzm*60+tzh*3600;
 #endif
+      
+#if 0
+      range_encode_equiprobable(c,2200,tm.tm_year);
+      range_encode_equiprobable(c,12,tm.tm_mon-1);
+      range_encode_equiprobable(c,31,tm.tm_mday);
+      range_encode_equiprobable(c,25,tm.tm_hour);
+      range_encode_equiprobable(c,60,tm.tm_min);
+      range_encode_equiprobable(c,62,tm.tm_sec); // leap seconds
+      // Encode centi-seconds and timezone data if present
+      if (r>=7) {
+	range_encode_equiprobable(c,2,1);
+	range_encode_equiprobable(c,100,csec);
+	range_encode_equiprobable(c,31,tzh+15); // +/- 15 hours
+	b=range_encode_equiprobable(c,60,tzm);
+      } else
+	b=range_encode_equiprobable(c,2,0);
+#endif
+      
       tm.tm_year-=1900;
       tm.tm_mon-=1;
       time_t t = mktime(&tm);
@@ -728,7 +758,7 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       if (tm.tm_hour<0||tm.tm_hour>24) return -1;
       if (tm.tm_min<0||tm.tm_min>59) return -1;
       if (tm.tm_sec<0||tm.tm_sec>61) return -1;
-
+      
       // Encode each field: requires about 40 bits, but safely encodes all values
       // without risk of timezone munging on Android
       range_encode_equiprobable(c,10000,tm.tm_year);
