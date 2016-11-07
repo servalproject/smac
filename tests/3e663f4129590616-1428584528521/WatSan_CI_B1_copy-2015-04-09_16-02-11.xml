@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form>
 	<meta>
-		<email>potato</email>
-		<password>kartoffel</password>
+		<userid>potato</email>
+		<accesstoken>kartoffel</accesstoken>
 		<formid>9214079410</formid>
 		<lastsubmittime>2015-04-09 16:04:28</lastsubmittime>
 		<endrecordtime>2015-04-09 16:02:11</endrecordtime>
