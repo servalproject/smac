@@ -379,6 +379,32 @@ int recipe_parse_boolean(char *b)
   }
 }
 
+int round_string_by_one_digit(char *s)
+{
+  int len=strlen(s);
+  if (len<1) return -1;
+  int has_decimal=strstr(s,".")?1:0;
+  if (s[len-1]<'0'||s[len-1]>'9') return -1;
+
+  int t=len-1;
+  s[t--]='0';
+  int bump=1;
+  while((t>=0)&&(s[t]!='.')) {
+    if (s[t]!='0') {
+      if (s[t]!='9') {
+	if (bump) s[t]++;
+	bump=0;
+	break; }
+      else {
+	if (has_decimal) s[t]='0';
+	bump=1;
+      }
+    } else bump=0;
+    t--;
+  }
+  return 0;
+}
+
 int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *c,
 			int fieldnumber,char *value,int value_size)
 {
@@ -421,6 +447,25 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       fprintf(stderr,"sign=%d, exp=%d, mantissa=%x, f=%f\n",
 	      sign,exponent,mantissa,f);
       sprintf(value,"%f",f);
+
+      // Now enforce reasonable numbers of significant digits
+      if (strstr(value,".")&&(exponent>=0)) {
+	int sane_decimal_places=6;
+	if (exponent>=4) sane_decimal_places=5;
+	if (exponent>=7) sane_decimal_places=4;
+	if (exponent>=10) sane_decimal_places=3;
+	if (exponent>=14) sane_decimal_places=2;
+	if (exponent>=17) sane_decimal_places=1;
+	if (exponent>=20) sane_decimal_places=0;
+	int actual_decimal_places=strlen(value)-1-(strstr(value,".")-value);
+	printf("%s has %d decimal places. %d would be sane.\n",
+	       value,actual_decimal_places,sane_decimal_places);
+	for(int i=sane_decimal_places;i<actual_decimal_places;i++)
+	  round_string_by_one_digit(value);
+	printf("  after rounding it is [%s]\n",value);
+      }
+
+      
       // Trim trailing 0s after the decimal place
       if (strstr(value,".")) {
 	while(value[0]&&(value[strlen(value)-1]=='0')) 
