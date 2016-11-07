@@ -495,7 +495,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       tm.tm_sec=range_decode_equiprobable(c,62);
       
       sprintf(value,"%04d-%02d-%02d %02d:%02d:%02d",
-	      tm.tm_year,tm.tm_mon+1,tm.tm_mday,
+	      tm.tm_year,tm.tm_mon+1,tm.tm_mday+1,
 	      tm.tm_hour,tm.tm_min,tm.tm_sec);
       return 0;
     }
