@@ -51,8 +51,8 @@ if ( $strippedcount != 2 ) then
   set striperror=1
 else
   set stripfiles=`find . -name "*.stripped"`
-  set stripdiffs=`diff -w $stripfiles | wc -l`
-  diff -w $stripfiles > strip.diff
+  diff -w $stripfiles | egrep -v '=$|=~$' > strip.diff
+  set stripdiffs=`cat strip.diff | wc -l`
 endif
 if ( $xmlcount != 2 ) then
   set xmlerror=1
