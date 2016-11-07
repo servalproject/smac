@@ -52,12 +52,14 @@ if ( $strippedcount != 2 ) then
 else
   set stripfiles=`find . -name "*.stripped"`
   set stripdiffs=`diff -w $stripfiles | wc -l`
+  diff -w $stripfiles > strip.diff
 endif
 if ( $xmlcount != 2 ) then
   set xmlerror=1
 else
   set xmlfiles=`find . -name "*.xml"`
   set xmldiffs=`diff -w $xmlfiles | wc -l`
+  diff -w $xmlfiles > xml.diff
 endif
 
 if ( $striperror > 0 || $xmlerror > 0 || $sderror > 0 ) then
