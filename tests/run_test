@@ -59,7 +59,8 @@ if ( $xmlcount != 2 ) then
 else
   set xmlfiles=`find . -name "*.xml"`
   set xmldiffs=`diff -w $xmlfiles | wc -l`
-  diff -w $xmlfiles > xml.diff
+  # Ignore empty fields on one side
+  diff -w $xmlfiles | egrep -v ">~<" > xml.diff
 endif
 
 if ( $striperror > 0 || $xmlerror > 0 || $sderror > 0 ) then
@@ -73,6 +74,9 @@ else
 endif
 
 cd ..
+foreach f ( logs/${uuid}.* )
+  rm $f
+end
 set shortresult=`echo $result | cut -f1 -d\(`
 echo ${result}:${uuid}:${striperror}:${sderror}:${xmlerror}:${stripdiffs}:${xmldiffs} > logs/${uuid}.${shortresult}
 
