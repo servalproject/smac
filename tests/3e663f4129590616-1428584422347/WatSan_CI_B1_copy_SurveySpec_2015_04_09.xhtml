@@ -1,0 +1,245 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>WatSan_CI_B1_copy</title>
+          <xf:model dd:formid="9214079410" dd:geotag="off" id="WatSan_CI_B1_copy">
+               <xf:instance>
+                    <data>
+                         <prompt__1426421240266/>
+                         <Surveyor/>
+                         <Village/>
+                         <Type/>
+                         <GPS/>
+                         <Etat/>
+                         <Photo/>
+                         <Date_reparation/>
+                         <Comite_deja/>
+                         <Comite_Y_N/>
+                         <Coti_Y_N/>
+                         <prompt__1426422785953/>
+                    </data>
+               </xf:instance>
+               <bind id="prompt__1426421240266"
+                    nodeset="/data/prompt__1426421240266" type="xsd:information"/>
+               <bind id="Surveyor" jr:preload="autofill"
+                    jr:preloadParams="Surveyor" nodeset="/data/Surveyor"
+                    required="true()" type="xsd:dropdown"/>
+               <bind
+                    constraint="not(/data/Village &lt; 01 or  /data/Village  >  150 )"
+                    id="Village"
+                    jr:constraintMsg="Sorry, your answer must be between 01 and 150. Please try again."
+                    jr:preload="autofill" jr:preloadParams="Village"
+                    nodeset="/data/Village" required="true()" type="xsd:integer"/>
+               <bind id="Type" nodeset="/data/Type" required="true()" type="xsd:radio"/>
+               <bind id="GPS" nodeset="/data/GPS" type="jr:geopoint"/>
+               <bind id="Etat" nodeset="/data/Etat" required="true()" type="xsd:radio"/>
+               <bind id="Photo" nodeset="/data/Photo" type="xsd:image"/>
+               <bind id="Date_reparation"
+                    nodeset="/data/Date_reparation" required="true()" type="xsd:date"/>
+               <bind id="Comite_deja" nodeset="/data/Comite_deja"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Comite_Y_N" nodeset="/data/Comite_Y_N"
+                    relevant="not( selected( /data/Comite_deja , '1' ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="Coti_Y_N" nodeset="/data/Coti_Y_N"
+                    relevant="not( selected( /data/Comite_deja , '1' ) )"
+                    required="true()" type="xsd:radio"/>
+               <bind id="prompt__1426422785953"
+                    nodeset="/data/prompt__1426422785953" type="xsd:information"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:output bind="prompt__1426421240266">
+               <xf:label>Bienvenue au formulaire pour l’évaluation de base des pompes protégées (forage avec une pompe PMH ; puits protégé avec une pompe PMH).  Rencontrer le gérant communautaire des points d'eau dans le village.  Demandez-lui de vous rejoindre pour inspecter toutes les pompes protégées.</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:select1 bind="Surveyor">
+               <xf:label>Nom de l'employé(e) / volontaire de la CR</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>ZAHITI Bi Vadian Frédy</xf:label>
+                    <xf:value>ZAHITI</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>ATTEBI Zama Hervé Villard</xf:label>
+                    <xf:value>ATTEBI</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>DJAPO Appolinaire</xf:label>
+                    <xf:value>DJAPO</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>KOUASSI Affoué Angèle</xf:label>
+                    <xf:value>ANGELE</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>KPADJIKE Péhé Achille</xf:label>
+                    <xf:value>ACHILLE</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>TIEU Yonan Olivier</xf:label>
+                    <xf:value>TIEU</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>KOUAME N’dri Emmanuel</xf:label>
+                    <xf:value>EMMANUEL</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>MAIN Gildas Kouiahon</xf:label>
+                    <xf:value>MAIN</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>GBOHO Doh Lucien</xf:label>
+                    <xf:value>GBOHO</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>GNAOUE Gbaré Charlotte</xf:label>
+                    <xf:value>TATI</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>FAITAIE Koffi Stéphane</xf:label>
+                    <xf:value>FAITAIE</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>ZOUNDI Gérard</xf:label>
+                    <xf:value>GERARD</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 1</xf:label>
+                    <xf:value>Autre_1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 2</xf:label>
+                    <xf:value>Autre_2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 3</xf:label>
+                    <xf:value>Autre_3</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 4</xf:label>
+                    <xf:value>Autre_4</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 5</xf:label>
+                    <xf:value>Autre_5</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 6</xf:label>
+                    <xf:value>Autre_6</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 7</xf:label>
+                    <xf:value>Autre_7</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 8</xf:label>
+                    <xf:value>Autre_8</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 9</xf:label>
+                    <xf:value>Autre_9</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Autre 10</xf:label>
+                    <xf:value>Autre_10</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="Village">
+               <xf:label>Code du village 	(voir la liste «Codes des villages Nestlé phase 4» )</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="Type">
+               <xf:label>Type de pompe protégée    </xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Pas de forage ni puits protégé dans le village</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Forage avec pompe PMH</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Puits protégé avec pompe PMH</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="GPS">
+               <xf:label>Coordonnées GPS</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="Etat">
+               <xf:label>État</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Fonctionnel</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Partiellement fonctionnel</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Non-fonctionnel  </xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="Photo">
+               <xf:label>Photo</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Date_reparation">
+               <xf:label>Demander au gérant:  Date de la dernière réparation -- (saisir 11.11.1911 si le gérant ne sait pas)</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="Comite_deja">
+               <xf:label>Avez-vous déjà pris les informations nécessaires relatives au comité d’eau ?  </xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Oui</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Non</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="Comite_Y_N">
+               <xf:label>Y’a-t-il un comité d’eau dans le village ?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Oui</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Non</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="Coti_Y_N">
+               <xf:label>Est-ce que les habitants cotisent pour l’eau ?</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>Oui</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>Non</xf:label>
+                    <xf:value>0</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:output bind="prompt__1426422785953">
+               <xf:label>C'est la fin du formulaire.  Passer à la prochaine pompe protégée.</xf:label>
+               <hint/>
+          </xf:output>
+     </body>
+</html>

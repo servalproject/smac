@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<meta>
+		<email>kartoffel</email>
+		<password>potato</password>
+		<formid>27251</formid>
+		<lastsubmittime>2015-04-14 12:45:38</lastsubmittime>
+		<endrecordtime>2015-04-14 12:45:36</endrecordtime>
+		<startrecordtime>2015-04-14 12:40:35</startrecordtime>
+		<version>2.5</version>
+		<uuid>606044c5ae181046-1429004435022</uuid>
+		<geotag>
+			<longitude>0</longitude>
+			<latitude>0</latitude>
+		</geotag>
+	</meta>
+	<data>
+		<KENYA_MANAGEMENT_SURVEY_JANUA>~</KENYA_MANAGEMENT_SURVEY_JANUA>
+		<interviewer>briss</interviewer>
+		<clusterid>2</clusterid>
+		<hhid>7</hhid>
+		<gps>~</gps>
+		<hhinterviewed_yn>yes</hhinterviewed_yn>
+		<consent>yes</consent>
+		<interview_start_time>1</interview_start_time>
+		<name_hhhead>omiondi</name_hhhead>
+		<head_hh_school_yn>no</head_hh_school_yn>
+		<head_hh_educ_highest>Do not know</head_hh_educ_highest>
+		<num_km_to_facility>2</num_km_to_facility>
+		<min_to_health_facility>2</min_to_health_facility>
+		<BEDNET_questions_follow_next>~</BEDNET_questions_follow_next>
+		<totalpersons_lastnight>0</totalpersons_lastnight>
+		<totalpersons_usual>0</totalpersons_usual>
+		<numhhsleepingspaces_ln>0</numhhsleepingspaces_ln>
+		<numhhsleepingspaces_usual>2</numhhsleepingspaces_usual>
+		<nets_yn>no</nets_yn>
+		<nets_numberinhh>0</nets_numberinhh>
+		<net_holes_ever_yn>no</net_holes_ever_yn>
+		<net_holes_cause>Do not know</net_holes_cause>
+		<net_holes_repaired_yn>no</net_holes_repaired_yn>
+		<net_holes_repair_method>In another way</net_holes_repair_method>
+		<net_holes_notrepaired_reason>Other</net_holes_notrepaired_reason>
+		<net_holes_notrepaired_other>~</net_holes_notrepaired_other>
+		<net_holes_messages_yn>~</net_holes_messages_yn>
+		<net_holes_messages_where>~</net_holes_messages_where>
+		<visithomemalaria>~</visithomemalaria>
+		<itn_netinfosource>~</itn_netinfosource>
+		<HOUSEHOLD_WEALTH_questions_fo>~</HOUSEHOLD_WEALTH_questions_fo>
+		<wlth_hhwater>~</wlth_hhwater>
+		<water_wheresource>~</water_wheresource>
+		<water_howlong>~</water_howlong>
+		<water_whofetches>~</water_whofetches>
+		<water_safedrink_yn>~</water_safedrink_yn>
+		<water_makesafe>~</water_makesafe>
+		<water_chlorine_type>~</water_chlorine_type>
+		<wlth_hhtoilet>~</wlth_hhtoilet>
+		<toilet_share>~</toilet_share>
+		<wlth_toilet_numotherhholds>~</wlth_toilet_numotherhholds>
+		<wlth_hhcook>~</wlth_hhcook>
+		<wlth_hhfloor>~</wlth_hhfloor>
+		<wlth_roof>~</wlth_roof>
+		<wlth_extwalls>~</wlth_extwalls>
+		<wlth_elect>~</wlth_elect>
+		<wlth_radio>~</wlth_radio>
+		<wlth_tv>~</wlth_tv>
+		<wlth_mobphone>~</wlth_mobphone>
+		<wlth_nonmobphone>~</wlth_nonmobphone>
+		<wlth_refridg>~</wlth_refridg>
+		<wlth_watch>~</wlth_watch>
+		<wlth_bicycle>~</wlth_bicycle>
+		<wlth_motocyc>~</wlth_motocyc>
+		<wlth_animaldrawncart>~</wlth_animaldrawncart>
+		<wlth_car>~</wlth_car>
+		<wlth_boat_motor>~</wlth_boat_motor>
+		<wlth_hhagland>~</wlth_hhagland>
+		<wlth_hectaresownland>~</wlth_hectaresownland>
+		<wlth_ownfarmanimals>~</wlth_ownfarmanimals>
+		<wlth_numcattle>~</wlth_numcattle>
+		<wlth_milkcowsbulls>~</wlth_milkcowsbulls>
+		<wlth_horsesdonkeysmules>~</wlth_horsesdonkeysmules>
+		<wlth_goats>~</wlth_goats>
+		<wlth_sheep>~</wlth_sheep>
+		<wlth_chickens>~</wlth_chickens>
+		<wlth_bankaccount>~</wlth_bankaccount>
+		<Prompt1356176371311>~</Prompt1356176371311>
+		<handwash_observe_yn>~</handwash_observe_yn>
+		<handwash_station>~</handwash_station>
+		<handwash_water_present>~</handwash_water_present>
+		<handwash_cleaning_agent>~</handwash_cleaning_agent>
+		<Prompt1358572577517>~</Prompt1358572577517>
+		<chw_presence_yn>~</chw_presence_yn>
+		<Prompt1358622580042>~</Prompt1358622580042>
+		<fevero5_last2weeks_num>~</fevero5_last2weeks_num>
+		<fevero5_bloodtaken_num>~</fevero5_bloodtaken_num>
+		<This_portion_of_the_interview>~</This_portion_of_the_interview>
+	</data>
+</form>

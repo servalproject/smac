@@ -1,0 +1,74 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>Calculated Logic</title>
+          <xf:model dd:formid="27209" dd:geotag="off" id="Calculated Logic">
+               <xf:instance>
+                    <data>
+                         <prompt__1359549345113/>
+                         <Radio/>
+                         <score_one/>
+                         <score_two/>
+                         <score_three/>
+                         <prompt__1359549443639/>
+                    </data>
+               </xf:instance>
+               <bind id="prompt__1359549345113"
+                    nodeset="/data/prompt__1359549345113" type="xsd:information"/>
+               <bind id="Radio" nodeset="/data/Radio" type="xsd:radio"/>
+               <bind id="score_one" nodeset="/data/score_one" type="xsd:string"/>
+               <bind id="score_two" nodeset="/data/score_two" type="xsd:string"/>
+               <bind
+                    calculate="if(selected(/data/Radio ,'1' ) ,/data/score_two = 99 ,/data/score_three = 99 ) "
+                    id="score_three" nodeset="/data/score_three" type="xsd:string"/>
+               <bind id="prompt__1359549443639"
+                    nodeset="/data/prompt__1359549443639" type="xsd:information"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:output bind="prompt__1359549345113">
+               <xf:label>Start</xf:label>
+               <hint/>
+          </xf:output>
+          <xf:select1 bind="Radio">
+               <xf:label>Radio</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>one</xf:label>
+                    <xf:value>1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>two</xf:label>
+                    <xf:value>2</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>three</xf:label>
+                    <xf:value>3</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:input bind="score_one">
+               <xf:label>score 1</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="score_two">
+               <xf:label>score 2</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:calculated bind="score_three">
+               <xf:label>score 3</xf:label>
+               <hint/>
+          </xf:calculated>
+          <xf:output bind="prompt__1359549443639">
+               <xf:label>End</xf:label>
+               <hint/>
+          </xf:output>
+     </body>
+</html>

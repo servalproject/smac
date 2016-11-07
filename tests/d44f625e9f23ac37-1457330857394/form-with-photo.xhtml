@@ -1,0 +1,35 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>gardners_form201603070611</title>
+          <xf:model dd:formid="9214105129" dd:geotag="off" id="gardners_form201603070611">
+               <xf:instance>
+                    <data>
+                         <Photo_/>
+                         <location/>
+                    </data>
+               </xf:instance>
+               <bind id="Photo_" nodeset="/data/Photo_" type="xsd:image"/>
+               <bind id="location" nodeset="/data/location" type="jr:geopoint"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:input bind="Photo_">
+               <xf:label>Photo&#xd;
+</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="location">
+               <xf:label>location</xf:label>
+               <hint/>
+          </xf:input>
+     </body>
+</html>

@@ -1,0 +1,17 @@
+#!/bin/csh -f
+
+foreach record ( *.xml )
+  set uuid=`grep uuid ${record} | cut -f2 -d\> | cut -f1 -d \< | sed 's/uuid://g'`
+  set formid=`grep formid ${record} | cut -f2 -d\> | cut -f1 -d \< | sed 's/formid://g'`
+  if ( "x$formid" != "x" ) then
+    set formfile=`grep -l "dd:formid=.${formid}" *.xhtml | cut -f1 -d: | head -1`
+  else
+    set formfile=""
+  endif
+  echo ${record}:${uuid}:${formid}:$formfile
+  if ( "x$formfile" != "x" ) then
+    mkdir $uuid
+    cp $formfile $uuid
+    cp $record $uuid
+  endif
+end

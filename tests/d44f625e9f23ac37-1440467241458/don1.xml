@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<meta>
+		<accesstoken>089837662d664f8d9267fd8029f3b92c</accesstoken>
+		<<userid>gardners</<userid>
+		<formid>9214086012</formid>
+		<lastsubmittime>2015-08-25 11:20:52</lastsubmittime>
+		<endrecordtime>2015-08-25 11:20:50</endrecordtime>
+		<startrecordtime>2015-08-25 11:17:21</startrecordtime>
+		<version>2.5</version>
+		<uuid>d44f625e9f23ac37-1440467241458</uuid>
+		<geotag>
+			<longitude>138.5717238</longitude>
+			<latitude>-35.0083988</latitude>
+		</geotag>
+	</meta>
+	<data>
+		<Village>Hutt</Village>
+		<Assessor>George</Assessor>
+		<FP_Name>Henry</FP_Name>
+		<FP_Tel>9999 1111</FP_Tel>
+		<FP_Rel>son</FP_Rel>
+		<HH_Last>Lloyd</HH_Last>
+		<HH_First>Matthew</HH_First>
+		<HH_Sex>M</HH_Sex>
+		<HH_Age>50</HH_Age>
+		<Male65_Pop>0</Male65_Pop>
+		<Male65_PwD>~</Male65_PwD>
+		<Male65_CI>~</Male65_CI>
+		<Female65_Pop>0</Female65_Pop>
+		<Female65_PwD>None</Female65_PwD>
+		<Female65_CI>None</Female65_CI>
+		<MaleAdult_Pop>1</MaleAdult_Pop>
+		<FemaleAdult_Pop>1</FemaleAdult_Pop>
+		<MaleYouth_Pop>0</MaleYouth_Pop>
+		<FemaleYouth_Pop>0</FemaleYouth_Pop>
+		<MaleChild_Pop>0</MaleChild_Pop>
+		<FemaleChild_Pop>0</FemaleChild_Pop>
+		<MaleBaby_Pop>3</MaleBaby_Pop>
+		<FemaleBaby_Pop>3</FemaleBaby_Pop>
+		<Main_House>7</Main_House>
+		<Altitude>300</Altitude>
+		<Water>4|6</Water>
+		<Toilet>1</Toilet>
+		<Kitchen>1</Kitchen>
+		<Guttering>1</Guttering>
+		<SWA_Dist>3318790</SWA_Dist>
+		<Roof>L</Roof>
+		<Repairs>R</Repairs>
+		<SubHouse1_Type>0</SubHouse1_Type>
+		<SubHouse1_Pop>~</SubHouse1_Pop>
+		<HH_Income>3</HH_Income>
+		<HH_Expense>4</HH_Expense>
+		<Income1_Type>P</Income1_Type>
+		<Income1_Desc>Red Cross</Income1_Desc>
+		<Income1_Amt>200</Income1_Amt>
+		<Income2_Type>P</Income2_Type>
+		<Income2_Desc>Government</Income2_Desc>
+		<Income2_Amt>100</Income2_Amt>
+		<prompt__1437801947497>~</prompt__1437801947497>
+	</data>
+</form>

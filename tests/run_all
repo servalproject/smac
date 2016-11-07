@@ -1,0 +1,7 @@
+#!/bin/csh -f
+
+foreach test ( *-* )
+  ./run_test $test
+end 
+cd logs
+ls -1

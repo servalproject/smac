@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<meta>
+		<email>potato</email>
+		<password>kartoffel</password>
+		<formid>27209</formid>
+		<lastsubmittime>2015-04-14 13:04:07</lastsubmittime>
+		<endrecordtime>2015-04-14 13:04:07</endrecordtime>
+		<startrecordtime>2015-04-14 13:03:58</startrecordtime>
+		<version>2.5</version>
+		<uuid>606044c5ae181046-1429005838074</uuid>
+		<geotag>
+			<longitude>36.8881873</longitude>
+			<latitude>-1.2142755</latitude>
+		</geotag>
+	</meta>
+	<data>
+		<prompt__1359549345113>~</prompt__1359549345113>
+		<Radio>2</Radio>
+		<score_one>2</score_one>
+		<score_two>2</score_two>
+		<score_three>false</score_three>
+		<prompt__1359549443639>~</prompt__1359549443639>
+	</data>
+</form>

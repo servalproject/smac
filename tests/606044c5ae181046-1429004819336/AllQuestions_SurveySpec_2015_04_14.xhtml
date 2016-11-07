@@ -1,0 +1,94 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+     <head>
+          <meta>
+               <userid/>
+               <deviceid/>
+               <timestartrecorded/>
+               <timeendrecorded/>
+          </meta>
+          <title>AllQuestions</title>
+          <xf:model dd:formid="1000183" dd:geotag="off" id="AllQuestions">
+               <xf:instance>
+                    <data>
+                         <Text/>
+                         <integer/>
+                         <Decimal/>
+                         <Dropdown/>
+                         <radio_button/>
+                         <checkbox/>
+                         <date/>
+                         <Gps_question/>
+                    </data>
+               </xf:instance>
+               <bind id="Text" nodeset="/data/Text" type="xsd:string"/>
+               <bind id="integer" nodeset="/data/integer" type="xsd:integer"/>
+               <bind id="Decimal" nodeset="/data/Decimal" type="xsd:decimal"/>
+               <bind id="Dropdown" nodeset="/data/Dropdown" type="xsd:dropdown"/>
+               <bind id="radio_button" nodeset="/data/radio_button" type="xsd:radio"/>
+               <bind id="checkbox" nodeset="/data/checkbox" type="xsd:checkbox"/>
+               <bind id="date" nodeset="/data/date" type="xsd:date"/>
+               <bind id="Gps_question" nodeset="/data/Gps_question" type="jr:geopoint"/>
+          </xf:model>
+     </head>
+     <body>
+          <xf:input bind="Text">
+               <xf:label>Text</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="integer">
+               <xf:label>integer</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Decimal">
+               <xf:label>Decimal</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:select1 bind="Dropdown">
+               <xf:label>Dropdown</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>option 1</xf:label>
+                    <xf:value>option_1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>option 2</xf:label>
+                    <xf:value>option_2</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select1 bind="radio_button">
+               <xf:label>radio button</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>option 1</xf:label>
+                    <xf:value>option_1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>option 2</xf:label>
+                    <xf:value>option_2</xf:value>
+               </xf:item>
+          </xf:select1>
+          <xf:select bind="checkbox">
+               <xf:label>checkbox</xf:label>
+               <hint/>
+               <xf:item>
+                    <xf:label>option 1</xf:label>
+                    <xf:value>option_1</xf:value>
+               </xf:item>
+               <xf:item>
+                    <xf:label>option 2</xf:label>
+                    <xf:value>option_2</xf:value>
+               </xf:item>
+          </xf:select>
+          <xf:input bind="date">
+               <xf:label>date</xf:label>
+               <hint/>
+          </xf:input>
+          <xf:input bind="Gps_question">
+               <xf:label>Gps Question</xf:label>
+               <hint/>
+          </xf:input>
+     </body>
+</html>

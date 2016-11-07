@@ -1,0 +1,79 @@
+#!/bin/csh
+
+if ( "x$1" == "x" ) then
+  echo "usage: $0 <directory containing a single Magpi form and record>"
+  exit 3
+endif
+
+# Strip / from end of directory name if present
+set uuid=`echo $1 | sed 's,/$,,'`
+
+# Clean up files from previous runs
+rm ${uuid}/*.{recipe,template,stripped,sd} ${uuid}/*/*.*
+rmdir `find ${uuid}/* -type d`
+
+# Create recipe file
+cd $uuid
+ln -s ../stats.dat
+../../smac recipe xhcreate *.xhtml
+rm stats.dat
+cd ..
+
+# Strip
+../smac recipe strip ${uuid}/*.xml ${uuid}/${uuid}.stripped
+
+# Compress striped to SD
+../smac recipe compress ${uuid} ${uuid}/${uuid}.stripped ${uuid}/${uuid}.sd
+
+# Decompress SD to stripped
+../smac recipe decompress ${uuid} ${uuid}/${uuid}.sd ${uuid}
+
+# Build new xml from reconstituted stripped file and template
+
+# Compare input and output files 
+cd ${uuid}
+
+set striperror=0
+set xmlerror=0
+set sderror=0
+set stripdiffs=NA
+set xmldiffs=NA
+
+if ( ! -e ${uuid}.sd ) then
+  set sderror=1
+endif
+
+# Check if we have output stripped and sd files
+set strippedcount=`find . -name "*.stripped" | wc -l`
+set xmlcount=`find . -name "*.xml" | wc -l`
+
+if ( $strippedcount != 2 ) then
+  set striperror=1
+else
+  set stripfiles=`find . -name "*.stripped"`
+  set stripdiffs=`diff -w $stripfiles | wc -l`
+endif
+if ( $xmlcount != 2 ) then
+  set xmlerror=1
+else
+  set xmlfiles=`find . -name "*.xml"`
+  set xmldiffs=`diff -w $xmlfiles | wc -l`
+endif
+
+if ( $striperror > 0 || $xmlerror > 0 || $sderror > 0 ) then
+  set result="FAIL(transform)"
+else
+  if ( $xmldiffs > 0 ) then
+    set result="FAIL(xmldiff)"
+  else
+    set result=PASS
+  endif
+endif
+
+cd ..
+set shortresult=`echo $result | cut -f1 -d\(`
+echo ${result}:${uuid}:${striperror}:${sderror}:${xmlerror}:${stripdiffs}:${xmldiffs} > logs/${uuid}.${shortresult}
+
+# Leave output files for later examination.
+#rm ${uuid}/*.{recipe,template,stripped,sd} ${uuid}/*/*.*
+#rmdir `find ${uuid}/* -type d`
