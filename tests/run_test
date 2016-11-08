@@ -58,15 +58,15 @@ if ( $xmlcount != 2 ) then
   set xmlerror=1
 else
   set xmlfiles=`find . -name "*.xml"`
-  set xmldiffs=`diff -w $xmlfiles | wc -l`
   # Ignore empty fields on one side
   diff -w $xmlfiles | egrep -v ">~<" > xml.diff
+  set xmldiffs=`cat xml.diff | wc -l`
 endif
 
 if ( $striperror > 0 || $xmlerror > 0 || $sderror > 0 ) then
   set result="FAIL(transform)"
 else
-  if ( $xmldiffs > 0 ) then
+  if ( $xmldiffs > 1 ) then
     set result="FAIL(xmldiff)"
   else
     set result=PASS
@@ -74,8 +74,10 @@ else
 endif
 
 cd ..
-foreach f ( logs/${uuid}.* )
-  rm $f
+foreach f ( logs/${uuid}.{PASS,FAIL} )
+  if ( -e $f ) then
+    rm $f
+  endif
 end
 set shortresult=`echo $result | cut -f1 -d\(`
 echo ${result}:${uuid}:${striperror}:${sderror}:${xmlerror}:${stripdiffs}:${xmldiffs} > logs/${uuid}.${shortresult}
