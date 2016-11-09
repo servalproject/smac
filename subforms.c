@@ -20,8 +20,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <unistd.h>
 #include <strings.h>
-#include<sys/types.h>
-#include<sys/time.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <assert.h>
 
 #include "charset.h"
 #include "visualise.h"
@@ -45,6 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 int record_free(struct record *r)
 {
+  printf("record_free(%p)\n",r);
   if (!r) return -1;
   for(int i=0;i<r->field_count;i++)
     {
@@ -60,7 +62,9 @@ int record_free(struct record *r)
 
 struct record *parse_stripped_with_subforms(char *in,int in_len)
 {
-  struct record *record=calloc(sizeof(record),1);
+  struct record *record=calloc(sizeof(struct record),1);
+  assert(record);
+  printf("record is %p\n",record);
   struct record *current_record=record;
   int i;
   char line[1024];
@@ -84,18 +88,26 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	  return NULL;
 	}
 	
-	current_record->fields[record->field_count].subrecord=calloc(sizeof(struct record),1);
-	current_record->fields[record->field_count].subrecord->parent=current_record;
-	current_record->field_count++;
-	current_record=current_record->fields[record->field_count-1].subrecord;
+	{
+	  struct record *sub_record=calloc(sizeof(struct record),1);
+	  assert(sub_record);
+	  sub_record->parent=current_record;
+
+	  current_record->fields[record->field_count].subrecord=sub_record;	
+	  current_record->field_count++;
+	  current_record=sub_record;
+	  printf("Nesting down to sub-record at %p\n",current_record);
+	}
       } else if (line[0]=='}') {
 	// End of sub-form
-	if (!current_record->fields[record->field_count].subrecord->parent) {
+	if (!current_record->parent) {
 	    snprintf(recipe_error,1024,"line:%d:} without matching {.\n",
 		     line_number);
 	  record_free(record);
 	  return NULL;
 	}
+	printf("Popping up to parent record at %p\n",current_record->parent);
+
 	// Find the question field name, so that we can promote it to our caller
 	char *question=NULL;
 	for(i=0;i<current_record->field_count;i++) {
@@ -107,8 +119,8 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	if (!question) {
 	    snprintf(recipe_error,1024,"line:%d:No 'question' value in sub-form.\n",
 		     line_number);
-	  record_free(record);
-	  return NULL;
+	    record_free(record);
+	    return NULL;
 	}
 	
 	// Step back out to parent
