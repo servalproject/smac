@@ -30,6 +30,8 @@
 #define FIELDTYPE_MAGPITIMEDATE 12
 // Like _ENUM, but allows multiple choices to be selected
 #define FIELDTYPE_MULTISELECT 13
+// For Magpi sub-forms
+#define FIELDTYPE_SUBFORM 14
 
 #define MAX_ENUM_VALUES 1024
 struct field {
