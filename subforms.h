@@ -16,5 +16,6 @@ extern char recipe_error[1024];
 
 int record_free(struct record *r);
 struct record *parse_stripped_with_subforms(char *in,int in_len);
-int compress_record_with_subforms(struct recipe *recipe,struct record *r,
+int compress_record_with_subforms(char *recipe_dir,struct recipe *recipe,
+				  struct record *r,
 				  range_coder *c,stats_handle *h);

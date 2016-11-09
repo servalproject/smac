@@ -188,7 +188,8 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
   return record;
 }
 
-int compress_record_with_subforms(struct recipe *recipe,struct record *record,
+int compress_record_with_subforms(char *recipe_dir,struct recipe *recipe,
+				  struct record *record,
 				  range_coder *c,stats_handle *h)
 {
   int field,i;
@@ -198,33 +199,53 @@ int compress_record_with_subforms(struct recipe *recipe,struct record *record,
     
     if(!strncasecmp(recipe->fields[field].name,"subform",strlen("subform"))){
       printf("Spotted subform '%s' as field #%d\n",recipe->fields[field].name,field);
-    }
-    for (i=0;i<record->field_count;i++) {
-      if (record->fields[i].key)
-	if (!strcasecmp(record->fields[i].key,recipe->fields[field].name)) break;
-    }
-    if (i<record->field_count) {
-      // Field present
-      printf("Found field #%d ('%s')\n",field,recipe->fields[field].name);
-      LOGI("Found field #%d ('%s', value '%s')\n",
-	   field,recipe->fields[field].name,record->fields[i].key);
-      // Record that the field is present.
-      range_encode_equiprobable(c,2,1);
-      // Now, based on type of field, encode it.
-      if (recipe_encode_field(recipe,h,c,field,record->fields[i].value))
-	{
-	  range_coder_free(c);
-	  snprintf(recipe_error,1024,"Could not record value '%s' for field '%s' (type %d)\n",
-		   record->fields[i].key,recipe->fields[field].name,
-		   recipe->fields[field].type);
-	  return -1;
-	}
-      LOGI(" ... encoded value '%s'",record->fields[i].key);
+      char recipe_file[1024];
+      sprintf(recipe_file,"%s/%s.recipe",recipe_dir,
+	      &recipe->fields[field].name[strlen("subform/")]);
+      printf("Trying to load '%s' as a recipe\n",recipe_file);
+      struct recipe *recipe=recipe_read_from_file(recipe_file);
+      if (!recipe) {
+	fprintf(stderr,"Could not load recipe for sub form '%s': %s\n",
+		&recipe->fields[field].name[strlen("subform/")],recipe_error);
+	exit(-1);
+      }
+
+      /* We are now set to encode however many instances of this sub-form
+	 occur for this question.
+	 We use a binary decision before each.
+	 But first, we have to find the correct field in the record
+      */
+      
+      // compress_record_with_subforms(recipe,sub_record,c,h);
+
     } else {
-      // Field missing: record this fact and nothing else.
-      printf("No field #%d ('%s')\n",field,recipe->fields[field].name);
-      LOGI("No field #%d ('%s')\n",field,recipe->fields[field].name);
-      range_encode_equiprobable(c,2,0);
+      for (i=0;i<record->field_count;i++) {
+	if (record->fields[i].key)
+	  if (!strcasecmp(record->fields[i].key,recipe->fields[field].name)) break;
+      }
+      if (i<record->field_count) {
+	// Field present
+	printf("Found field #%d ('%s')\n",field,recipe->fields[field].name);
+	LOGI("Found field #%d ('%s', value '%s')\n",
+	     field,recipe->fields[field].name,record->fields[i].key);
+	// Record that the field is present.
+	range_encode_equiprobable(c,2,1);
+	// Now, based on type of field, encode it.
+	if (recipe_encode_field(recipe,h,c,field,record->fields[i].value))
+	  {
+	    range_coder_free(c);
+	    snprintf(recipe_error,1024,"Could not record value '%s' for field '%s' (type %d)\n",
+		     record->fields[i].key,recipe->fields[field].name,
+		     recipe->fields[field].type);
+	    return -1;
+	  }
+	LOGI(" ... encoded value '%s'",record->fields[i].key);
+      } else {
+	// Field missing: record this fact and nothing else.
+	printf("No field #%d ('%s')\n",field,recipe->fields[field].name);
+	LOGI("No field #%d ('%s')\n",field,recipe->fields[field].name);
+	range_encode_equiprobable(c,2,0);
+      }
     }
   }
 

@@ -1199,7 +1199,7 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
 	
 }
 
-int recipe_compress(stats_handle *h,struct recipe *recipe,
+int recipe_compress(stats_handle *h,char *recipe_dir,struct recipe *recipe,
 		    char *in,int in_len, unsigned char *out, int out_size)
 {
   /*
@@ -1251,7 +1251,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
     exit(-1);
   }
   
-  int out_count=compress_record_with_subforms(recipe,record,c,h);
+  int out_count=compress_record_with_subforms(recipe_dir,recipe,record,c,h);
   if (out_count<0) {
     fprintf(stderr,"Failed to compress stripped file: %s\n",recipe_error);
     exit(-1);
@@ -1339,7 +1339,7 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
   if (!recipe) return -1;
   
   unsigned char out_buffer[1024];
-  int r=recipe_compress(h,recipe,(char *)stripped,stripped_len,out_buffer,1024);
+  int r=recipe_compress(h,recipe_dir,recipe,(char *)stripped,stripped_len,out_buffer,1024);
 
   munmap(buffer,stat.st_size); close(fd);
 
