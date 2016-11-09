@@ -18,6 +18,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <stdbool.h>
+
 #ifdef ANDROID
 #include <jni.h>
 #include <android/log.h>
@@ -41,6 +43,9 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex
 int defragmentAndDecrypt(char *inputdir,char *outputdir,char *passphrase);
 int recipe_create(char *input);
 int xhtml_recipe_create(char *input);
+int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
+					  char *out, int out_size,
+		              char *recipe_name, range_coder *c, bool is_subform, bool is_record);
 
 #ifdef ANDROID
 time_t timegm(struct tm *tm)
@@ -1032,10 +1037,11 @@ struct recipe *recipe_find_recipe(char *recipe_dir,unsigned char *formhash)
   return NULL;
 }
 
-int recipe_decompress(stats_handle *h, char *recipe_dir,
-		      unsigned char *in,int in_len, char *out, int out_size,
-		      char *recipe_name)
+int recipe_decompress_with_hash(stats_handle *h, char *recipe_dir,
+	      unsigned char *in,int in_len, char *out, int out_size,
+	      char *recipe_name)
 {
+
   if (!recipe_dir) {
     snprintf(recipe_error,1024,"No recipe directory provided.\n");
     LOGI("%s",recipe_error);
@@ -1076,48 +1082,116 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
 
   struct recipe *recipe=recipe_find_recipe(recipe_dir,formhash);
 
-  if (!recipe) {
-    snprintf(recipe_error,1024,"No recipe provided.\n");
-    LOGI("%s:%d: %s",__FILE__,__LINE__,recipe_error);
-    range_coder_free(c);
-    return -1;
-  }
-  snprintf(recipe_name,1024,"%s",recipe->formname);
+  int r = recipe_decompress(h, recipe, recipe_dir, out, out_size, recipe_name, c, false, false);
+  return r;
+}
 
-  int written=0;
-  int field;
-  for(field=0;field<recipe->field_count;field++)
-    {
-      int field_present=range_decode_equiprobable(c,2);
-      printf("%sdecompressing value for '%s'\n",
-	     field_present?"":"not ",
-	     recipe->fields[field].name);
-      if (field_present) {
-	char value[1024];
-	int r=recipe_decode_field(recipe,h,c,field,value,1024);
-	if (r) {
+int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
+					  char *out, int out_size,
+		              char *recipe_name, range_coder *c, bool is_subform, bool is_record){
+
+	  if (!recipe) {
+	    snprintf(recipe_error,1024,"No recipe provided.\n");
+	    LOGI("%s:%d: %s",__FILE__,__LINE__,recipe_error);
+	    range_coder_free(c);
+	    return -1;
+	  }
+	  snprintf(recipe_name,1024,"%s",recipe->formname);
+
+	  int written=0;
+	  int field = 0;
+	  int limit_in_recipe;
+	  int r2;
+	  //If its a new record to write, we restart the loop into the recipe but we skip the meta fields (formid and question).
+	  if(!is_record) {
+		 field = 0;
+	  } else {
+		  field = 2;
+		  r2=snprintf(&out[written],out_size-written,"{\n");
+	  }
+
+	  //If we write a subform instance, we start with meta fields and there are only 2 meta fields for subforms (formid and question)
+	  if (is_subform && !is_record){
+		  limit_in_recipe = 2;
+	  } else {
+		  limit_in_recipe = recipe->field_count;
+	  }
+
+	  for(;field<limit_in_recipe;field++)
+	    {
+	      int field_present=range_decode_equiprobable(c,2);
+
+	      printf("%sdecompressing value for '%s' of type '%d'\n",
+		     field_present?"":"not ",
+		     recipe->fields[field].name,recipe->fields[field].type);
+
+	      	 char *underscore = strchr(recipe->fields[field].name, '/');
+
+	      	     //If we find the underscore in the name, it is a subform...
+	      	 	 char *subformID;
+	      	 if (underscore != NULL) {
+	      		subformID = strdup(underscore+1);
+	      	 }
+
+	      if (field_present && underscore == NULL) {
+		char value[1024];
+		int r=recipe_decode_field(recipe,h,c,field,value,1024);
+		if (r) {
+		  range_coder_free(c);
+		  return -1;
+		}
+		printf("  the value is '%s'\n",value);
+
+		r2=snprintf(&out[written],out_size-written,"%s=%s\n",
+				recipe->fields[field].name,value);
+		if (r2>0) written+=r2;
+	      }
+	      //The type is a subform
+	      else if (field_present && underscore != NULL) {
+
+	  		r2=snprintf(&out[written],out_size-written,"{\n");
+	  		if (r2>0) written+=r2;
+
+	    	  char recipe_path[1024];
+
+	    	  snprintf(recipe_path,1024,"%s/%s.%s",recipe_dir,subformID,"recipe");
+
+	    	  struct recipe *subform_recipe = recipe_read_from_file(recipe_path);
+
+	    	  recipe_decompress(h, subform_recipe, recipe_dir, out, out_size, recipe_name, c, true, false);
+
+		  		r2=snprintf(&out[written],out_size-written,"}\n");
+		  		if (r2>0) written+=r2;
+	      }
+	      else {
+		// Field not present.
+		// Magpi uses ~ to indicate an empty field, so insert.
+		// ODK Collect shouldn't care about the presence of the ~'s, so we
+		// will always insert them.
+		int r2=snprintf(&out[written],out_size-written,"%s=~\n",
+				recipe->fields[field].name);
+		if (r2>0) written+=r2;
+	      }
+	    }
+
+	  	  	if(is_subform&&is_record) {
+	  		r2=snprintf(&out[written],out_size-written,"}\n");
+	  	  	}
+	  	  	else if(is_subform) {
+	  	  		int other_record_to_write = range_decode_equiprobable(c,2);
+	  	  		printf("hey there");
+	  	  		if (other_record_to_write) {
+	  	  			//The coder detected that another record has to be written
+	  	  			//We have to reload the recipe
+	  	  			//Last argument is true because it's a record to write (=> skip meta fields)
+	  	  			recipe_decompress(h, recipe, recipe_dir, out, out_size, recipe_name, c, true, true);
+	  	  		}
+	  	  	}
+
 	  range_coder_free(c);
-	  return -1;
-	}
-	printf("  the value is '%s'\n",value);
-	
-	int r2=snprintf(&out[written],out_size-written,"%s=%s\n",
-			recipe->fields[field].name,value);
-	if (r2>0) written+=r2;
-      } else {
-	// Field not present.
-	// Magpi uses ~ to indicate an empty field, so insert.
-	// ODK Collect shouldn't care about the presence of the ~'s, so we
-	// will always insert them.
-	int r2=snprintf(&out[written],out_size-written,"%s=~\n",
-			recipe->fields[field].name);
-	if (r2>0) written+=r2;	
-      }
-    }
-  
-  range_coder_free(c);
 
-  return written;
+	  return written;
+	
 }
 
 int recipe_compress(stats_handle *h,struct recipe *recipe,
@@ -1126,11 +1200,11 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
   /*
     Eventually we want to support full skip logic, repeatable sections and so on.
     For now we will allow skip sections by indicating missing fields.
-    This approach lets us specify fields implictly by their order in the recipe
+    This approach lets us specify fields implicitly by their order in the recipe
     (NOT in the completed form).
     This entails parsing the completed form, and then iterating through the RECIPE
     and considering each field in turn.  A single bit per field will be used to
-    indicate whether it is present.  This can be optimised later.
+    indicate whether it is present.  This can be optimized later.
   */
 
   
@@ -1176,37 +1250,38 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
   char key[1024],value[1024];
 
   for(i=0;i<=in_len;i++) {
+    if (l>1000) { 
+      snprintf(recipe_error,1024,"line:%d:Data line too long.\n",line_number);
+      return -1; }
     if ((i==in_len)||(in[i]=='\n')||(in[i]=='\r')) {
       if (value_count>1000) {
 	snprintf(recipe_error,1024,"line:%d:Too many data lines (must be <=1000).\n",line_number);
 	return -1;
       }
       // Process key=value line
-      if (l>=1000) l=0; // ignore long lines
       line[l]=0; 
       if ((l>0)&&(line[0]!='#')) {
 	if (sscanf(line,"%[^=]=%[^\n]",key,value)==2) {
+	  printf("Found key ! Key = %s \n",key);
+	  printf("Found value ! Value = %s \n",value);
 	  keys[value_count]=strdup(key);
 	  values[value_count]=strdup(value);
 	  value_count++;
-	} else {
+	} else if (!strcmp(line,"{")) {
+		printf(" Open bracket ! \n");
+	} else if (!strcmp(line,"}")) {
+		printf(" Close bracket ! \n");
+	}
+	else {
 	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d): '%s'\n",
 		   line_number,__FILE__,__LINE__,line);	  
 	  return -1;
 	}
       }
-      line_number++; 
-      l=0;
+      line_number++; l=0;
     } else {
-      if (l<1000) { line[l++]=in[i]; }
-      else {
-	if (l==1000) {
-	  fprintf(stderr,"line:%d:Line too long -- ignoring (must be < 1000 characters).\n",line_number);	  
-	  LOGI("line:%d:Line too long -- ignoring (must be < 1000 characters).\n",line_number);
-	}
-	l++;
-      }
-    } 
+      line[l++]=in[i];
+    }
   }
   printf("Read %d data lines, %d values.\n",line_number,value_count);
   LOGI("Read %d data lines, %d values.\n",line_number,value_count);
@@ -1215,6 +1290,10 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 
   for(field=0;field<recipe->field_count;field++) {
     // look for this field in keys[] 
+
+	if(!strncasecmp(recipe->fields[field].name,"subform",strlen("subform"))){
+			//
+	}
     for (i=0;i<value_count;i++) {
       if (!strcasecmp(keys[i],recipe->fields[field].name)) break;
     }
@@ -1456,8 +1535,15 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   LOGI("About to call recipe_decompress");
   char recipe_name[1024]="";
   char out_buffer[1048576];
-  int r=recipe_decompress(h,recipe_dir,buffer,st.st_size,out_buffer,1048576,
-			  recipe_name);
+
+
+  int r=recipe_decompress_with_hash(h,recipe_dir,buffer,st.st_size,out_buffer,1048576,
+  			  recipe_name);
+
+//  Older way to call the decompress function
+//  int r=recipe_compress(h,recipe_dir,buffer,st.st_size,out_buffer,1048576,
+//  		  recipe_name);
+
   LOGI("Got back from recipe_decompress: r=%d, fd=%d, st.st_size=%d, buffer=%p",
        r,fd,(int)st.st_size,buffer);
 
@@ -1605,6 +1691,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       fprintf(stderr,"'smac recipe compress' requires recipe directory, input and output files.\n");
       return(-1);
     }
+    printf("Test-Dialog: About to compress the stripped data file: %s into: %s \n",argv[4],argv[5]);
     if (recipe_compress_file(h,argv[3],argv[4],argv[5])==-1) {
       fprintf(stderr,"%s",recipe_error);
       return(-1);
@@ -1636,9 +1723,10 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     return recipe_create(argv[3]);
   } else if (!strcasecmp(argv[2],"xhcreate")) {
     if (argc<=3) {
-      fprintf(stderr,"usage: smac recipe create <XHTML form> \n");
+      fprintf(stderr,"usage: smac recipe xhcreate <XHTML form> \n");
       return(-1);
-    }      
+    }
+    printf("Test-Dialog: About to XHCreate/Create recipe file(s) from the XHTML form %s \n",argv[3]);
     return xhtml_recipe_create(argv[3]);
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
@@ -1674,6 +1762,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       LOGI("Finished extracting files.  %d failures.\n",e);
       if (e) return 1; else return 0;
     } else {
+    	printf("Test-Dialog: About to decompress the succinct data (SD) file: %s into: %s \n",argv[4],argv[5]);
       if (recipe_decompress_file(h,argv[3],argv[4],argv[5])==-1) {
 	fprintf(stderr,"%s",recipe_error);
 	return(-1);
@@ -1688,6 +1777,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       fprintf(stderr,"usage: smac recipe strip <xml input> [stripped output].\n");
       exit(-1);
     }
+    printf("Test-Dialog: About to strip the XML record: %s into the following file: %s \n",argv[3],argv[4]);
     xml_len=recipe_load_file(argv[3],xml_data,sizeof(xml_data));
     int stripped_len=xml2stripped(NULL,xml_data,xml_len,stripped,sizeof(stripped));
     if (stripped_len<0) {
@@ -1725,6 +1815,7 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
       fprintf(stderr,"Failed to read '%s'\n",argv[4]);
       exit(-1);
     }
+    printf("Test-Dialog: About to rexml the stripped file: %s into the following file: %s \n",argv[3],argv[5]);
     int xml_len=stripped2xml(stripped,stripped_len,template,template_len,
 			     xml,sizeof(xml));
     if (xml_len<0) {
