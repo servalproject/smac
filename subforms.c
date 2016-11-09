@@ -60,6 +60,26 @@ int record_free(struct record *r)
   return 0;
 }
 
+#define DUMPINDENT printf("%s",&"                    "[20-offset])
+void dump_record_r(struct record *r,int offset)
+{
+  if (!r) return;
+
+  DUMPINDENT; printf("Record @ %p:\n",r);
+  for(int i=0;i<r->field_count;i++) {
+    if (r->fields[i].key) {
+      DUMPINDENT; printf("  [%s]=[%s]\n",r->fields[i].key,r->fields[i].value);
+    } else {
+      dump_record_r(r->fields[i].subrecord,offset+2);
+    }
+  }
+}
+
+void dump_record(struct record *r)
+{
+  dump_record_r(r,0);
+}
+
 struct record *parse_stripped_with_subforms(char *in,int in_len)
 {
   struct record *record=calloc(sizeof(struct record),1);
@@ -135,9 +155,6 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	    return NULL;
 	}
 	
-	// Update key name for sub-form we have exited to match the question name
-	current_record->fields[current_record->field_count-1].key=strdup(question);
-
 	// Step back up to parent
 	current_record=current_record->parent;
 	
@@ -185,6 +202,8 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
   printf("Read %d data lines, %d values.\n",line_number,record->field_count);
   LOGI("Read %d data lines, %d values.\n",line_number,record->field_count);
 
+  // dump_record(record);
+  
   return record;
 }
 
@@ -235,9 +254,14 @@ int compress_record_with_subforms(char *recipe_dir,struct recipe *recipe,
 	    for(int j=0;j<s->field_count;j++) {	      
 	      if (s->fields[j].subrecord) {
 		printf("  Found sub-record in field #%d\n",j);
+		struct record *ss=s->fields[j].subrecord;
+		for(int k=0;k<ss->field_count;k++)
+		  printf("    [%s]=[%s]\n",
+			 ss->fields[k].key?ss->fields[k].key:"NULL",
+			 ss->fields[k].value?ss->fields[k].value:"NULL");
 		range_encode_equiprobable(c,2,1);
 		compress_record_with_subforms(recipe_dir,recipe,
-					      s->fields[j].subrecord,c,h);
+					      ss,c,h);
 	      }
 	    }
 	  }
