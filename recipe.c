@@ -1244,7 +1244,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 
   struct record *record=parse_stripped_with_subforms(in,in_len);
   if (!record) {
-    fprintf(stderr,"Failed to parse stripped file.\n");
+    fprintf(stderr,"Failed to parse stripped file: %s\n",recipe_error);
     exit(-1);
   }
   
