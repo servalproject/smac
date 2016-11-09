@@ -116,6 +116,16 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	    question=current_record->fields[i].value;
 	  }
 	}
+	if ((!question)&&(current_record->parent)) {
+	  // question field in typically in the surrounding enclosure
+	  for(i=0;i<current_record->parent->field_count;i++) {
+	    if (!strcmp("question",current_record->parent->fields[i].key)) {
+	      // Found it
+	      question=current_record->parent->fields[i].value;
+	    }
+	}
+	  
+	}
 	if (!question) {
 	    snprintf(recipe_error,1024,"line:%d:No 'question' value in sub-form.\n",
 		     line_number);
@@ -139,7 +149,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	  return NULL;
 	  }	
 	  current_record->fields[current_record->field_count].key=strdup(key);
-	  current_record->fields[current_record->field_count].key=strdup(value);
+	  current_record->fields[current_record->field_count].value=strdup(value);
 	  current_record->field_count++;
 	} else {
 	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d): '%s'\n",
