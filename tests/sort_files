@@ -1,8 +1,8 @@
 #!/bin/csh -f
 
 foreach record ( *.xml )
-  set uuid=`grep uuid ${record} | cut -f2 -d\> | cut -f1 -d \< | sed 's/uuid://g'`
-  set formid=`grep formid ${record} | cut -f2 -d\> | cut -f1 -d \< | sed 's/formid://g'`
+  set uuid=`grep uuid ${record} | cut -f2 -d\> | cut -f1 -d \< | sed 's/uuid://g' | head -1`
+  set formid=`grep formid ${record} | cut -f2 -d\> | cut -f1 -d \< | sed 's/formid://g' | head -1`
   if ( "x$formid" != "x" ) then
     set formfile=`grep -l "dd:formid=.${formid}" *.xhtml | cut -f1 -d: | head -1`
   else

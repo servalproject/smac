@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form>
+	<meta>
+		<password>abcdef</password>
+		<email>reda.benkirane@hotmail.fr</email>
+		<formid>9214104911</formid>
+		<lastsubmittime>2016-05-12 00:04:08</lastsubmittime>
+		<endrecordtime>2016-05-11 23:54:38</endrecordtime>
+		<startrecordtime>2016-05-11 23:53:43</startrecordtime>
+		<version>2.5</version>
+		<uuid>9aa34bbb8065107-1462976623262</uuid>
+		<geotag>
+			<longitude>138.5738577</longitude>
+			<latitude>-35.0214552</latitude>
+		</geotag>
+	</meta>
+	<data>
+		<What_is_your_favorite_number>7</What_is_your_favorite_number>
+		<dd:subform xmlns:dd="http://datadyne.org/javarosa">
+			<meta>
+				<formid>9214104912</formid>
+				<question>foods</question>
+			</meta>
+			<data>
+				<uuid>1462976682113-9214104912</uuid>
+				<What_is_a_food_that_you_do_not>Oyster</What_is_a_food_that_you_do_not>
+			</data>
+			<data>
+				<uuid>1462976881346-9214104912</uuid>
+				<What_is_a_food_that_you_do_not>dates</What_is_a_food_that_you_do_not>
+			</data>
+			<data>
+				<uuid>1462976728716-9214104912</uuid>
+				<What_is_a_food_that_you_do_not>Coco</What_is_a_food_that_you_do_not>
+			</data>
+		</dd:subform>
+		<Type_something>luck</Type_something>
+	</data>
+</form>

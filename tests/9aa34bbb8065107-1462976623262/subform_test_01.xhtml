@@ -1,0 +1,45 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+     xmlns:dd="http://datadyne.org/javarosa"
+     xmlns:jr="http://openrosa.org/javarosa"
+     xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<head>
+		<meta>
+               		<userid/>
+           		<deviceid/>
+               		<timestartrecorded/>
+               		<timeendrecorded/>
+          	</meta>
+          	<title>subform_test_01</title>
+          	<xf:model dd:formid="9214104911" dd:geotag="on" id="subform_test_01">
+                	<xf:instance>
+                    		<data>
+					<What_is_your_favorite_number/>
+					<foods dd:subformid = "9214104912">
+						<What_is_a_food_that_you_do_not/>
+					</foods>
+					<Type_something/>
+				</data>
+			</xf:instance>
+			<bind id="What_is_your_favorite_number" nodeset="/data/What_is_your_favorite_number" required="true()" type="xsd:integer"/>
+			<bind id="foods" nodeset="/data/foods" type="xsd:subform"/>
+			<bind id="What_is_a_food_that_you_do_not" nodeset="/data/foods/What_is_a_food_that_you_do_not" required="true()" type="xsd:string"/>
+			<bind id="Type_something" nodeset="/data/Type_something" required="true()" type="xsd:string"/>
+		</xf:model>
+	</head>
+	<body>
+		<xf:input bind="What_is_your_favorite_number">
+                        <xf:label>Type your favorite number</xf:label>
+                        <hint/>
+                </xf:input>
+		<xf:subform bind="foods" keyword="foods" subformid="9214104912" subformname="foods_subform">
+			<xf:input bind="What_is_a_food_that_you_do_not">
+                		<xf:label>Type a food that you do not eat</xf:label>
+                		<hint/>
+                	</xf:input>
+		</xf:subform>
+		<xf:input bind="Type_something">
+ 	               	<xf:label>Type something</xf:label>
+                       	<hint/>
+                </xf:input>
+	</body>
+</html>
