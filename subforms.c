@@ -200,13 +200,13 @@ int compress_record_with_subforms(char *recipe_dir,struct recipe *recipe,
     if(!strncasecmp(recipe->fields[field].name,"subform",strlen("subform"))){
       printf("Spotted subform '%s' as field #%d\n",recipe->fields[field].name,field);
       char recipe_file[1024];
-      sprintf(recipe_file,"%s/%s.recipe",recipe_dir,
-	      &recipe->fields[field].name[strlen("subform/")]);
+      char *formid=&recipe->fields[field].name[strlen("subform/")];
+      sprintf(recipe_file,"%s/%s.recipe",recipe_dir,formid);
       printf("Trying to load '%s' as a recipe\n",recipe_file);
       struct recipe *recipe=recipe_read_from_file(recipe_file);
       if (!recipe) {
 	fprintf(stderr,"Could not load recipe for sub form '%s': %s\n",
-		&recipe->fields[field].name[strlen("subform/")],recipe_error);
+		formid,recipe_error);
 	exit(-1);
       }
 
@@ -215,8 +215,34 @@ int compress_record_with_subforms(char *recipe_dir,struct recipe *recipe,
 	 We use a binary decision before each.
 	 But first, we have to find the correct field in the record
       */
-      
-      // compress_record_with_subforms(recipe,sub_record,c,h);
+      for (i=0;i<record->field_count;i++)
+	if (record->fields[i].subrecord) {
+	  struct record *s=record->fields[i].subrecord;
+	  // Here is a sub-record enclosure. Is it the right one?
+	  // Look for a formid= key pair, and check the value
+	  int found=0;
+	  for(int j=0;j<s->field_count;j++)
+	    if (s->fields[j].key)
+	      if (!strcasecmp(s->fields[j].key,"formid"))
+		if (!strcasecmp(s->fields[j].value,formid))
+		  {
+		    // Bingo, we have found it.
+		    found=1;
+		  }
+	  if (found) {
+	    printf("Found enclosure for this sub-form\n");
+	    for(int j=0;j<s->field_count;j++) {
+	      if (s->fields[j].subrecord) {
+		printf("  Found sub-record in field #%d\n",j);
+		range_encode_equiprobable(c,2,1);
+		compress_record_with_subforms(recipe_dir,recipe,
+					      s->fields[j].subrecord,c,h);
+	      }
+	    }
+	  }
+	}
+      // Mark end of list of instances of sub-records for this question
+      range_encode_equiprobable(c,2,0);
 
     } else {
       for (i=0;i<record->field_count;i++) {
