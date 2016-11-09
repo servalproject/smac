@@ -77,6 +77,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
       // Process key=value line
       if (l>=1000) l=0; // ignore long lines
       line[l]=0;
+      printf(">> processing line @ %d '%s'\n",i,line);
       if (line[0]=='{') {
 	// Start of sub-form
 	// Move current record down into a new sub-record at this point
@@ -110,21 +111,22 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 
 	// Find the question field name, so that we can promote it to our caller
 	char *question=NULL;
-	for(i=0;i<current_record->field_count;i++) {
-	  if (!strcmp("question",current_record->fields[i].key)) {
-	    // Found it
-	    question=current_record->fields[i].value;
-	  }
+	for(int i=0;i<current_record->field_count;i++) {
+	  if (current_record->fields[i].key)
+	    if (!strcmp("question",current_record->fields[i].key)) {
+	      // Found it
+	      question=current_record->fields[i].value;
+	    }
 	}
 	if ((!question)&&(current_record->parent)) {
 	  // question field in typically in the surrounding enclosure
-	  for(i=0;i<current_record->parent->field_count;i++) {
-	    if (!strcmp("question",current_record->parent->fields[i].key)) {
-	      // Found it
-	      question=current_record->parent->fields[i].value;
-	    }
-	}
-	  
+	  for(int i=0;i<current_record->parent->field_count;i++) {
+	    if (current_record->parent->fields[i].key)
+	      if (!strcmp("question",current_record->parent->fields[i].key)) {
+		// Found it
+		question=current_record->parent->fields[i].value;
+	      }
+	  }	  
 	}
 	if (!question) {
 	    snprintf(recipe_error,1024,"line:%d:No 'question' value in sub-form.\n",
@@ -133,12 +135,11 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	    return NULL;
 	}
 	
-	// Step back out to parent
-	current_record->fields[record->field_count].subrecord
-	  =current_record->fields[record->field_count].subrecord->parent;
-
 	// Update key name for sub-form we have exited to match the question name
-	current_record->fields[record->field_count-1].key=strdup(question);
+	current_record->fields[current_record->field_count-1].key=strdup(question);
+
+	// Step back up to parent
+	current_record=current_record->parent;
 	
       } else if ((l>0)&&(line[0]!='#')) {
 	if (sscanf(line,"%[^=]=%[^\n]",key,value)==2) {
@@ -172,7 +173,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
     } 
   }
 
-  if (current_record->fields[record->field_count].subrecord->parent) {
+  if (current_record->parent) {
     snprintf(recipe_error,1024,"line:%d:End of input, but } expected.\n",
 	     line_number);
     record_free(record);
@@ -198,7 +199,8 @@ int compress_record_with_subforms(struct recipe *recipe,struct record *record,
       printf("Spotted subform '%s' as field #%d\n",recipe->fields[field].name,field);
     }
     for (i=0;i<record->field_count;i++) {
-      if (!strcasecmp(record->fields[i].key,recipe->fields[field].name)) break;
+      if (record->fields[i].key)
+	if (!strcasecmp(record->fields[i].key,recipe->fields[field].name)) break;
     }
     if (i<record->field_count) {
       // Field present
