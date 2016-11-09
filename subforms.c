@@ -94,7 +94,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	  assert(sub_record);
 	  sub_record->parent=current_record;
 
-	  current_record->fields[record->field_count].subrecord=sub_record;	
+	  current_record->fields[current_record->field_count].subrecord=sub_record;	
 	  current_record->field_count++;
 	  current_record=sub_record;
 	  printf("Nesting down to sub-record at %p\n",current_record);
@@ -228,10 +228,11 @@ int compress_record_with_subforms(char *recipe_dir,struct recipe *recipe,
 		  {
 		    // Bingo, we have found it.
 		    found=1;
+		    break;
 		  }
 	  if (found) {
-	    printf("Found enclosure for this sub-form\n");
-	    for(int j=0;j<s->field_count;j++) {
+	    printf("Found enclosure for this sub-form in %p\n",s);
+	    for(int j=0;j<s->field_count;j++) {	      
 	      if (s->fields[j].subrecord) {
 		printf("  Found sub-record in field #%d\n",j);
 		range_encode_equiprobable(c,2,1);
