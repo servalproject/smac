@@ -156,6 +156,9 @@ int recipe_form_hash(char *recipe_file,unsigned char *formhash,
   recipe_name[j]=0;
   
   MD5_Init(&md5);
+  // Include version of SMAC in hash, so that we never accidentally
+  // mis-interpret things.
+  MD5_Update(&md5,"SMAC Binary Format v2",strlen("SMAC Binary Format v2"));
   LOGI("Calculating recipe file formhash from '%s' (%d chars)\n",
        recipe_name,(int)strlen(recipe_name));
   MD5_Update(&md5,recipe_name,strlen(recipe_name));
@@ -1250,7 +1253,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
   
   int out_count=compress_record_with_subforms(recipe,record,c,h);
   if (out_count<0) {
-    fprintf(stderr,"Failed to compress stripped file.\n");
+    fprintf(stderr,"Failed to compress stripped file: %s\n",recipe_error);
     exit(-1);
   }
 
