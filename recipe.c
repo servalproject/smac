@@ -90,6 +90,7 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"magpiuuid")) return FIELDTYPE_MAGPIUUID;
   if (!strcasecmp(name,"enum")) return FIELDTYPE_ENUM;
   if (!strcasecmp(name,"multi")) return FIELDTYPE_MULTISELECT;
+  if (!strcasecmp(name,"subform")) return FIELDTYPE_SUBFORM;
   
   return -1;
 }
@@ -1268,9 +1269,9 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 	  values[value_count]=strdup(value);
 	  value_count++;
 	} else if (!strcmp(line,"{")) {
-		printf(" Open bracket ! \n");
+	  printf(" Open bracket ! \n");
 	} else if (!strcmp(line,"}")) {
-		printf(" Close bracket ! \n");
+	  printf(" Close bracket ! \n");
 	}
 	else {
 	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d): '%s'\n",
@@ -1392,7 +1393,7 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
   struct recipe *recipe=recipe_read_from_file(recipe_file);
   // A form can be given in place of the recipe directory
   if (!recipe) {
-    printf("That failed due it: %s\n",recipe_error);
+    printf("That failed due to: %s\n",recipe_error);
     printf("Trying to load '%s' as a form specification to convert to recipe\n",
 	   recipe_dir);
     char form_spec_text[1048576];
