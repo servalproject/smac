@@ -148,7 +148,8 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 		     line_number,MAX_FIELDS);
 	  record_free(record);
 	  return NULL;
-	  }	
+	  }
+	  printf("[%s]=[%s]\n",key,value);
 	  current_record->fields[current_record->field_count].key=strdup(key);
 	  current_record->fields[current_record->field_count].value=strdup(value);
 	  current_record->field_count++;
@@ -210,7 +211,7 @@ int compress_record_with_subforms(struct recipe *recipe,struct record *record,
       // Record that the field is present.
       range_encode_equiprobable(c,2,1);
       // Now, based on type of field, encode it.
-      if (recipe_encode_field(recipe,h,c,field,record->fields[i].key))
+      if (recipe_encode_field(recipe,h,c,field,record->fields[i].value))
 	{
 	  range_coder_free(c);
 	  snprintf(recipe_error,1024,"Could not record value '%s' for field '%s' (type %d)\n",
