@@ -2,7 +2,7 @@
 <form>
 	<meta>
 		<accesstoken>089837662d664f8d9267fd8029f3b92c</accesstoken>
-		<userid>gardners</<userid>
+		<userid>gardners</userid>
 		<formid>9214087882</formid>
 		<lastsubmittime>2015-08-25 12:33:33</lastsubmittime>
 		<endrecordtime>2015-08-25 12:32:52</endrecordtime>
@@ -10,8 +10,8 @@
 		<version>2.5</version>
 		<uuid>d44f625e9f23ac37-1440471758895</uuid>
 		<geotag>
-			<longitude>138.5717223</longitude>
-			<latitude>-35.0083887</latitude>
+			<longitude>138.571</longitude>
+			<latitude>-35.008</latitude>
 		</geotag>
 	</meta>
 	<data>

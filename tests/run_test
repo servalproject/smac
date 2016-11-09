@@ -51,7 +51,7 @@ if ( $strippedcount != 2 ) then
   set striperror=1
 else
   set stripfiles=`find . -name "*.stripped"`
-  diff -w $stripfiles | egrep -v '=$|=~$' > strip.diff
+  diff -Ebw $stripfiles | egrep -v '=$|=~$' > strip.diff
   set stripdiffs=`cat strip.diff | wc -l`
 endif
 if ( $xmlcount != 2 ) then
@@ -59,7 +59,7 @@ if ( $xmlcount != 2 ) then
 else
   set xmlfiles=`find . -name "*.xml"`
   # Ignore empty fields on one side
-  diff -w $xmlfiles | egrep -v ">~<" > xml.diff
+  diff -Ebw $xmlfiles | egrep -v ">~<" > xml.diff
   set xmldiffs=`cat xml.diff | wc -l`
 endif
 
