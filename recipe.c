@@ -38,6 +38,7 @@
 #include "smac.h"
 #include "recipe.h"
 #include "md5.h"
+#include "subforms.h"
 
 int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex);
 int defragmentAndDecrypt(char *inputdir,char *outputdir,char *passphrase);
@@ -1241,87 +1242,18 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
   for(i=0;i<sizeof(recipe->formhash);i++)
     range_encode_equiprobable(c,256,recipe->formhash[i]);
 
-  char *keys[1024];
-  char *values[1024];
-  int value_count=0;
-
-  int l=0;
-  int line_number=1;
-  char line[1024];
-  char key[1024],value[1024];
-
-  for(i=0;i<=in_len;i++) {
-    if (l>1000) { 
-      snprintf(recipe_error,1024,"line:%d:Data line too long.\n",line_number);
-      return -1; }
-    if ((i==in_len)||(in[i]=='\n')||(in[i]=='\r')) {
-      if (value_count>1000) {
-	snprintf(recipe_error,1024,"line:%d:Too many data lines (must be <=1000).\n",line_number);
-	return -1;
-      }
-      // Process key=value line
-      line[l]=0; 
-      if ((l>0)&&(line[0]!='#')) {
-	if (sscanf(line,"%[^=]=%[^\n]",key,value)==2) {
-	  printf("Found key ! Key = %s \n",key);
-	  printf("Found value ! Value = %s \n",value);
-	  keys[value_count]=strdup(key);
-	  values[value_count]=strdup(value);
-	  value_count++;
-	} else if (!strcmp(line,"{")) {
-	  printf(" Open bracket ! \n");
-	} else if (!strcmp(line,"}")) {
-	  printf(" Close bracket ! \n");
-	}
-	else {
-	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d): '%s'\n",
-		   line_number,__FILE__,__LINE__,line);	  
-	  return -1;
-	}
-      }
-      line_number++; l=0;
-    } else {
-      line[l++]=in[i];
-    }
+  struct record *record=parse_stripped_with_subforms(in,in_len);
+  if (!record) {
+    fprintf(stderr,"Failed to parse stripped file.\n");
+    exit(-1);
   }
-  printf("Read %d data lines, %d values.\n",line_number,value_count);
-  LOGI("Read %d data lines, %d values.\n",line_number,value_count);
   
-  int field;
-
-  for(field=0;field<recipe->field_count;field++) {
-    // look for this field in keys[] 
-
-	if(!strncasecmp(recipe->fields[field].name,"subform",strlen("subform"))){
-			//
-	}
-    for (i=0;i<value_count;i++) {
-      if (!strcasecmp(keys[i],recipe->fields[field].name)) break;
-    }
-    if (i<value_count) {
-      // Field present
-      printf("Found field #%d ('%s')\n",field,recipe->fields[field].name);
-      LOGI("Found field #%d ('%s', value '%s')\n",
-	   field,recipe->fields[field].name,values[i]);
-      // Record that the field is present.
-      range_encode_equiprobable(c,2,1);
-      // Now, based on type of field, encode it.
-      if (recipe_encode_field(recipe,h,c,field,values[i]))
-	{
-	  range_coder_free(c);
-	  snprintf(recipe_error,1024,"Could not record value '%s' for field '%s' (type %d)\n",
-		   values[i],recipe->fields[field].name,
-		   recipe->fields[field].type);
-	  return -1;
-	}
-      LOGI(" ... encoded value '%s'",values[i]);
-    } else {
-      // Field missing: record this fact and nothing else.
-      printf("No field #%d ('%s')\n",field,recipe->fields[field].name);
-      LOGI("No field #%d ('%s')\n",field,recipe->fields[field].name);
-      range_encode_equiprobable(c,2,0);
-    }
+  int out_count=compress_record_with_subforms(recipe,record,c,h);
+  if (out_count<0) {
+    fprintf(stderr,"Failed to compress stripped file.\n");
+    exit(-1);
   }
+
 
   // Get result and store it, unless it is too big for the output buffer
   range_conclude(c);

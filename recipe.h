@@ -67,3 +67,5 @@ int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 int xmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 		char *recipetext,int *recipeLen,
 		char *templatetext,int *templateLen);
+int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *c,
+			int fieldnumber,char *value);
