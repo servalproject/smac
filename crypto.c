@@ -27,6 +27,8 @@ struct fragment_set {
 };
 
 int crypto_scalarmult_curve25519_ref_base(unsigned char *q,const unsigned char *n);
+int crypto_box_public_from_private(unsigned char *pk,
+                                   unsigned char *sk);
 
 void randombytes(unsigned char *buf,unsigned long long len)
 {
