@@ -459,12 +459,19 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     // time is 32-bit seconds since 1970.
     // Format as yyyy-mm-dd hh:mm:ss
     {
-      time_t t=range_decode_equiprobable(c,0x7fffffff);
+      // time_t t=range_decode_equiprobable(c,0x7fffffff);
       struct tm tm;
       bzero(&tm,sizeof(tm));
-      gmtime_r(&t,&tm);
+      
+      tm.tm_year=range_decode_equiprobable(c,10000);
+      tm.tm_mon=range_decode_equiprobable(c,12);
+      tm.tm_mday=range_decode_equiprobable(c,31);
+      tm.tm_hour=range_decode_equiprobable(c,25);
+      tm.tm_min=range_decode_equiprobable(c,60);
+      tm.tm_sec=range_decode_equiprobable(c,62);
+      
       sprintf(value,"%04d-%02d-%02d %02d:%02d:%02d",
-	      tm.tm_year+1900,tm.tm_mon+1,tm.tm_mday,
+	      tm.tm_year,tm.tm_mon+1,tm.tm_mday,
 	      tm.tm_hour,tm.tm_min,tm.tm_sec);
       return 0;
     }
@@ -678,13 +685,23 @@ int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *
 	printf("r=%d\n",r);
 	return -1;
       }
-      // tm.tm_gmtoff=tzm*60+tzh*3600;
-      tm.tm_year-=1900;
-      tm.tm_mon-=1;
-      time_t t = timegm(&tm);
-      normalised_value=t;
-      return range_encode_equiprobable(c,0x7fffffff,normalised_value);
-    }
+
+      // Validate fields
+      if (tm.tm_year<0||tm.tm_year>9999) return -1;
+      if (tm.tm_mon<1||tm.tm_mon>12) return -1;
+      if (tm.tm_mday<1||tm.tm_mday>31) return -1;
+      if (tm.tm_hour<0||tm.tm_hour>24) return -1;
+      if (tm.tm_min<0||tm.tm_min>59) return -1;
+      if (tm.tm_sec<0||tm.tm_sec>61) return -1;
+      
+      // Encode each field: requires about 40 bits, but safely encodes all values
+      // without risk of timezone munging on Android
+      range_encode_equiprobable(c,10000,tm.tm_year);
+      range_encode_equiprobable(c,12,tm.tm_mon-1);
+      range_encode_equiprobable(c,31,tm.tm_mday-1);
+      range_encode_equiprobable(c,25,tm.tm_hour);
+      range_encode_equiprobable(c,60,tm.tm_min);
+      return range_encode_equiprobable(c,62,tm.tm_sec);    }
   case FIELDTYPE_DATE:
     // ODK does YYYY/MM/DD
     // Magpi does DD-MM-YYYY
