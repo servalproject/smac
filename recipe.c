@@ -547,9 +547,10 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     // time encodes each field precisely, allowing years 0 - 9999
     // Format as yyyy-mm-dd hh:mm:ss
     {
+      // time_t t=range_decode_equiprobable(c,0x7fffffff);
       struct tm tm;
       bzero(&tm,sizeof(tm));
-
+      
       tm.tm_year=range_decode_equiprobable(c,10000);
       tm.tm_mon=range_decode_equiprobable(c,12);
       tm.tm_mday=range_decode_equiprobable(c,31);
