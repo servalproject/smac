@@ -1358,6 +1358,13 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
     return -1;
   }
 
+  if (!r) {
+    // Mark file as processed, so that we can clean up after ourselves
+    char file[8192];
+    snprintf(file,8192,"%s.processed",input_file);
+    int fd = open(file, O_RDWR|O_CREAT, 0777);
+    if (fd!=-1) close(fd);
+  }
   return r;
 }
 
