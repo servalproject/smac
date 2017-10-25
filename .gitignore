@@ -1,0 +1,6 @@
+*.o
+arithmetic
+gen_stats
+smac
+extract_tweets
+gsinterpolative

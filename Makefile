@@ -58,31 +58,31 @@ OBJS=	main.o \
 
 HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h Makefile
 
-all: smac arithmetic gen_stats
+all: smac arithmetic gen_stats gsinterpolative extract_tweets
 
 clean:
 	rm -rf gen_stats smac
 
 arithmetic:	arithmetic.c arithmetic.h
 # Build for running tests
-	gcc $(CFLAGS) -DTESTMODE -o arithmetic arithmetic.c
+	gcc $(CFLAGS) $(LIBS) -DTESTMODE -o arithmetic arithmetic.c
 
 extract_tweets:	extract_tweets.o
 	gcc $(CFLAGS) -o extract_tweets extract_tweets.o
 
 gen_stats:	gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
-	gcc $(CFLAGS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
+	gcc $(CFLAGS) $(LIBS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
 
 smac:	$(OBJS)
-	gcc -g -Wall -o smac $(OBJS) $(LIBS)
+	gcc $(CFLAGS) $(LIBS) -o smac $(OBJS)
 
-gsinterpolative:	gsinterpolative.c $(OBJS)
-	gcc -g -Wall -DSTANDALONE -o gsinterpolative{,.c} arithmetic.o
+gsinterpolative:	gsinterpolative.c arithmetic.o
+	gcc $(CFLAGS) $(LIBS) -DTESTMODE -o gsinterpolative gsinterpolative.c arithmetic.o
 
 %.o:	%.c $(HDRS)
 	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
 
-test:	gsinterpolative arithmetic
+test:	gsinterpolative arithmetic smac
 	./gsinterpolative
 	./arithmetic
 	./smac twitter_corpus*.txt
