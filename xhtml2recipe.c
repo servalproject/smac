@@ -505,10 +505,10 @@ void end_xhtml(void *data, const char *el) //This function is called  by the XML
 int appendto(char *out,int *used,int max,char *stuff);
 
 //Generate the recipe (Spec stripped data) and write it into .recipe and .template file
-int xhtml_recipe_create(char *input)
+int xhtml_recipe_create(char *recipe_dir, char *input)
 {
   FILE *f=fopen(input,"r");
-  char filename[512] = "";
+  char filename[1024] = "";
   size_t size;
   char *xmltext;
 
@@ -538,31 +538,29 @@ int xhtml_recipe_create(char *input)
   printf("Finished xhtmlToRecipe parsing, now about to parse eveything in files ... \n");
   while(recipenode != NULL)
   {
-
-	  //Create output for RECIPE
-	  snprintf(filename,512,"%s.recipe",recipenode->formversion);
-	  fprintf(stderr,"Writing recipe to '%s'\n",filename);
-	  f=fopen(filename,"w");
-	  fprintf(f,"%s",recipenode->recipetext);
-	  fclose(f);
-
-	  recipenode = recipenode->next;
+    //Create output for RECIPE
+    snprintf(filename,sizeof filename,"%s/%s.recipe", recipe_dir, recipenode->formversion);
+    fprintf(stderr,"Writing recipe to '%s'\n",filename);
+    f=fopen(filename,"w");
+    fprintf(f,"%s",recipenode->recipetext);
+    fclose(f);
+    recipenode = recipenode->next;
   }
 
-	  //Create output for TEMPLATE
-	  snprintf(filename,512,"%s.template",head_r->formversion);
-	  fprintf(stderr,"Writing template to '%s'\n",filename);
-	  f=fopen(filename,"w");
-	  fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<form>\n<meta>\n");
-	  fprintf(f,"%s",implied_meta_fields_template);
-	  fprintf(f,"</meta>\n<data>\n");
-	  fprintf(f,"%s",templatetext);
-	  fprintf(f,"</data>\n</form>\n");
-	  fclose(f);
+  //Create output for TEMPLATE
+  snprintf(filename,sizeof filename,"%s/%s.template", recipe_dir, head_r->formversion);
+  fprintf(stderr,"Writing template to '%s'\n",filename);
+  f=fopen(filename,"w");
+  fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<form>\n<meta>\n");
+  fprintf(f,"%s",implied_meta_fields_template);
+  fprintf(f,"</meta>\n<data>\n");
+  fprintf(f,"%s",templatetext);
+  fprintf(f,"</data>\n</form>\n");
+  fclose(f);
 
   return 0;
 }
-    
+
 int xhtmlToRecipe(char *xmltext,int size,
 		  char *templatetext,int *templateLen)
 {

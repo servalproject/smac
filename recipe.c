@@ -43,7 +43,7 @@
 int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex);
 int defragmentAndDecrypt(char *inputdir,char *outputdir,char *passphrase);
 int recipe_create(char *input);
-int xhtml_recipe_create(char *input);
+int xhtml_recipe_create(char *recipe_dir, char *input);
 int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
 					  char *out, int out_size,
 		              char *recipe_name, range_coder *c, bool is_subform, bool is_record);
@@ -1668,12 +1668,12 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     }      
     return recipe_create(argv[3]);
   } else if (!strcasecmp(argv[2],"xhcreate")) {
-    if (argc<=3) {
-      fprintf(stderr,"usage: smac recipe xhcreate <XHTML form> \n");
+    if (argc<=4) {
+      fprintf(stderr,"usage: smac recipe xhcreate <recipe directory> <XHTML form>\n");
       return(-1);
     }
     printf("Test-Dialog: About to XHCreate/Create recipe file(s) from the XHTML form %s \n",argv[3]);
-    return xhtml_recipe_create(argv[3]);
+    return xhtml_recipe_create(argv[3], argv[4]);
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
       fprintf(stderr,"usage: smac recipe decompress <recipe directory> <succinct data message> <output directory>\n");
