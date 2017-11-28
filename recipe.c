@@ -40,7 +40,7 @@
 int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex);
 int defragmentAndDecrypt(char *inputdir,char *outputdir,char *passphrase);
 int recipe_create(char *input);
-int xhtml_recipe_create(char *input);
+int xhtml_recipe_create(char *recipe_dir, char *input);
 
 #ifdef ANDROID
 time_t timegm(struct tm *tm)
@@ -1468,11 +1468,11 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     }      
     return recipe_create(argv[3]);
   } else if (!strcasecmp(argv[2],"xhcreate")) {
-    if (argc<=3) {
-      fprintf(stderr,"usage: smac recipe create <XHTML form> \n");
+    if (argc<=4) {
+      fprintf(stderr,"usage: smac recipe xhcreate <recipe directory> <XHTML form>\n");
       return(-1);
     }      
-    return xhtml_recipe_create(argv[3]);
+    return xhtml_recipe_create(argv[3], argv[4]);
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
       fprintf(stderr,"usage: smac recipe decompress <recipe directory> <succinct data message> <output directory>\n");
