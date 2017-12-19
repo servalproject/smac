@@ -85,16 +85,18 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
     b5to0|=(b6<<6);
     b5to0|=(b7<<7);
     m[0]=b5to0;
+    // printf("Read byte 0x%02x\n",m[0]);
 
     // Also stop decoding if there are too many bytes (2K should be a reasonable
     // limit).
     for(i=1;m[i-1]&&(i<2048);i++) {
       int r=range_decode_equiprobable(c,256);
+      // printf("Read byte 0x%02x\n",r);
       // ... or if we hit the end of the compressed bit stream.
-      if (r==-1) break;
+      if (r==-1 || r==0xFF) break;
       else m[i]=r;
-      printf("Read byte 0x%02x\n",m[i]);
     }
+    m[i]=0;
     *len_out=i-1;
     return 0;
   }
@@ -248,11 +250,19 @@ int stats3_compress_model1_append(range_coder *c,unsigned char *m_in,int m_in_le
 int stats3_compress_uncompressed_append(range_coder *c,unsigned char *m_in,int m_in_len,
 					stats_handle *h,double *entropyLog)
 {
-  // Encode bit by bit in case range coder is not on a byte boundary.
-  int i;
-  for(i=0;i<m_in_len;i++)
+  // As any of these encodes might trigger a rescale,
+  // we need to match the same order as decoding
+
+  // First the two ascii bit flags;
+  range_encode_equiprobable(c, 2, (m_in[0]&0x80) >> 7);
+  range_encode_equiprobable(c, 2, (m_in[0]&0x40) >> 6);
+  // Then the remainder of the first byte
+  range_encode_equiprobable(c, 64, m_in[0]&0x3f);
+
+  // Then encode the rest byte by byte
+  unsigned i;
+  for (i = 1; i < m_in_len; i++)
     range_encode_equiprobable(c,256,m_in[i]);
-    
   // Add $FF byte to terminate
   range_encode_equiprobable(c,256,255);
 
