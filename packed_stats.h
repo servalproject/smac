@@ -16,6 +16,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#ifndef SUCCINCT_PACKED_H
+#define SUCCINCT_PACKED_H
+
+#include <stdio.h>
+#include "charset.h"
+
 struct probability_vector {
   unsigned int v[CHARCOUNT];
 };
@@ -95,3 +101,5 @@ unsigned char *getCompressedBytes(stats_handle *h,int start,int count);
 int *getUnicodeStatistics(stats_handle *h,int codePage);
 int unicodeVectorReport(char *name,int *counts,int previousCodePage,
 			int codePage,unsigned short s);
+
+#endif

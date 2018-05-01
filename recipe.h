@@ -1,3 +1,11 @@
+#ifndef SUCCINCT_RECIPE_H
+#define SUCCINCT_RECIPE_H
+
+#include <stdint.h>
+
+#include "packed_stats.h"
+#include "arithmetic.h"
+
 // min,max set inclusive bound
 #define FIELDTYPE_INTEGER 0
 // precision specifies bits of precision. currently only 32 is supported.
@@ -61,11 +69,15 @@ int xml2stripped(const char *form_name, const char *xml,int xml_len,char *stripp
 
 int generateMaps(char *recipeDir, char *outputDir);
 
-int xhtmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
-		  char *recipetext,int *recipeLen,
-		  char *templatetext,int *templateLen);
+int xhtmlToRecipe(const char *xmltext, char **template_text, char *recipe_text[1024], char *form_versions[1024]);
+
 int xmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 		char *recipetext,int *recipeLen,
 		char *templatetext,int *templateLen);
+
 int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *c,
 			int fieldnumber,char *value);
+int recipe_parse_fieldtype(const char *name);
+const char *recipe_field_type_name(int f);
+
+#endif

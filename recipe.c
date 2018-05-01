@@ -20,16 +20,7 @@
 #include <dirent.h>
 #include <stdbool.h>
 
-#ifdef ANDROID
-#include <jni.h>
-#include <android/log.h>
- 
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "libsmac", __VA_ARGS__))
-#define C LOGI("%s:%d: checkpoint",__FILE__,__LINE__);
-#else
-#define LOGI(...)
-#define C
-#endif
+#include "log.h"
 
 #include "charset.h"
 #include "visualise.h"
@@ -67,7 +58,7 @@ time_t timegm(struct tm *tm)
 }
 #endif
 
-int recipe_parse_fieldtype(char *name)
+int recipe_parse_fieldtype(const char *name)
 {
   if (!strcasecmp(name,"integer")) return FIELDTYPE_INTEGER;
   if (!strcasecmp(name,"int")) return FIELDTYPE_INTEGER;
@@ -92,11 +83,19 @@ int recipe_parse_fieldtype(char *name)
   if (!strcasecmp(name,"enum")) return FIELDTYPE_ENUM;
   if (!strcasecmp(name,"multi")) return FIELDTYPE_MULTISELECT;
   if (!strcasecmp(name,"subform")) return FIELDTYPE_SUBFORM;
-  
+
+  // strings in magpi form definitions
+  if (!strcasecmp(name, "dropdown")) return FIELDTYPE_ENUM;
+  if (!strcasecmp(name, "radio")) return FIELDTYPE_ENUM;
+  if (!strcasecmp(name, "select1")) return FIELDTYPE_ENUM;
+  if (!strcasecmp(name, "select2")) return FIELDTYPE_ENUM;
+  if (!strcasecmp(name, "selectn")) return FIELDTYPE_MULTISELECT;
+  if (!strcasecmp(name, "checkbox")) return FIELDTYPE_MULTISELECT;
+
   return -1;
 }
 
-char *recipe_field_type_name(int f)
+const char *recipe_field_type_name(int f)
 {
   switch(f) {
   case FIELDTYPE_INTEGER: return    "integer";
@@ -111,6 +110,9 @@ char *recipe_field_type_name(int f)
   case FIELDTYPE_TEXT: return    "text";
   case FIELDTYPE_UUID: return    "uuid";
   case FIELDTYPE_MAGPIUUID: return    "magpiuuid";
+  case FIELDTYPE_ENUM: return    "enum";
+  case FIELDTYPE_MULTISELECT: return    "multi";
+  case FIELDTYPE_SUBFORM: return    "subform";
   default: return "unknown";
   }
 }
@@ -314,30 +316,43 @@ struct recipe *recipe_read_from_specification(char *xmlform_c)
 	 xmlform_c[5],xmlform_c[6],xmlform_c[7],xmlform_c[8],xmlform_c[9]
 	 );
 
-  char form_name[1024];
-  char form_version[1024];
-  char recipetext[65536];
-  int recipetextLen=65536;
-  char templatetext[1048576];
-  int templatetextLen=1048576;
-
   printf("magpi_mode=%d\n",magpi_mode);
   
-  if (magpi_mode)
-    r=xhtmlToRecipe(xmlform_c,strlen(xmlform_c),
-		    form_name,form_version,
-		    recipetext,&recipetextLen,
-		    templatetext,&templatetextLen);
-  else
+  if (magpi_mode){
+    char *recipe_text[1024];
+    char *form_versions[1024];
+    bzero(recipe_text, sizeof recipe_text);
+    bzero(form_versions, sizeof form_versions);
+
+    r=xhtmlToRecipe(xmlform_c, NULL, (char**)&recipe_text, (char**)&form_versions);
+    if (r<0) return NULL;
+
+    struct recipe *ret = recipe_read(form_versions[0],recipe_text[0],strlen(recipe_text[0]));
+    int i;
+    for (i=0;i<1024;i++) {
+        if (recipe_text[i])
+            free(recipe_text[i]);
+        if (form_versions[i])
+            free(form_versions[i]);
+    }
+
+    return ret;
+  }else{
+    char form_name[1024];
+    char form_version[1024];
+    char recipetext[65536];
+    int recipetextLen=65536;
+    char templatetext[1048576];
+    int templatetextLen=1048576;
+
     r=xmlToRecipe(xmlform_c,strlen(xmlform_c),
 		  form_name,form_version,
 		  recipetext,&recipetextLen,
 		  templatetext,&templatetextLen);
+    if (r<0) return NULL;
 
-  if (r<0) return NULL;
-
-  return recipe_read(form_name,recipetext,recipetextLen);
-  
+    return recipe_read(form_name,recipetext,recipetextLen);
+  }
 }
 
 struct recipe *recipe_read_from_file(char *filename)

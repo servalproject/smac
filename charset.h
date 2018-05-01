@@ -16,6 +16,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#ifndef SUCCINCT_CHARSET_H
+#define SUCCINCT_CHARSET_H
+
 #define CHARCOUNT 65
 #define PRINTABLECHARCOUNT (CHARCOUNT-2+26+10)
 extern char chars[CHARCOUNT];
@@ -25,3 +28,5 @@ extern char wordChars[36];
 int charIdx(unsigned short c);
 int printableCharIdx(unsigned char c);
 int charInWord(unsigned short c);
+
+#endif

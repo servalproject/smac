@@ -16,6 +16,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#ifndef SUCCINCT_ARITHMETIC_H
+#define SUCCINCT_ARITHMETIC_H
+
 typedef struct range_coder {
   unsigned int low;
   unsigned int high;
@@ -62,3 +65,4 @@ int ic_decode_recursive(int *list,
 			int list_length,
 			int max_value,
 			range_coder *c);
+#endif
