@@ -250,9 +250,10 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
 	      fprintf(stderr,"  %d fields in '%s'\n",s->value_count,filename);
 	      int i,j;
 	      for(i=0;i<s->value_count;i++) {
-		for(j=0;j<r->field_count;j++)
-		  if (!strcasecmp(s->keys[i],r->fields[j].name)) {
-		    switch (r->fields[j].type) {
+		struct field *field = r->field_list;
+		for(j=0;j<r->field_count;j++){
+		  if (!strcasecmp(s->keys[i],field->name)) {
+		    switch (field->type) {
 		    case FIELDTYPE_LATLONG:
 		      if (sscanf(s->values[i],"%f %f",&lat,&lon)==2) haveLocation=1;
 		      break;
@@ -267,6 +268,8 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
 		      break;
 		    }
 		  }
+		  field = field->next;
+		}
 		if (!formDetailLen) {
 		  formDetailLen+=snprintf(formDetail,8192,"<div id=\\\"marker%d\\\" style=\\\"height:\\\"+String(viewportheight*0.2)+\\\"px;overflow:auto;\\\"><table border=1 padding=2>\\n",markerCount++);
 		}

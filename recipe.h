@@ -41,24 +41,30 @@
 // For Magpi sub-forms
 #define FIELDTYPE_SUBFORM 14
 
-#define MAX_ENUM_VALUES 1024
-struct field {
-  char *name;
+#define MAX_ENUM_VALUES 32
 
+struct enum_value{
+  struct enum_value *next;
+  char value[];
+};
+
+struct field {
+  struct field *next;
   int type;
   int minimum;
   int maximum;
   int precision; // meaning differs based on field type
-  char *enum_values[MAX_ENUM_VALUES];
+  struct enum_value *enum_value;
   int enum_count;
+  char name[];
 };
 
 struct recipe {
-  char formname[1024];
+  struct recipe *next;
   unsigned char formhash[6];
-
-  struct field fields[1024];
+  struct field *field_list;
   int field_count;
+  char formname[];
 };
 
 int recipe_main(int argc,char *argv[],stats_handle *h);
@@ -75,8 +81,7 @@ int xmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 		char *recipetext,int *recipeLen,
 		char *templatetext,int *templateLen);
 
-int recipe_encode_field(struct recipe *recipe,stats_handle *stats, range_coder *c,
-			int fieldnumber,char *value);
+int recipe_encode_field(struct field *field, stats_handle *stats, range_coder *c, char *value);
 int recipe_parse_fieldtype(const char *name);
 const char *recipe_field_type_name(int f);
 
