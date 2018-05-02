@@ -66,19 +66,19 @@ clean:
 
 arithmetic:	arithmetic.c arithmetic.h
 # Build for running tests
-	gcc $(CFLAGS) $(LIBS) -DTESTMODE -o arithmetic arithmetic.c
+	$(CC) $(CFLAGS) $(LIBS) -DTESTMODE -o arithmetic arithmetic.c
 
 extract_tweets:	extract_tweets.o
-	gcc $(CFLAGS) -o extract_tweets extract_tweets.o
+	$(CC) $(CFLAGS) -o extract_tweets extract_tweets.o
 
 gen_stats:	gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
-	gcc $(CFLAGS) $(LIBS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
+	$(CC) $(CFLAGS) $(LIBS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
 
 smac:	$(OBJS)
-	gcc $(CFLAGS) $(LIBS) -o smac $(OBJS)
+	$(CC) $(CFLAGS) $(LIBS) -o smac $(OBJS)
 
 gsinterpolative:	gsinterpolative.c arithmetic.o
-	gcc $(CFLAGS) $(LIBS) -DTESTMODE -o gsinterpolative gsinterpolative.c arithmetic.o
+	$(CC) $(CFLAGS) $(LIBS) -DTESTMODE -o gsinterpolative gsinterpolative.c arithmetic.o
 
 %.o:	%.c $(HDRS)
 	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@

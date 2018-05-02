@@ -29,6 +29,7 @@
 #include <ctype.h>
 #include <malloc.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "log.h"
 #include "recipe.h"
@@ -100,12 +101,6 @@ struct parse_state {
     char *subform_tags[MAXSUBFORMS];
 };
 
-static subform_node *create_list_subforms(struct parse_state *state, const char *formversion);
-
-static tag_node *create_list_tags(struct parse_state *state, const char *tagname, const char *formversion);
-
-static recipe_node *create_list_recipes(struct parse_state *state, const char *formversion);
-
 static subform_node *add_to_list_subforms(struct parse_state *state, const char *formversion);
 
 static tag_node *add_to_list_tags(struct parse_state *state, const char *tagname, const char *formversion,
@@ -157,23 +152,28 @@ const char *implied_meta_fields_template_subform =
 const char *implied_data_fields_template_subform =
         "<uuid>$uuid$</uuid>\n";
 
-static void strgrow(struct str_builder *in, const char *new) {
-    size_t len = strlen(new);
-    if (in->alloc_len < in->str_len + len +1){
-        if (in->alloc_len < 256)
-            in->alloc_len = 256;
-        while(in->alloc_len < in->str_len + len +1){
-            in->alloc_len *= 2;
-        }
-        char *out = malloc(in->alloc_len);
-        if (in->str){
-            strcpy(out, in->str);
-            free(in->str);
-        }
-        in->str = out;
+static void strgrow(struct str_builder *in, const char *new_segment) {
+  if (!new_segment || !*new_segment)
+    return;
+
+  size_t len = strlen(new_segment);
+  if (in->alloc_len < in->str_len + len +1){
+    size_t new_len = in->alloc_len;
+    if (new_len < 256)
+	new_len = 256;
+    while(new_len < in->str_len + len +1){
+	new_len *= 2;
     }
-    strcpy(&in->str[in->str_len], new);
-    in->str_len+=len;
+    char *out = malloc(new_len);
+    in->alloc_len = new_len;
+    if (in->str){
+	strcpy(out, in->str);
+	free(in->str);
+    }
+    in->str = out;
+  }
+  strcpy(&in->str[in->str_len], new_segment);
+  in->str_len+=len;
 }
 
 static void
@@ -347,8 +347,7 @@ start_xhtml(void *data, const char *el,
                 // Allow for non path-indicated bindings in XHTML forms
                 if (!last_slash) last_slash = attr[i + 1]; else last_slash++;
                 LOGI("Found multiple-choice selection definition '%s'", last_slash);
-                node_name = strdup(last_slash);
-                state->xhtmlSelectElem = node_name;
+                state->xhtmlSelectElem = strdup(last_slash);
                 state->xhtmlSelectFirst = 1;
             }
         }
@@ -413,6 +412,7 @@ static void end_xhtml(void *data,
     struct parse_state *state = data;
     if (state->xhtmlSelectElem &&
         ((!strcasecmp("xf:select1", el)) || (!strcasecmp("xf:select", el)))) {
+	free(state->xhtmlSelectElem);
         state->xhtmlSelectElem = NULL;
     }
 
@@ -474,6 +474,7 @@ int xhtml_recipe_create(char *recipe_dir, char *input) {
     bzero(form_versions, sizeof form_versions);
 
     int r = xhtmlToRecipe(xmltext, &templatetext, (char **) &recipe_text, (char **) &form_versions);
+    free(xmltext);
 
     if (r) {
         LOGE("xhtml2recipe failed\n");
@@ -503,13 +504,16 @@ int xhtml_recipe_create(char *recipe_dir, char *input) {
     fprintf(f, "</data>\n</form>\n");
     fclose(f);
 
-    if (templatetext)
+    if (templatetext){
         free(templatetext);
+    }
     for (i=0;i<1024;i++) {
-        if (recipe_text[i])
+        if (recipe_text[i]){
             free(recipe_text[i]);
-        if (form_versions[i])
+        }
+	if (form_versions[i]){
             free(form_versions[i]);
+	}
     }
 
     return 0;
@@ -578,18 +582,22 @@ int xhtmlToRecipe(const char *xmltext, char **template_text, char *recipe_text[1
     ret = 0;
 
 cleanup:
-    if (state.xhtmlFormName)
+    if (state.xhtmlFormName){
         free(state.xhtmlFormName);
-    if (state.xhtmlFormVersion)
+    }
+    if (state.xhtmlFormVersion){
         free(state.xhtmlFormVersion);
+    }
 
     recipe_node *recipenode = state.head_r;
     while(recipenode){
-        if (recipenode->recipe.str)
+        if (recipenode->recipe.str){
             free(recipenode->recipe.str);
+	}
         for (i = 0; i < recipenode->xhtmlSelectsLen; i++){
-            if (recipenode->selects[i].str)
+            if (recipenode->selects[i].str){
                 free(recipenode->selects[i].str);
+	    }
         }
         recipe_node *f = recipenode;
         recipenode = recipenode->next;
@@ -608,77 +616,17 @@ cleanup:
         subformnode = subformnode->next;
         free(f);
     }
-    if (state.xhtml2template.str)
+    if (state.xhtml2template.str){
         free(state.xhtml2template.str);
+    }
 
     XML_ParserFree(parser);
 
     return ret;
 }
 
-static recipe_node *create_list_recipes(struct parse_state *state, const char *formversion) {
-    LOGI("creating recipes list headnode with formversion [%s]", formversion);
-    recipe_node *recipenode = (recipe_node *) malloc(sizeof(recipe_node));
-    if (NULL == recipenode) {
-        LOGI("Node creation failed");
-        return NULL;
-    }
-
-    strcpy(recipenode->formversion, formversion);
-    recipenode->xhtmlSelectsLen = 0;
-    state->head_r = state->curr_r = recipenode;
-    return recipenode;
-}
-
-static tag_node *create_tag_node(const char *tagname, const char *formversion){
-    size_t tag_len = strlen(tagname);
-    size_t version_len = strlen(formversion);
-
-    tag_node *tagnode = (tag_node *) malloc(sizeof(tag_node) + tag_len + version_len + 2);
-    if (NULL == tagnode) {
-        LOGI("Node creation failed");
-        return NULL;
-    }
-
-    tagnode->tagname = &tagnode->buff[0];
-    tagnode->formversion = &tagnode->buff[tag_len+1];
-    tagnode->next = NULL;
-    strcpy(tagnode->tagname, tagname);
-    strcpy(tagnode->formversion, formversion);
-    return tagnode;
-}
-
-static tag_node *
-create_list_tags(struct parse_state *state, const char *tagname, const char *formversion) {
-    LOGI("creating tags list headnode with tagname [%s] and formversion [%s]", tagname,
-           formversion);
-    tag_node *tagnode = create_tag_node(tagname, formversion);
-    if (tagnode)
-      state->head_t = state->curr_t = tagnode;
-    return tagnode;
-}
-
-static subform_node *create_list_subforms(struct parse_state *state, const char *formversion) {
-    LOGI("creating subforms list headnode with formversion [%s]", formversion);
-    size_t len = sizeof(subform_node) + strlen(formversion) + 1;
-    subform_node *subformnode = (subform_node *) malloc(len);
-    if (NULL == subformnode) {
-        LOGI("Node creation failed");
-        return NULL;
-    }
-
-    strcpy(subformnode->subformid, formversion);
-    //subformnode->nodeset = "";
-    state->head_s = state->curr_s = subformnode;
-    return subformnode;
-}
-
 static recipe_node *
 add_to_list_recipes(struct parse_state *state, const char *formversion, bool add_to_end) {
-    if (NULL == state->head_r) {
-        return (create_list_recipes(state, formversion));
-    }
-
     if (add_to_end)
         LOGI("Adding node to end of recipes list with formversion [%s]", formversion);
     else
@@ -689,26 +637,24 @@ add_to_list_recipes(struct parse_state *state, const char *formversion, bool add
         LOGI("Node creation failed");
         return NULL;
     }
+    bzero(recipenode, sizeof(recipe_node));
     strcpy(recipenode->formversion, formversion);
     recipenode->xhtmlSelectsLen = 0;
-    recipenode->next = NULL;
-
-    if (add_to_end) {
+    
+    if (add_to_end && state->curr_r) {
         state->curr_r->next = recipenode;
         state->curr_r = recipenode;
     } else {
         recipenode->next = state->head_r;
         state->head_r = recipenode;
+	if (!state->curr_r)
+	  state->curr_r = state->head_r;
     }
     return recipenode;
 }
 
 static tag_node *add_to_list_tags(struct parse_state *state, const char *tagname, const char *formversion,
                            bool add_to_end) {
-    if (NULL == state->head_t) {
-        return (create_list_tags(state, tagname, formversion));
-    }
-
     if (add_to_end)
         LOGI("Adding node to end of tags list with tagname [%s] and formversion [%s]",
                tagname, formversion);
@@ -716,40 +662,59 @@ static tag_node *add_to_list_tags(struct parse_state *state, const char *tagname
         LOGI("Adding node to beginning of tags list with tagname [%s] and formversion [%s]",
                tagname, formversion);
 
-    tag_node *tagnode = create_tag_node(tagname, formversion);
+    size_t tag_len = strlen(tagname);
+    size_t version_len = strlen(formversion);
+
+    tag_node *tagnode = (tag_node *) malloc(sizeof(tag_node) + tag_len + version_len + 2);
+    if (NULL == tagnode) {
+        LOGI("Node creation failed");
+        return NULL;
+    }
+    bzero(tagnode, sizeof(tag_node));
+
+    tagnode->tagname = &tagnode->buff[0];
+    strcpy(tagnode->tagname, tagname);
+    tagnode->formversion = &tagnode->buff[tag_len+1];
+    strcpy(tagnode->formversion, formversion);
+    tagnode->next = NULL;
+
     if (tagnode){
-      if (add_to_end) {
+      if (add_to_end && state->curr_t) {
 	  state->curr_t->next = tagnode;
 	  state->curr_t = tagnode;
       } else {
 	  tagnode->next = state->head_t;
 	  state->head_t = tagnode;
+	  if (!state->curr_t)
+	    state->curr_t = state->head_t;
       }
     }
     return tagnode;
 }
 
 static subform_node *add_to_list_subforms(struct parse_state *state, const char *formversion) {
-    if (NULL == state->head_s) {
-        return (create_list_subforms(state, formversion));
-    }
-
     LOGI("Adding node to end of subforms list with formversion [%s]", formversion);
 
-    subform_node *subformnode = (subform_node *) malloc(sizeof(subform_node));
+    subform_node *subformnode = (subform_node *) malloc(sizeof(subform_node) + strlen(formversion) + 1);
     if (NULL == subformnode) {
         LOGI("Node creation failed");
         return NULL;
     }
+    bzero(subformnode, sizeof(subform_node));
     strcpy(subformnode->subformid, formversion);
-    //subformnode->nodeset = "";
-    subformnode->next = NULL;
-
     //double linked list so we can move forward when we meet a new subform
     //and move backward when we meet the end of subform
     //To move forward : simply add a new subform node (only case to move forward)
     //To move backward : curr_s = curr_s->prev
-    state->curr_s->next = subformnode;
+    if (state->curr_s){
+      if (state->curr_s->next)
+	state->curr_s->next->prev = subformnode;
+      subformnode->next = state->curr_s->next;
+      state->curr_s->next = subformnode;
+    }
+    else
+      state->head_s = subformnode;
+
     subformnode->prev = state->curr_s;
     state->curr_s = subformnode;
 

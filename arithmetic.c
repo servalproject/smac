@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <math.h>
 #include <assert.h>
 #include "arithmetic.h"
+#include "log.h"
 
 #define MAXVALUE 0xffffff
 #define MAXVALUEPLUS1 (MAXVALUE+1)
@@ -77,8 +78,7 @@ int range_decode_getnextbit(range_coder *c)
 int range_emitbit(range_coder *c,int b)
 {
   if (c->bits_used>=(c->bit_stream_length)) {
-    printf("out of bits\n");
-    exit(-1);
+    LOGE("out of bits\n");
     return -1;
   }
   int bit=(c->bits_used&7)^7;
@@ -97,7 +97,7 @@ int range_emit_stable_bits(range_coder *c)
     {
       int msb=c->low>>31;
       if (0)
-	printf("emitting stable bit = %d @ bit %d\n",msb,c->bits_used);
+	LOGI("emitting stable bit = %d @ bit %d\n",msb,c->bits_used);
 
       if (!c->decodingP) if (range_emitbit(c,msb)) return -1;
       if (c->underflow) {
@@ -105,14 +105,14 @@ int range_emit_stable_bits(range_coder *c)
 	if (msb) u=0; else u=1;
 	while (c->underflow-->0) {	  
 	  if (0)
-	    printf("emitting underflow bit = %d @ bit %d\n",u,c->bits_used);
+	    LOGI("emitting underflow bit = %d @ bit %d\n",u,c->bits_used);
 
 	  if (!c->decodingP) if (range_emitbit(c,u)) return -1;
 	}
 	c->underflow=0;
       }
       if (c->decodingP) {
-	// printf("value was 0x%08x (low=0x%08x, high=0x%08x)\n",c->value,c->low,c->high);
+	// LOGI("value was 0x%08x (low=0x%08x, high=0x%08x)\n",c->value,c->low,c->high);
       }
       c->low=c->low<<1;
       c->high=c->high<<1;      
@@ -121,7 +121,7 @@ int range_emit_stable_bits(range_coder *c)
 	c->value=c->value<<1;
 	int nextbit=range_decode_getnextbit(c);
 	c->value|=nextbit;
-	// printf("value became 0x%08x (low=0x%08x, high=0x%08x), nextbit=%d\n",c->value,c->low,c->high,nextbit);
+	// LOGI("value became 0x%08x (low=0x%08x, high=0x%08x), nextbit=%d\n",c->value,c->low,c->high,nextbit);
       }
       range_check(c,__LINE__);
     }
@@ -148,7 +148,7 @@ int range_rescale(range_coder *c) {
     {
       c->underflow++;
       if (0)
-	printf("underflow bit added @ bit %d\n",c->bits_used);
+	LOGI("underflow bit added @ bit %d\n",c->bits_used);
 
       unsigned int new_low=c->low<<1;
       new_low&=0x7fffffff;
@@ -156,24 +156,24 @@ int range_rescale(range_coder *c) {
       new_high|=1;
       new_high|=0x80000000;
       if (new_low>=new_high) { 
-	fprintf(stderr,"oops\n");
-	exit(-1);
+	LOGE("oops\n");
+	return -1;
       }
       if (c->debug)
-	printf("%s: rescaling: old=[0x%08x,0x%08x], new=[0x%08x,0x%08x]\n",
+	LOGI("%s: rescaling: old=[0x%08x,0x%08x], new=[0x%08x,0x%08x]\n",
 	       c->debug,c->low,c->high,new_low,new_high);
 
       if (c->decodingP) {
 	unsigned int value_bits=((c->value<<1)&0x7ffffffe);
 	if (c->debug)
-	  printf("value was 0x%08x (low=0x%08x, high=0x%08x), keepbits=0x%08x\n",c->value,c->low,c->high,value_bits);
+	  LOGI("value was 0x%08x (low=0x%08x, high=0x%08x), keepbits=0x%08x\n",c->value,c->low,c->high,value_bits);
 	c->value=(c->value&0x80000000)|value_bits;
 	c->value|=range_decode_getnextbit(c);
       }
       c->low=new_low;
       c->high=new_high;
       if (c->decodingP&&c->debug)
-	printf("value became 0x%08x (low=0x%08x, high=0x%08x)\n",c->value,c->low,c->high);
+	LOGI("value became 0x%08x (low=0x%08x, high=0x%08x)\n",c->value,c->low,c->high);
       range_check(c,__LINE__);
     }
   return 0;
@@ -195,7 +195,7 @@ int range_unrescale_value(unsigned int v,int underflow_bits)
     }
   }
   if (0)
-    printf("0x%08x+%d underflows flattens to 0x%08x\n",
+    LOGI("0x%08x+%d underflows flattens to 0x%08x\n",
 	   v,underflow_bits,o);
 
   return o;
@@ -243,24 +243,24 @@ unsigned long long range_space(range_coder *c)
 int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 {
   if (p_low>p_high) {
-    fprintf(stderr,"range_encode() called with p_low>p_high: p_low=%u, p_high=%u\n",
+    LOGE("range_encode() called with p_low>p_high: p_low=%u, p_high=%u\n",
 	    p_low,p_high);
-    exit(-1);
+    return -1;
   }
   if (p_low>MAXVALUE||p_high>MAXVALUEPLUS1) {
-    fprintf(stderr,"range_encode() called with p_low or p_high >=0x%x: p_low=0x%x, p_high=0x%x\n",
+    LOGE("range_encode() called with p_low or p_high >=0x%x: p_low=0x%x, p_high=0x%x\n",
 	    MAXVALUE,p_low,p_high);
-    exit(-1);
+    return -1;
   }
 
   unsigned int new_low,new_high;
 
-  if (c->debug) fprintf(stderr,"Calculating new_low and new_high from p_low=0x%x, p_high=0x%x\n",
+  if (c->debug) LOGE("Calculating new_low and new_high from p_low=0x%x, p_high=0x%x\n",
 			p_low,p_high);
   if (range_calc_new_range(c,p_low,p_high,&new_low,&new_high))
     {
-      fprintf(stderr,"range_calc_new_range() failed.\n");
-      exit(-1);
+      LOGE("range_calc_new_range() failed.\n");
+      return -1;
     }
   
   range_check(c,__LINE__);
@@ -281,8 +281,8 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
     printf("%s: entropy of range 0x%llx(p_low=0x%x, p_high=0x%x, p_diff=0x%llx) = %f, shiftupbits=%lld\n",
 	   c->debug,p_range,p_low,p_high,p_diff,this_entropy,SHIFTUPBITS);
   if (this_entropy<0) {
-    fprintf(stderr,"entropy of symbol is negative! (p=%f, e=%f)\n",p,this_entropy);
-    exit(-1);
+    LOGE("entropy of symbol is negative! (p=%f, e=%f)\n",p,this_entropy);
+    return -1;
   }
   c->entropy+=this_entropy;
 
@@ -291,7 +291,7 @@ int range_encode(range_coder *c,unsigned int p_low,unsigned int p_high)
 
   if (c->debug) {
     unsigned long long space=range_space(c);
-    printf("%s: after rescale: space=0x%08llx[%s], low=0x%08x, high=0x%08x\n",
+    LOGI("%s: after rescale: space=0x%08llx[%s], low=0x%08x, high=0x%08x\n",
 	   c->debug,space,asbits(space),c->low,c->high);
   }
 
@@ -316,16 +316,16 @@ int range_encode_equiprobable(range_coder *c,int alphabet_size,int symbol)
   }
 
   if (alphabet_size>=0x400000) {
-    fprintf(stderr,"%s() passed alphabet_size>0x400000\n",__FUNCTION__);
+    LOGE("%s() passed alphabet_size>0x400000\n",__FUNCTION__);
     c->errors++;
-    exit(-1);
+    return -1;
   }
   if (alphabet_size<1) return 0;
 
   unsigned int p_low,p_high;
   range_equiprobable_range(c,alphabet_size,symbol,&p_low,&p_high);
   if (c->debug)
-    fprintf(stderr,"Encoding %d/%d: p_low=0x%x, p_high=0x%x\n",
+    LOGI("Encoding %d/%d: p_low=0x%x, p_high=0x%x\n",
 	    symbol,alphabet_size,p_low,p_high);
 
   return range_encode(c,p_low,p_high);
@@ -346,7 +346,7 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
   unsigned int s=v*alphabet_size/space;
   
   if (c->debug)
-    fprintf(stderr,"decoding: alphabet size = %d, estimating s=%d (0x%x)\n",
+    LOGI("decoding: alphabet size = %d, estimating s=%d (0x%x)\n",
 	    alphabet_size,s,s);
 
   int symbol;
@@ -357,29 +357,29 @@ int range_decode_equiprobable(range_coder *c,int alphabet_size)
       range_equiprobable_range(c,alphabet_size,symbol,&p_low,&p_high);
       if (!range_decode_common(c,p_low,p_high,symbol)) {
 	if (c->debug) 
-	  fprintf(stderr,"Decoding %d/%d p_low=0x%x, p_high=0x%x\n",
+	  LOGI("Decoding %d/%d p_low=0x%x, p_high=0x%x\n",
 		  symbol,alphabet_size,p_low,p_high);
 	return symbol;     
       }
     }
 
-  fprintf(stderr,"Internal error in range_decode_equiprobable().\n");
+  LOGE("Internal error in range_decode_equiprobable().\n");
   
   s=v*alphabet_size/space;
-  fprintf(stderr,"Estimated s=%d (0x%x)\n",s,s);
+  LOGE("Estimated s=%d (0x%x)\n",s,s);
   for(symbol=s?s-1:0;symbol<s+2&&symbol<alphabet_size;symbol++)
     {
       unsigned int p_low,p_high;
       c->debug="here";
       range_equiprobable_range(c,alphabet_size,symbol,&p_low,&p_high);
-      fprintf(stderr,"tried symbol=%d (0x%x) : p_low=0x%x, p_high=0x%x\n",
+      LOGE("tried symbol=%d (0x%x) : p_low=0x%x, p_high=0x%x\n",
 	      symbol,symbol,p_low,p_high);
       if (range_decode_common(c,p_low,p_high,symbol)) {
-	fprintf(stderr,"  and range_decode_common() failed.\n");
+	LOGE("  and range_decode_common() failed.\n");
       }
     } 
 
-  exit(-1);
+  return -1;
 }
 
 
@@ -416,13 +416,13 @@ int range_status(range_coder *c,int decoderP)
   if (decoderP&&(i>=32)) i-=32;
   spaces[i]=0; prefix[i]=0;
 
-  printf("range  low: %s%s (offset=%d bits)\n",spaces,asbits(c->low),c->bits_used);
-  printf("     value: %s%s (0x%08x/0x%08llx = 0x%08llx)\n",
+  LOGI("range  low: %s%s (offset=%d bits)\n",spaces,asbits(c->low),c->bits_used);
+  LOGI("     value: %s%s (0x%08x/0x%08llx = 0x%08llx)\n",
 	 range_coder_lastbits(c,90),decoderP?"":asbits(value),
 	 (value-c->low),space,
 	 (((unsigned long long)value-(unsigned long long)c->low)<<32LL)/
 	 (space?space:1));
-  printf("range high: %s%s\n",spaces,asbits(c->high));
+  LOGI("range high: %s%s\n",spaces,asbits(c->high));
   return 0;
 }
 
@@ -448,7 +448,7 @@ int range_conclude(range_coder *c)
   c->low=(c->low<<1)&0x7fffffff;
   c->high=(c->high<<1)|0x80000001;
   if (c->debug) {
-    fprintf(stderr,"after shifting out msb and underflow bits: low=0x%x, high=0x%x\n",
+    LOGI("after shifting out msb and underflow bits: low=0x%x, high=0x%x\n",
 	    c->low,c->high);
     range_status(c,0);
   }
@@ -464,9 +464,9 @@ int range_conclude(range_coder *c)
     {
       bits++;
       if (bits>=32) {
-	fprintf(stderr,"Could not conclude coder:\n");
-	fprintf(stderr,"  low=0x%08x, high=0x%08x\n",c->low,c->high);
-	exit(-1);
+	LOGE("Could not conclude coder:\n");
+	LOGE("  low=0x%08x, high=0x%08x\n",c->low,c->high);
+	return -1;
       }
       v=(mean>>(32-bits))<<(32-bits);
       mask=0xffffffff>>bits;
@@ -513,7 +513,9 @@ int range_coder_reset(struct range_coder *c)
 struct range_coder *range_new_coder(int bytes)
 {
   struct range_coder *c=calloc(sizeof(struct range_coder),1);
-  c->bit_stream=malloc(bytes);
+  bzero(c, sizeof(struct range_coder));
+  if (bytes)
+    c->bit_stream=malloc(bytes);
   c->bit_stream_length=bytes*8;
   range_coder_reset(c);
   return c;
@@ -544,18 +546,18 @@ int range_check(range_coder *c,int line)
   if (c->low>=c->high) 
     {
       if (!line) return -1;
-      fprintf(stderr,"c->low >= c->high at line %d\n",line);
-      exit(-1);
+      LOGE("c->low >= c->high at line %d\n",line);
+      return -1;
     }
   if (!c->decodingP) return 0;
 
   if (c->value>c->high||c->value<c->low) {
     if (!line) return -1;
-    fprintf(stderr,"c->value out of bounds %d\n",line);
-    fprintf(stderr,"  low=0x%08x, value=0x%08x, high=0x%08x\n",
+    LOGE("c->value out of bounds %d\n",line);
+    LOGE("  low=0x%08x, value=0x%08x, high=0x%08x\n",
 	    c->low,c->value,c->high);
     range_status(c,1);
-    exit(-1);
+    return -1;
   }
   return 0;
 }
@@ -603,8 +605,8 @@ int range_decode_symbol(range_coder *c,unsigned int frequencies[],int alphabet_s
   // printf("in decode_symbol() about to call decode_common()\n");
   // range_status(c,1);
   if (range_decode_common(c,p_low,p_high,s)) {
-    fprintf(stderr,"range_decode_common() failed for some reason.\n");
-    exit(-1);
+    LOGE("range_decode_common() failed for some reason.\n");
+    return -1;
   }
   return s;
 }
@@ -614,7 +616,7 @@ int range_calc_new_range(range_coder *c,
 			 unsigned int *new_low,unsigned int *new_high)
 {
   unsigned long long space=range_space(c);
-  if (c->debug) fprintf(stderr,"calculating new range using space=0x%llx\n",space);
+  if (c->debug) LOGE("calculating new range using space=0x%llx\n",space);
 
   if (space<MAXVALUEPLUS1) {
     c->errors++;
@@ -623,10 +625,10 @@ int range_calc_new_range(range_coder *c,
   }
 
   if (c->debug) {
-    fprintf(stderr,"%s(): space=0x%llx, c->low=0x%x, c->high=0x%x, p_low=0x%x, p_high=0x%x\n",
+    LOGE("%s(): space=0x%llx, c->low=0x%x, c->high=0x%x, p_low=0x%x, p_high=0x%x\n",
 	    __FUNCTION__,space,c->low,c->high,p_low,p_high);
   }
-  if(c->debug) fprintf(stderr,"(0x%x * 0x%llx)>>24 = 0x%llx\n",p_low,space,(p_low*space)>>24LL);
+  if(c->debug) LOGE("(0x%x * 0x%llx)>>24 = 0x%llx\n",p_low,space,(p_low*space)>>24LL);
   *new_low=c->low+((p_low*space)>>(32LL-SHIFTUPBITS));
   *new_high=c->low+(((p_high)*space)>>(32LL-SHIFTUPBITS))-1;
   if (p_high>=MAXVALUEPLUS1) *new_high=c->high;
@@ -634,9 +636,9 @@ int range_calc_new_range(range_coder *c,
   if (c->decodingP)
     if (*new_low>c->value||*new_high<c->value) {
       if (c->debug) {
-	fprintf(stderr,"%s(): new range would be invalid: space=0x%llx, c->low=0x%x, c->high=0x%x, p_low=0x%x, p_high=0x%x\n",
+	LOGE("%s(): new range would be invalid: space=0x%llx, c->low=0x%x, c->high=0x%x, p_low=0x%x, p_high=0x%x\n",
 		__FUNCTION__,space,c->low,c->high,p_low,p_high);
-	fprintf(stderr,"  new_low=0x%x, new_high=0x%x, c->value=0x%x\n",
+	LOGE("  new_low=0x%x, new_high=0x%x, c->value=0x%x\n",
 		*new_low,*new_high,c->value);
       }
       return -1;
@@ -658,12 +660,12 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
     }
   
   if (range_check(c,0 /* don't abort if things go wrong */)) {
-    if (c->debug) fprintf(stderr,"range check failed at %s:%d\n",__FILE__,__LINE__);
+    if (c->debug) LOGE("range check failed at %s:%d\n",__FILE__,__LINE__);
     return -1;
   }
 
   if (range_calc_new_range(c,p_low,p_high,&new_low,&new_high)) {
-    if (c->debug) fprintf(stderr,"range calc new range failed at %s:%d\n",__FILE__,__LINE__);
+    if (c->debug) LOGE("range calc new range failed at %s:%d\n",__FILE__,__LINE__);
     return -1;
   }
 
@@ -680,18 +682,18 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
 
   c->decodingP=1;
   if (range_check(c,0 /* don't abort if things go wrong */)) {
-    if (c->debug) fprintf(stderr,"range check failed at %s:%d\n",__FILE__,__LINE__);
+    if (c->debug) LOGE("range check failed at %s:%d\n",__FILE__,__LINE__);
     return -1;
   }
 
   if (new_low>c->value||new_high<c->value) {
     if (c->debug) {
-      fprintf(stderr,"c->value would be out of bounds at %s:%d\n",__FILE__,__LINE__);
-      fprintf(stderr,"  new_low=0x%08x, c->value=0x%08x, new_high=0x%08x\n",new_low,c->value,new_high);
-      fprintf(stderr,"  low=0x%08x, value=0x%08x, high=0x%08x\n",c->low,c->value,c->high);
-      fprintf(stderr,"  p_low=0x%08x, p_high=0x%08x, space=%08llx, s=%d\n",
+      LOGE("c->value would be out of bounds at %s:%d\n",__FILE__,__LINE__);
+      LOGE("  new_low=0x%08x, c->value=0x%08x, new_high=0x%08x\n",new_low,c->value,new_high);
+      LOGE("  low=0x%08x, value=0x%08x, high=0x%08x\n",c->low,c->value,c->high);
+      LOGE("  p_low=0x%08x, p_high=0x%08x, space=%08llx, s=%d\n",
 	      p_low,p_high,range_space(c),s);
-      fprintf(stderr,"  c->low=0x%x, c->high=0x%x\n",c->low,c->high);
+      LOGE("  c->low=0x%x, c->high=0x%x\n",c->low,c->high);
     
     }
     return -1;
@@ -701,7 +703,7 @@ int range_decode_common(range_coder *c,unsigned int p_low,unsigned int p_high,in
   c->low=new_low;
   c->high=new_high;
   if (range_check(c,0 /* don't abort if things go wrong */)) {
-    if (c->debug) fprintf(stderr,"range check failed at %s:%d\n",__FILE__,__LINE__);
+    if (c->debug) LOGE("range check failed at %s:%d\n",__FILE__,__LINE__);
     return -1;
   }
   
@@ -746,21 +748,22 @@ range_coder *range_coder_dup(range_coder *in)
 {
   range_coder *out=calloc(sizeof(range_coder),1);
   if (!out) {
-    fprintf(stderr,"allocation of range_coder in range_coder_dup() failed.\n");
+    LOGE("allocation of range_coder in range_coder_dup() failed.\n");
     return NULL;
   }
   bcopy(in,out,sizeof(range_coder));
   out->bit_stream=malloc(bits2bytes(out->bit_stream_length));
   if (!out->bit_stream) {
-    fprintf(stderr,"range_coder_dup() failed\n");
+    LOGE("range_coder_dup() failed\n");
     free(out);
     return NULL;
   }
   if (out->bits_used>out->bit_stream_length) {
-    fprintf(stderr,"bits_used>bit_stream_length in range_coder_dup()\n");
-    fprintf(stderr,"  bits_used=%d, bit_stream_length=%d\n",
+    LOGE("bits_used>bit_stream_length in range_coder_dup()\n");
+    LOGE("  bits_used=%d, bit_stream_length=%d\n",
 	    out->bits_used,out->bit_stream_length);
-    exit(-1);
+    free(out);
+    return NULL;
   }
   bcopy(in->bit_stream,out->bit_stream,bits2bytes(out->bits_used));
   return out;
@@ -768,11 +771,9 @@ range_coder *range_coder_dup(range_coder *in)
 
 int range_coder_free(range_coder *c)
 {
-  if (!c->bit_stream) {
-    fprintf(stderr,"range_coder_free() asked to free apparently already freed context.\n");
-    exit(-1);
-  }
-  free(c->bit_stream); c->bit_stream=NULL;
+  if (c->bit_stream)
+    free(c->bit_stream);
+  c->bit_stream=NULL;
   bzero(c,sizeof(range_coder));
   free(c);
   return 0;
@@ -781,7 +782,7 @@ int range_coder_free(range_coder *c)
 #ifdef TESTMODE
 int test_foo1(range_coder *c)
 {
-  fprintf(stderr,"Testing a use case that failed some time.\n");
+  LOGE("Testing a use case that failed some time.\n");
   range_coder_reset(c);
 
   unsigned int messagelengths[1024]={
@@ -916,22 +917,22 @@ int test_foo1(range_coder *c)
 0xffff0a,0xffff2d,0xffff50,0xffff73,0xffff96,0xffffb9,0xffffdc};
 
   unsigned int probPackedASCII=0.05*0xffffff;
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
   range_encode_equiprobable(c,2,1);
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
   range_encode_equiprobable(c,2,0);
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
   range_encode_symbol(c,&probPackedASCII,2,1);
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
   range_encode_symbol(c,messagelengths,1024,140);
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,c->low,c->value,c->high);
 
   range_conclude(c);
 
   {
     int i;
-    for(i=0;i<=(c->bits_used>>3);i++) fprintf(stderr,"%02x ",c->bit_stream[i]);
-    fprintf(stderr,"\n");
+    for(i=0;i<=(c->bits_used>>3);i++) LOGE("%02x ",c->bit_stream[i]);
+    LOGE("\n");
   }
 
   range_coder *vc=range_coder_dup(c);
@@ -939,35 +940,35 @@ int test_foo1(range_coder *c)
   vc->bits_used=0;
   range_decode_prefetch(vc);
 
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
   int b7=range_decode_equiprobable(vc,2);
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
   int b6=range_decode_equiprobable(vc,2);
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
   int notPackedASCII=range_decode_symbol(vc,&probPackedASCII,2);
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
   int length=range_decode_symbol(vc,messagelengths,1024);
-  fprintf(stderr,"%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
+  LOGE("%s:%d  c->low=0x%x, c->value=0x%08x, c->high=0x%x\n",__FUNCTION__,__LINE__,vc->low,vc->value,vc->high);
 
   if (b7!=1) {
-    fprintf(stderr,"Failed to decode b7=1 (got %d)\n",b7);
-    exit(-1);
+    LOGE("Failed to decode b7=1 (got %d)\n",b7);
+    return -1;
   }
   if (b6!=0) {
-    fprintf(stderr,"Failed to decode b6=0 (got %d)\n",b6);
-    exit(-1);
+    LOGE("Failed to decode b6=0 (got %d)\n",b6);
+    return -1;
   }
   if (notPackedASCII!=1) {
-    fprintf(stderr,"Failed to decode notPackedASCII=1 (got %d)\n",notPackedASCII);
-    exit(-1);
+    LOGE("Failed to decode notPackedASCII=1 (got %d)\n",notPackedASCII);
+    return -1;
   }
   if (length!=140) {
-    fprintf(stderr,"Failed to decode length=140 (got %d)\n",length);
-    exit(-1);
+    LOGE("Failed to decode length=140 (got %d)\n",length);
+    return -1;
   }
 
   range_coder_free(vc);
-  fprintf(stderr,"  -- passed.\n");
+  LOGE("  -- passed.\n");
   return 0;
 }
 
@@ -975,7 +976,7 @@ int test_fineslices(range_coder *c)
 {
   int i;
   
-  fprintf(stderr,"Testing performance with hair-width probabilities.\n");
+  LOGE("Testing performance with hair-width probabilities.\n");
 
   range_coder_reset(c);
   c->debug=NULL;
@@ -1001,13 +1002,13 @@ int test_fineslices(range_coder *c)
       int symbol=random()%3;
       int decodeSymbol=range_decode_symbol(vc,frequencies,3);
       if (symbol!=decodeSymbol) {
-	fprintf(stderr,"Verify error after symbol #%d: wrote %d, read %d\n",
+	LOGE("Verify error after symbol #%d: wrote %d, read %d\n",
 		i,symbol,decodeSymbol);
-	exit(-1);
+	return -1;
       }
     }
   range_coder_free(vc);
-  fprintf(stderr,"  -- passed.\n");
+  LOGE("  -- passed.\n");
 
   return 0;
 }
@@ -1017,7 +1018,7 @@ int test_equiprobable(range_coder *c)
   srandom(0);
   int i;
   
-  fprintf(stderr,"Running tests on equiprobable encoding.\n");
+  LOGE("Running tests on equiprobable encoding.\n");
 
   c->debug=NULL;
   for(i=0;i<1000000;i++)
@@ -1029,7 +1030,7 @@ int test_equiprobable(range_coder *c)
       c->debug=NULL;
       range_encode_equiprobable(c,alphabet_size,symbol);
       range_encode_equiprobable(c,alphabet_size,symbol);
-      // fprintf(stderr,"c->low=0x%x, c->high=0x%x\n",c->low,c->high);
+      // LOGE("c->low=0x%x, c->high=0x%x\n",c->low,c->high);
       // range_status(c,0);
       range_conclude(c);
       
@@ -1040,15 +1041,15 @@ int test_equiprobable(range_coder *c)
       int symbol1=range_decode_equiprobable(vc,alphabet_size);
       int symbol2=range_decode_equiprobable(vc,alphabet_size);
       if (symbol!=symbol1||symbol!=symbol2) {
-	fprintf(stderr,"test #%d failed: range_encode_equiprobable(alphabet_size=%d, symbol=%d(0x%x)) x2 verified as symbol={%d(0x%x),%d(0x%x)}\n",
+	LOGE("test #%d failed: range_encode_equiprobable(alphabet_size=%d, symbol=%d(0x%x)) x2 verified as symbol={%d(0x%x),%d(0x%x)}\n",
 		i,alphabet_size,symbol,symbol,symbol1,symbol1,symbol2,symbol2);
 
 	range_coder_reset(c);
 	c->debug="encode";
 	range_encode_equiprobable(c,alphabet_size,symbol);
-	fprintf(stderr,"\n");
+	LOGE("\n");
 	range_encode_equiprobable(c,alphabet_size,symbol);
-	fprintf(stderr,"\n");
+	LOGE("\n");
 	range_conclude(c);
 	c->debug=NULL;
 	vc->bits_used=0;
@@ -1056,16 +1057,16 @@ int test_equiprobable(range_coder *c)
 	range_decode_prefetch(vc);
 	vc->debug="decode";
 	range_decode_equiprobable(vc,alphabet_size);
-	fprintf(stderr,"\n");
+	LOGE("\n");
 	range_decode_equiprobable(vc,alphabet_size);
-	fprintf(stderr,"\n");
+	LOGE("\n");
 
-	exit(-1);
+	return -1;
       }
 
       range_coder_free(vc);
     }
-  fprintf(stderr,"  -- passed.\n");
+  LOGE("  -- passed.\n");
   return 0;
 }
 
@@ -1266,7 +1267,7 @@ int test_verify(range_coder *c)
   srandom(0);
   for(test=0;test<testCount;test++)
     {
-      if ((test%1024)==1023) fprintf(stderr,"  running test %d\n",test);
+      if ((test%1024)==1023) LOGE("  running test %d\n",test);
       /* Pick a random alphabet size */
       // alphabet_size=1+random()%1023;
       alphabet_size=1+test%1024;
@@ -1307,7 +1308,7 @@ int test_verify(range_coder *c)
       for(i=0;i<length;i++) {
 	if (range_encode_symbol(c,frequencies,alphabet_size,sequence[i]))
 	  {
-	    fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
+	    LOGE("Error encoding symbol #%d of %d (out of space?)\n",
 		    i,length);
 	    return -1;
 	  }
@@ -1336,7 +1337,7 @@ int test_verify(range_coder *c)
       }
       
       int k;
-      fprintf(stderr,"Test #%d failed: verify error of symbol %d\n",test,i);
+      LOGE("Test #%d failed: verify error of symbol %d\n",test,i);
       printf("symbol probability steps: ");
       for(k=0;k<alphabet_size-1;k++) printf(" %f[0x%08x]",frequencies[k]*1.0/MAXVALUEPLUS1,frequencies[k]);
       printf("\n");
@@ -1360,7 +1361,7 @@ int test_verify(range_coder *c)
 	printf("Encoding symbol #%d = %d\n",k,sequence[k]);
 	if (range_encode_symbol(c,frequencies,alphabet_size,sequence[k]))
 	  {
-	    fprintf(stderr,"Error encoding symbol #%d of %d (out of space?)\n",
+	    LOGE("Error encoding symbol #%d of %d (out of space?)\n",
 		    i,length);
 	    return -1;
 	  }

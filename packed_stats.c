@@ -27,11 +27,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "charset.h"
 #include "packed_stats.h"
 #include "unicode.h"
+#include "log.h"
 
 void node_free_recursive(struct node *n)
 {
   int i;
-  for(i=0;i<CHARCOUNT;i++) if (n->children[i]) node_free_recursive(n->children[i]);
+  for(i=0;i<CHARCOUNT;i++)
+    if (n->children[i])
+      node_free_recursive(n->children[i]);
   node_free(n);
   return;
 }
@@ -39,13 +42,7 @@ void node_free_recursive(struct node *n)
 
 void node_free(struct node *n)
 {
-  if (n->count==0xdeadbeef) {
-    fprintf(stderr,"node double freed.\n");
-    exit(-1);
-  }
-  n->count=0xdeadbeef;
   free(n);
-  return;
 }
 
 void stats_handle_free(stats_handle *h)
@@ -94,10 +91,10 @@ stats_handle *stats_new_handle(char *file)
 		     |(unsigned char)fgetc(h->file);
   h->maximumOrder=fgetc(h->file);
   if (1)
-    fprintf(stderr,"rootNodeAddress=0x%x, totalCount=%d, unicodeAddress=0x%x, maximumOrder=%d\n",
+    LOGE("rootNodeAddress=0x%x, totalCount=%d, unicodeAddress=0x%x, maximumOrder=%d",
 	    h->rootNodeAddress,h->totalCount,h->unicodeAddress,h->maximumOrder);
 
-#define CHECK(X) if (h->X==0||h->X>0xfffffe) { fprintf(stderr,"P(uppercase|%s) = 0x%x\n",#X,h->X); return NULL; }
+#define CHECK(X) if (h->X==0||h->X>0xfffffe) { LOGE("P(uppercase|%s) = 0x%x",#X,h->X); return NULL; }
 
   /* Read in letter case prediction statistics */
   h->casestartofmessage[0][0]=read24bits(h->file);
@@ -136,7 +133,7 @@ stats_handle *stats_new_handle(char *file)
     for(i=0;i<1024;i++) 
       h->messagelengths[i]=h->messagelengths[i]*1.0*0xffffff/tally;
   }
-  fprintf(stderr,"Read case and message length statistics.\n");
+  LOGE("Read case and message length statistics.");
 
   /* Try to mmap() */
   h->mmap=mmap(NULL, h->fileLength, PROT_READ, MAP_SHARED, fileno(h->file), 0);
@@ -160,11 +157,11 @@ int stats_load_tree(stats_handle *h)
 
 unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
 {
-  if (!h) { fprintf(stderr,"failed test at line #%d\n",__LINE__); return NULL; }
+  if (!h) { LOGE("failed test at line #%d\n",__LINE__); return NULL; }
   if (!h->file) 
-    { fprintf(stderr,"failed test at line #%d\n",__LINE__); return NULL; }
+    { LOGE("failed test at line #%d\n",__LINE__); return NULL; }
   if (start<0||start>=h->fileLength) 
-    { fprintf(stderr,"failed test at line #%d\n",__LINE__); return NULL; }
+    { LOGE("failed test at line #%d\n",__LINE__); return NULL; }
 
   if ((start+count)>h->fileLength) 
     count=h->fileLength-start;
@@ -190,7 +187,7 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   if (len<(0-(int)h->maximumOrder)) {
     // We are diving deeper than the maximum order that we expected to see.
     // This indicates an error.
-    // fprintf(stderr,"len=%d, maximumOrder=0x%x\n",len,h->maximumOrder);
+    // LOGE("len=%d, maximumOrder=0x%x\n",len,h->maximumOrder);
     return NULL;
   }
   if (nodeAddress<700) {
@@ -200,8 +197,8 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   }
   
   if (0) {
-    if (s[len]) fprintf(stderr,"Extracting node '%c' @ 0x%x\n",s[len],nodeAddress);
-    else fprintf(stderr,"Extracting root node @ 0x%x?\n",nodeAddress);
+    if (s[len]) LOGE("Extracting node '%c' @ 0x%x\n",s[len],nodeAddress);
+    else LOGE("Extracting root node @ 0x%x?\n",nodeAddress);
   }
  
   range_coder *c=range_new_coder(0);
@@ -226,8 +223,7 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   unsigned int isStored=(CHARCOUNT-storedChildren)*0xffffff/CHARCOUNT;
 
   if (debug)
-    fprintf(stderr,
-	    "children=%d, storedChildren=%d, count=%d, superCount=%d @ 0x%x\n",
+    LOGI("children=%d, storedChildren=%d, count=%d, superCount=%d @ 0x%x\n",
 	    children,storedChildren,totalCount,count,nodeAddress);
 
   struct node *n=calloc(sizeof(struct node),1);
@@ -245,21 +241,21 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
     if (countPresent) {
       thisCount=range_decode_equiprobable(c,(totalCount-progressiveCount)+1);
       if (debug)
-	fprintf(stderr,"  decoded %d of %d for '%c'\n",thisCount,
+	LOGI("  decoded %d of %d for '%c'\n",thisCount,
 		(totalCount-progressiveCount)+1,chars[i]);
       progressiveCount+=thisCount;
       children--;
       n->counts[i]=thisCount;
     } else {
-      // fprintf(stderr,"  no count for '%c' %d\n",chars[i],i);
+      // LOGE("  no count for '%c' %d\n",chars[i],i);
     }
   }
 
   if (debug) {
     int i;
-    fprintf(stderr,"Extracted counts for: '");
-    for(i=0;i<len;i++) fprintf(stderr,"%c",s[i]);
-    fprintf(stderr,"' @ 0x%x\n",nodeAddress);
+    LOGI("Extracted counts for: '");
+    for(i=0;i<len;i++) LOGE("%c",s[i]);
+    LOGE("' @ 0x%x\n",nodeAddress);
     dumpNode(n);
   }
 
@@ -268,7 +264,7 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
     int addrP=range_decode_symbol(c,&isStored,2);
     if (addrP) {
       childAddress=lowAddr+range_decode_equiprobable(c,highAddr-lowAddr+1);      
-      if (debug) fprintf(stderr,"    decoded addr=%d of %d (lowAddr=%d)\n",
+      if (debug) LOGI("    decoded addr=%d of %d (lowAddr=%d)\n",
 			 childAddress-lowAddr,highAddr-lowAddr+1,lowAddr);
       lowAddr=childAddress;     
       if (extractAllP||(len>0&&chars[i]==s[len-1])) {
@@ -282,7 +278,7 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
 	  if (n->children[i])
 	    {
 	      if (0) 
-		fprintf(stderr,"Found deeper stats for string offset %d\n",len-1);
+		LOGE("Found deeper stats for string offset %d\n",len-1);
 	      if (!extractAllP) {
 		ret=n->children[i];
 		node_free(n);
@@ -297,9 +293,9 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
 
   if (debug) {
     int i;
-    fprintf(stderr,"Extracted children for: '");
-    for(i=0;i<len;i++) fprintf(stderr,"%c",s[i]);
-    fprintf(stderr,"' @ 0x%x\n",nodeAddress);
+    LOGE("Extracted children for: '");
+    for(i=0;i<len;i++) LOGE("%c",s[i]);
+    LOGE("' @ 0x%x\n",nodeAddress);
     dumpNode(ret);
   }
 
@@ -319,18 +315,18 @@ int dumpNode(struct node *n)
   int i;
   int c=0;
   int sum=0;
-  fprintf(stderr,"Node's internal count=%lld\n",n->count);
+  LOGE("Node's internal count=%lld\n",n->count);
   for(i=0;i<CHARCOUNT;i++) {
     // 12 chars wide
-    fprintf(stderr," %c% 8d%c |",chars[i],n->counts[i],n->children[i]?'*':' ');
+    LOGE(" %c% 8d%c |",chars[i],n->counts[i],n->children[i]?'*':' ');
     c++;
     if (c>4) {
-      fprintf(stderr,"\n");
+      LOGE("\n");
       c=0;
     }
     sum+=n->counts[i];
   }
-  fprintf(stderr,"\n%d counted occurrences\n",sum);
+  LOGE("\n%d counted occurrences\n",sum);
   
   fflush(stdout);
   return 0;
@@ -356,12 +352,12 @@ struct node *extractNode(unsigned short *string,int len,stats_handle *h)
     n=extractNodeAt(string,len,rootNodeAddress,totalCount,h,0,0);
   }
   if (0) {
-    fprintf(stderr,"n=%p\n",n);
+    LOGE("n=%p\n",n);
     fflush(stderr);
   }
 
 #if 0
-    fprintf(stderr,"stats for what follows '%s' @ 0x%p\n",
+    LOGE("stats for what follows '%s' @ 0x%p\n",
 	    &string[len-i],n);
     dumpNode(n);
 #endif
@@ -369,10 +365,10 @@ struct node *extractNode(unsigned short *string,int len,stats_handle *h)
   if (n==NULL)
     {
       if (1) {
-	fprintf(stderr,"No statistics for what comes after '");
+	LOGE("No statistics for what comes after '");
 	int j;
-	for(j=0;j<=len;j++) fprintf(stderr,"%c",string[len-j-1]);
-	fprintf(stderr,"'\n");
+	for(j=0;j<=len;j++) LOGE("%c",string[len-j-1]);
+	LOGE("'\n");
       }
       
       return NULL;
@@ -391,40 +387,40 @@ struct probability_vector *extractVector(unsigned short *string,int len,
       unsigned char s[1025];
       int out_len=0;
       utf16toutf8(string,len,s,&out_len);
-      fprintf(stderr,"extractVector('%s',%d,...)\n",
+      LOGE("extractVector('%s',%d,...)\n",
 	      s,len);
     }
   
   if (string[len]) {
-    fprintf(stderr,"search strings for extractVector() must be null-terminated.\n");
+    LOGE("search strings for extractVector() must be null-terminated.\n");
     exit(-1);
   }
 
   if (!(v)) {
-    fprintf(stderr,"%s() could not work out where to put extracted vector.\n",
+    LOGE("%s() could not work out where to put extracted vector.\n",
 	    __FUNCTION__);
     exit(-1);
   }  
 
   /* Wasn't in cache, or there is no cache, so exract it */
   struct node *n=extractNode(string,len,h);
-  if (0) fprintf(stderr,"  n=%p\n",n);
+  if (0) LOGE("  n=%p\n",n);
   if (!n) {
-    fprintf(stderr,"Could not obtain any statistics (including zero-order frequencies). Broken stats data file?\n");
-    fprintf(stderr,"  len=%d\n",len);
+    LOGE("Could not obtain any statistics (including zero-order frequencies). Broken stats data file?\n");
+    LOGE("  len=%d\n",len);
     exit(-1);
   } 
 
   int i;
 
   if (0) {
-    fprintf(stderr,"probability of characters following '");
-    for(i=0;i<len;i++) fprintf(stderr,"%c",string[i]);
+    LOGE("probability of characters following '");
+    for(i=0;i<len;i++) LOGE("%c",string[i]);
   }
 
   int scale=0xffffff/(n->count+CHARCOUNT);
   if (scale==0) {
-    fprintf(stderr,"n->count+CHARCOUNT = 0x%llx > 0xffffff - this really shouldn't happen.  Your stats.dat file is probably corrupt.\n",n->count);
+    LOGE("n->count+CHARCOUNT = 0x%llx > 0xffffff - this really shouldn't happen.  Your stats.dat file is probably corrupt.\n",n->count);
     exit(-1);
   }
   int cumulative=0;
@@ -435,7 +431,7 @@ struct probability_vector *extractVector(unsigned short *string,int len,
     cumulative=v->v[i];
     sum+=n->counts[i]+1;
     if (0) 
-      fprintf(stderr,"  '%c' %d : 0x%06x (%d/%lld) %d (*v)[i]=%p\n",
+      LOGE("  '%c' %d : 0x%06x (%d/%lld) %d (*v)[i]=%p\n",
 	      chars[i],i,v->v[i],
 	      n->counts[i]+1,n->count+CHARCOUNT,sum,
 	      &v->v[i]);
@@ -457,7 +453,7 @@ double entropyOfSymbol(struct probability_vector *v,int s)
   if (chars[s]=='0') extra=-log(0.1)/log(2);
   if (chars[s]=='U') {
     // Estimate unicode symbol cost
-    fprintf(stderr,"Estimating entropy of unicode characters not yet implemented.\n");
+    LOGE("Estimating entropy of unicode characters not yet implemented.\n");
     exit(-1);
   }
   if (s<CHARCOUNT-1) high=v->v[s];
@@ -472,7 +468,7 @@ int vectorReportShort(char *name,struct probability_vector *v,int s)
   if (s) low=v->v[s-1];
   if (s<CHARCOUNT-1) high=v->v[s];
   double percent=(high-low)*100.00/0x1000000;
-  fprintf(stderr,"P[%s](%c) = %.2f%%\n",name,chars[s],percent);
+  LOGE("P[%s](%c) = %.2f%%\n",name,chars[s],percent);
   return 0;
 }
 
@@ -483,26 +479,26 @@ int vectorReport(char *name,struct probability_vector *v,int s)
   if (s) low=v->v[s-1];
   if (s<CHARCOUNT-1) high=v->v[s];
   double percent=(high-low)*100.00/0x1000000;
-  fprintf(stderr,"P[%s](%c) = %.2f%%\n",name,chars[s],percent);
+  LOGE("P[%s](%c) = %.2f%%\n",name,chars[s],percent);
   int i;
   low=0;
   for(i=0;i<CHARCOUNT;i++) {
     if (i<CHARCOUNT-1) high=v->v[i]; else high=0x1000000;
     double p=(high-low)*100.00/0x1000000;
 
-    fprintf(stderr," '%c' %.2f%% |",chars[i]>0x1f?chars[i]:'A'+chars[i],p);
-    if (i%5==4) fprintf(stderr,"\n");
+    LOGE(" '%c' %.2f%% |",chars[i]>0x1f?chars[i]:'A'+chars[i],p);
+    if (i%5==4) LOGE("\n");
 
     low=high;
   }
-  fprintf(stderr,"\n");
+  LOGE("\n");
   return 0;
 }
 
 int *getUnicodeStatistics(stats_handle *h,int codePage)
 {
   if (codePage<1||codePage>511) {
-    fprintf(stderr,"Illegal code page: 0x%x\n",codePage);
+    LOGE("Illegal code page: 0x%x\n",codePage);
     return NULL;
   }
   if (!h->unicode_page_addresses) {
@@ -530,7 +526,7 @@ int *getUnicodeStatistics(stats_handle *h,int codePage)
     if (h->unicode_page_addresses[codePage]==
 	h->unicode_page_addresses[codePage+1])
       {
-	if (0) fprintf(stderr,"WARNING: No stats for code page 0x%04x; making some up.\n",
+	if (0) LOGE("WARNING: No stats for code page 0x%04x; making some up.\n",
 		       codePage*0x80);
 	for(i=0;i<128;i++) h->unicode_pages[codePage]->counts[i]=40;
 	for(i=128;i<=128+512;i++) h->unicode_pages[codePage]->counts[i]=1;
@@ -550,7 +546,7 @@ int *getUnicodeStatistics(stats_handle *h,int codePage)
 
     // Rescale to fill 0-0xffffff range
     double rescaleFactor=0xffff00*1.0/(totalCount+1);
-    if (0) fprintf(stderr,"totalCount for code page 0x%04x = %d. Rescale x%.2f\n",
+    if (0) LOGE("totalCount for code page 0x%04x = %d. Rescale x%.2f\n",
 		   codePage*0x80,totalCount+1,rescaleFactor);
     for(i=0;i<128+512+1;i++)
       h->unicode_pages[codePage]->counts[i]*=rescaleFactor;
@@ -571,7 +567,7 @@ int unicodeVectorReport(char *name,int *counts,int previousCodePage,
       range=counts[symbol]-counts[symbol-1];
     else range=counts[symbol];
     double percent=range*100.00/max;
-    fprintf(stderr,"P[%s](codepoint 0x%04x) = %.2f%%\n",name,s,percent);    
+    LOGE("P[%s](codepoint 0x%04x) = %.2f%%\n",name,s,percent);
   } else {
     // code page switch
     int newCodePage;
@@ -579,33 +575,33 @@ int unicodeVectorReport(char *name,int *counts,int previousCodePage,
     else newCodePage=s/0x80;
     range=counts[128+newCodePage]-counts[128+newCodePage-1];
     double percent=range*100.00/max;
-    fprintf(stderr,"P[%s](codepage 0x%04x) = %.2f%% (%d of %d)\n",
+    LOGE("P[%s](codepage 0x%04x) = %.2f%% (%d of %d)\n",
 	    name,newCodePage*0x80,percent,range,counts[128+512]);
   }
 
   int i,low;
-  fprintf(stderr,"Character probabilities (excluding probability of page switch):\n");
+  LOGE("Character probabilities (excluding probability of page switch):\n");
   for(i=0;i<128;i++) {
     if (i) low=counts[i-1]; else low=0;
 
     double p=(counts[i]-low)*100.00/counts[128];
 
-    fprintf(stderr," 0x%04x 0x%06x %.2f%% |",codePage*0x80+i,counts[i],p);
-    if (i%5==4) fprintf(stderr,"\n");
+    LOGE(" 0x%04x 0x%06x %.2f%% |",codePage*0x80+i,counts[i],p);
+    if (i%5==4) LOGE("\n");
   }
-  fprintf(stderr,"\n");
+  LOGE("\n");
 
-  fprintf(stderr,"Code page switch probabilities (excluding probability of characters):\n");
+  LOGE("Code page switch probabilities (excluding probability of characters):\n");
   for(i=0;i<(512+1);i++) {
 
     double p=(counts[128+i]-counts[128+i-1])*100.00/(counts[128+512]-counts[127]);
 
-    fprintf(stderr," 0x%04x 0x%06x %.2f%% |",i*0x80,counts[128+i],p);
-    if (i%5==4) fprintf(stderr,"\n");
+    LOGE(" 0x%04x 0x%06x %.2f%% |",i*0x80,counts[128+i],p);
+    if (i%5==4) LOGE("\n");
   }
-  fprintf(stderr,"\n");
+  LOGE("\n");
   double p=counts[128]*100.00/counts[128+512];
-  fprintf(stderr,"Characters in code page occur %.2f%% of the time (%d times), characters in another code page occur %.2f%% of the time (%d times).\n",
+  LOGE("Characters in code page occur %.2f%% of the time (%d times), characters in another code page occur %.2f%% of the time (%d times).\n",
 	  p,counts[127],
 	  100.0-p,(counts[128+512]-counts[127]));
 

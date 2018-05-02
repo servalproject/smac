@@ -110,33 +110,19 @@ int main(int argc,char *argv[])
     percent_count[i]=0;
   }
 
+  if (argc>1) {
+    if (!strcasecmp(argv[1],"recipe")) return recipe_main(argc,argv);
+  }
+  
   // XXX - Evil, evil hack.  Should pass in the path to the stats file for
   // all invocations.
-#ifdef ANDROID
-  stats_handle *h=stats_new_handle("/sdcard/servalproject/sam/succinct_recipes/smac.dat");
-#else
   stats_handle *h=stats_new_handle("stats.dat");
-#endif
-  if (!h){
-    fprintf(stderr, "Failed to locate statistics file\n");
-    exit(-1);
-  }
-
-
-  // Load complete tree
-  stats_load_tree(h);
-  
   if (!h) {
     char working_dir[1024];
     getcwd(working_dir,1024);
     fprintf(stderr,"Could not read stats.dat (pwd='%s').\n",working_dir);
     exit(-1);
   }
-
-  if (argc>1) {
-    if (!strcasecmp(argv[1],"recipe")) return recipe_main(argc,argv,h);
-  }
-  
   /* Preload tree for speed */
   stats_load_tree(h);
 

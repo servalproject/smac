@@ -162,7 +162,7 @@ int recipe_form_hash(char *recipe_file, unsigned char *formhash,
   // Include version of SMAC in hash, so that we never accidentally
   // mis-interpret things.
   MD5_Update(&md5, "SMAC Binary Format v2", strlen("SMAC Binary Format v2"));
-  LOGI("Calculating recipe file formhash from '%s' (%d chars)\n", recipe_name,
+  LOGI("Calculating recipe file formhash from '%s' (%d chars)", recipe_name,
        (int)strlen(recipe_name));
   MD5_Update(&md5, recipe_name, strlen(recipe_name));
   MD5_Final(hash, &md5);
@@ -176,7 +176,7 @@ int recipe_form_hash(char *recipe_file, unsigned char *formhash,
 
 struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
   if (buffer_size < 1 || buffer_size > 1048576) {
-    LOGE("Recipe file empty or too large (>1MB).\n");
+    LOGE("Recipe file empty or too large (>1MB).");
     return NULL;
   }
 
@@ -190,7 +190,7 @@ struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
   struct recipe *recipe =
       calloc(sizeof(struct recipe) + strlen(form_name) + 1, 1);
   if (!recipe) {
-    LOGE("Allocation of recipe structure failed.\n");
+    LOGE("Allocation of recipe structure failed.");
     return NULL;
   }
   strcpy(recipe->formname, form_name);
@@ -207,13 +207,13 @@ struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
   struct field **field_tail = &recipe->field_list;
   for (i = 0; i <= buffer_size; i++) {
     if (l > 16380) {
-      LOGE("line:%d:Line too long.\n", line_number);
+      LOGE("line:%d:Line too long.", line_number);
       recipe_free(recipe);
       return NULL;
     }
     if ((i == buffer_size) || (buffer[i] == '\n') || (buffer[i] == '\r')) {
       if (recipe->field_count > 1000) {
-        LOGE("line:%d:Too many field definitions (must be <=1000).\n",
+        LOGE("line:%d:Too many field definitions (must be <=1000).",
              line_number);
         recipe_free(recipe);
         return NULL;
@@ -226,7 +226,7 @@ struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
                    &precision, enumvalues) >= 5) {
           int fieldtype = recipe_parse_fieldtype(type);
           if (fieldtype == -1) {
-            LOGE("line:%d:Unknown or misspelled field type '%s'.\n",
+            LOGE("line:%d:Unknown or misspelled field type '%s'.",
                  line_number, type);
             recipe_free(recipe);
             return NULL;
@@ -256,7 +256,7 @@ struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
                   // End of field
                   enum_value[e] = 0;
                   if (en >= MAX_ENUM_VALUES) {
-                    LOGE("line:%d:enum has too many values (max=32)\n",
+                    LOGE("line:%d:enum has too many values (max=32)",
                          line_number);
                     recipe_free(recipe);
                     return NULL;
@@ -275,7 +275,7 @@ struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
               }
               if (en < 1) {
                 LOGE("line:%d:Malformed enum field definition: must "
-                     "contain at least one value option.\n",
+                     "contain at least one value option.",
                      line_number);
                 recipe_free(recipe);
                 return NULL;
@@ -286,7 +286,7 @@ struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
             recipe->field_count++;
           }
         } else {
-          LOGE("line:%d:Malformed field definition.\n", line_number);
+          LOGE("line:%d:Malformed field definition.", line_number);
           recipe_free(recipe);
           return NULL;
         }
@@ -305,26 +305,26 @@ int recipe_load_file(char *filename, char *out, int out_size) {
 
   int fd = open(filename, O_RDONLY);
   if (fd == -1) {
-    LOGE("Could not open file '%s'\n", filename);
+    LOGE("Could not open file '%s'", filename);
     return -1;
   }
 
   struct stat stat;
   if (fstat(fd, &stat) == -1) {
-    LOGE("Could not stat file '%s'\n", filename);
+    LOGE("Could not stat file '%s'", filename);
     close(fd);
     return -1;
   }
 
   if (stat.st_size > out_size) {
-    LOGE("File '%s' is too long (must be <= %d bytes)\n", filename, out_size);
+    LOGE("File '%s' is too long (must be <= %d bytes)", filename, out_size);
     close(fd);
     return -1;
   }
 
   buffer = mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer == MAP_FAILED) {
-    LOGE("Could not memory map file '%s'\n", filename);
+    LOGE("Could not memory map file '%s'", filename);
     close(fd);
     return -1;
   }
@@ -343,11 +343,11 @@ struct recipe *recipe_read_from_specification(char *xmlform_c) {
     magpi_mode = 1;
   int r;
 
-  printf("start of form: '%c%c%c%c%c%c%c%c%c%c'\n", xmlform_c[0], xmlform_c[1],
+  LOGI("start of form: '%c%c%c%c%c%c%c%c%c%c'", xmlform_c[0], xmlform_c[1],
          xmlform_c[2], xmlform_c[3], xmlform_c[4], xmlform_c[5], xmlform_c[6],
          xmlform_c[7], xmlform_c[8], xmlform_c[9]);
 
-  printf("magpi_mode=%d\n", magpi_mode);
+  LOGI("magpi_mode=%d", magpi_mode);
 
   if (magpi_mode) {
     char *recipe_text[1024];
@@ -395,20 +395,20 @@ struct recipe *recipe_read_from_file(char *filename) {
 
   int fd = open(filename, O_RDONLY);
   if (fd == -1) {
-    LOGE("Could not open recipe file '%s'\n", filename);
+    LOGE("Could not open recipe file '%s'", filename);
     return NULL;
   }
 
   struct stat stat;
   if (fstat(fd, &stat) == -1) {
-    LOGE("Could not stat recipe file '%s'\n", filename);
+    LOGE("Could not stat recipe file '%s'", filename);
     close(fd);
     return NULL;
   }
 
   buffer = mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer == MAP_FAILED) {
-    LOGE("Could not memory map recipe file '%s'\n", filename);
+    LOGE("Could not memory map recipe file '%s'", filename);
     close(fd);
     return NULL;
   }
@@ -420,7 +420,7 @@ struct recipe *recipe_read_from_file(char *filename) {
 
   if (recipe && recipe->field_count == 0) {
     recipe_free(recipe);
-    LOGE("Recipe contains no field definitions\n");
+    LOGE("Recipe contains no field definitions");
     return NULL;
   }
 
@@ -491,7 +491,7 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
     if (normalised_value == (maximum - minimum + 1)) {
       // out of range value, so decode it as a string.
       LOGE("FIELDTYPE_INTEGER: Illegal value - decoding string "
-           "representation.\n");
+           "representation.");
       r = stats3_decompress_bits(c, (unsigned char *)value, &value_size, stats,
                                  NULL);
     } else
@@ -515,7 +515,7 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
     if (sign)
       f = -f;
     f = ldexp(f, exponent);
-    LOGE("sign=%d, exp=%d, mantissa=%x, f=%f\n", sign, exponent, mantissa, f);
+    LOGE("sign=%d, exp=%d, mantissa=%x, f=%f", sign, exponent, mantissa, f);
     sprintf(value, "%f", f);
 
     // Now enforce reasonable numbers of significant digits
@@ -535,11 +535,11 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
         sane_decimal_places = 0;
       int actual_decimal_places =
           strlen(value) - 1 - (strstr(value, ".") - value);
-      printf("%s has %d decimal places. %d would be sane.\n", value,
+      LOGI("%s has %d decimal places. %d would be sane.", value,
              actual_decimal_places, sane_decimal_places);
       for (int i = sane_decimal_places; i < actual_decimal_places; i++)
         round_string_by_one_digit(value);
-      printf("  after rounding it is [%s]\n", value);
+      LOGI("  after rounding it is [%s]", value);
     }
 
     // Trim trailing 0s after the decimal place
@@ -580,7 +580,7 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
     normalised_value = range_decode_equiprobable(c, field->enum_count);
     if (normalised_value < 0 || normalised_value >= field->enum_count) {
       LOGE("enum: range_decode_equiprobable returned illegal value %d for "
-           "range %d..%d\n",
+           "range %d..%d",
            normalised_value, 0, field->enum_count - 1);
       return -1;
     }
@@ -591,7 +591,7 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
       val = val->next;
     }
     strcpy(value, val->value);
-    LOGI("enum: decoding %s as %d of %d\n", value, normalised_value,
+    LOGI("enum: decoding %s as %d of %d", value, normalised_value,
          field->enum_count);
     return 0;
     break;
@@ -607,7 +607,7 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
       time_t t = 0;
       t = range_decode_equiprobable(c, 0x8000) << 16;
       t |= range_decode_equiprobable(c, 0x10000);
-      LOGI("TIMEDATE: decoding t=%d\n", (int)t);
+      LOGI("TIMEDATE: decoding t=%d", (int)t);
       struct tm tm;
       // gmtime_r(&t,&tm);
       localtime_r(&t, &tm);
@@ -723,7 +723,7 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
       lon = ilon;
       break;
     default:
-      LOGE("Illegal LATLONG precision of %d bits.  Should be 16 or 34.\n",
+      LOGE("Illegal LATLONG precision of %d bits.  Should be 16 or 34.",
            field->precision);
       return -1;
     }
@@ -731,7 +731,7 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
     return 0;
   }
   default:
-    LOGE("Attempting decompression of unsupported field type of '%s'.\n",
+    LOGE("Attempting decompression of unsupported field type of '%s'.",
          recipe_field_type_name(field->type));
     return -1;
   }
@@ -771,14 +771,14 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
     minimum = field->minimum;
     maximum = field->maximum;
     if (maximum <= minimum) {
-      LOGE("Illegal range: min=%d, max=%d\n", minimum, maximum);
-      LOGI("Illegal range: min=%d, max=%d\n", minimum, maximum);
+      LOGE("Illegal range: min=%d, max=%d", minimum, maximum);
+      LOGI("Illegal range: min=%d, max=%d", minimum, maximum);
       return -1;
     }
     if (normalised_value < 0 || normalised_value > (maximum - minimum + 1)) {
-      LOGE("Illegal value: min=%d, max=%d, value=%d\n", minimum, maximum,
+      LOGE("Illegal value: min=%d, max=%d, value=%d", minimum, maximum,
            atoi(value));
-      LOGI("Illegal value: min=%d, max=%d, value=%d\n", minimum, maximum,
+      LOGI("Illegal value: min=%d, max=%d, value=%d", minimum, maximum,
            atoi(value));
       range_encode_equiprobable(c, maximum - minimum + 2,
                                 maximum - minimum + 1);
@@ -804,7 +804,7 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
       exponent = -127;
     if (exponent > 127)
       exponent = 127;
-    LOGE("encoding sign=%d, exp=%d, mantissa=%x, f=%f\n", sign, exponent,
+    LOGE("encoding sign=%d, exp=%d, mantissa=%x, f=%f", sign, exponent,
          mantissa, atof(value));
     // Sign
     range_encode_equiprobable(c, 2, sign);
@@ -849,7 +849,7 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
     if ((r = sscanf(value, "%d-%d-%dT%d:%d:%d.%d%d:%d", &tm.tm_year, &tm.tm_mon,
                     &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec, &csec,
                     &tzh, &tzm)) < 6) {
-      LOGI("r=%d\n", r);
+      LOGI("r=%d", r);
       return -1;
     }
 
@@ -905,7 +905,7 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
     int b;
     b = range_encode_equiprobable(c, 0x8000, t >> 16);
     b = range_encode_equiprobable(c, 0x10000, t & 0xffff);
-    LOGI("TIMEDATE: encoding t=%d\n", (int)t);
+    LOGI("TIMEDATE: encoding t=%d", (int)t);
     return b;
   }
   case FIELDTYPE_MAGPITIMEDATE: {
@@ -915,7 +915,7 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
     bzero(&tm, sizeof(tm));
     if ((r = sscanf(value, "%d-%d-%d %d:%d:%d", &tm.tm_year, &tm.tm_mon,
                     &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec)) < 6) {
-      LOGI("r=%d\n", r);
+      LOGI("r=%d", r);
       return -1;
     }
 
@@ -949,7 +949,7 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
     // formats. For US versus Standard MDY vs DMY ordering, we really don't have
     // any choice but to remember it. So as a result, we allow months to be 1-31
     // as well.
-    LOGE("Parsing FIELDTYPE_DATE value '%s'\n", value);
+    LOGE("Parsing FIELDTYPE_DATE value '%s'", value);
     int separator = 0;
     if (sscanf(value, "%d/%d/%d", &y, &m, &d) == 3) {
       separator = '/';
@@ -960,7 +960,7 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
 
     // XXX Not as efficient as it could be (assumes all months have 31 days)
     if (y < 1 || y > 9999 || m < 1 || m > 31 || d < 1 || d > 31) {
-      LOGE("Invalid field value\n");
+      LOGE("Invalid field value");
       return -1;
     }
     normalised_value = y * (31 * 31) + (m - 1) * 31 + (d - 1);
@@ -1055,11 +1055,11 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
       normalised_value++;
     }
     if (normalised_value >= field->enum_count) {
-      LOGE("Value '%s' is not in enum list for '%s'.\n", value, field->name);
+      LOGE("Value '%s' is not in enum list for '%s'.", value, field->name);
       return -1;
     }
     maximum = field->enum_count;
-    LOGI("enum: encoding %s as %d of %d\n", value, normalised_value, maximum);
+    LOGI("enum: encoding %s as %d of %d", value, normalised_value, maximum);
     return range_encode_equiprobable(c, maximum, normalised_value);
   }
   case FIELDTYPE_TEXT: {
@@ -1071,7 +1071,7 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
     }
     int r = stats3_compress_append(c, (unsigned char *)value, strlen(value),
                                    stats, NULL);
-    LOGI("'%s' encoded in %d bits\n", value, c->bits_used - before);
+    LOGI("'%s' encoded in %d bits", value, c->bits_used - before);
     if (r)
       return -1;
     return 0;
@@ -1116,7 +1116,7 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
       }
     }
     if (j != 16) {
-      LOGE("Malformed UUID field.\n");
+      LOGE("Malformed UUID field.");
       return -1;
     }
     // write appropriate number of bytes
@@ -1146,10 +1146,10 @@ struct recipe *recipe_find_recipe(char *recipe_dir, unsigned char *formhash) {
         snprintf(recipe_path, 1024, "%s/%s", recipe_dir, de->d_name);
         struct recipe *r = recipe_read_from_file(recipe_path);
         if (0)
-          LOGE("Is %s a recipe?\n", recipe_path);
+          LOGE("Is %s a recipe?", recipe_path);
         if (r) {
           if (1) {
-            LOGE("Considering form %s (formhash %02x%02x%02x%02x%02x%02x)\n",
+            LOGE("Considering form %s (formhash %02x%02x%02x%02x%02x%02x)",
                  recipe_path, r->formhash[0], r->formhash[1], r->formhash[2],
                  r->formhash[3], r->formhash[4], r->formhash[5]);
           }
@@ -1169,20 +1169,20 @@ int recipe_decompress_with_hash(stats_handle *h, char *recipe_dir,
                                 int out_size, char *recipe_name) {
 
   if (!recipe_dir) {
-    LOGE("No recipe directory provided.\n");
+    LOGE("No recipe directory provided.");
     return -1;
   }
 
   if (!in) {
-    LOGE("No input provided.\n");
+    LOGE("No input provided.");
     return -1;
   }
   if (!out) {
-    LOGE("No output buffer provided.\n");
+    LOGE("No output buffer provided.");
     return -1;
   }
   if (in_len >= 1024) {
-    LOGE("Input must be <1KB.\n");
+    LOGE("Input must be <1KB.");
     return -1;
   }
 
@@ -1199,7 +1199,7 @@ int recipe_decompress_with_hash(stats_handle *h, char *recipe_dir,
   int i;
   for (i = 0; i < 6; i++)
     formhash[i] = range_decode_equiprobable(c, 256);
-  LOGI("formhash from succinct data message = %02x%02x%02x%02x%02x%02x\n",
+  LOGI("formhash from succinct data message = %02x%02x%02x%02x%02x%02x",
        formhash[0], formhash[1], formhash[2], formhash[3], formhash[4],
        formhash[5]);
 
@@ -1207,6 +1207,10 @@ int recipe_decompress_with_hash(stats_handle *h, char *recipe_dir,
 
   int r = recipe_decompress(h, recipe, recipe_dir, out, out_size, recipe_name,
                             c, false, false);
+
+  recipe_free(recipe);
+  range_coder_free(c);
+
   return r;
 }
 
@@ -1215,8 +1219,7 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
                       range_coder *c, bool is_subform, bool is_record) {
 
   if (!recipe) {
-    LOGE("No recipe provided.\n");
-    range_coder_free(c);
+    LOGE("No recipe provided.");
     return -1;
   }
   snprintf(recipe_name, 1024, "%s", recipe->formname);
@@ -1248,7 +1251,7 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
   for (; i < limit_in_recipe; i++) {
     int field_present = range_decode_equiprobable(c, 2);
 
-    LOGI("%sdecompressing value for '%s' of type '%d'\n",
+    LOGI("%sdecompressing value for '%s' of type '%d'",
          field_present ? "" : "not ", field->name,
          field->type);
 
@@ -1264,10 +1267,9 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
       char value[1024];
       int r = recipe_decode_field(field, h, c, value, 1024);
       if (r) {
-        range_coder_free(c);
         return -1;
       }
-      LOGI("  the value is '%s'\n", value);
+      LOGI("  the value is '%s'", value);
 
       r2 = snprintf(&out[written], out_size - written, "%s=%s\n",
                     field->name, value);
@@ -1303,6 +1305,7 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
       if (r2 > 0)
         written += r2;
     }
+    field = field->next;
   }
 
   if (is_subform && is_record) {
@@ -1317,8 +1320,6 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
                         true, true);
     }
   }
-
-  range_coder_free(c);
 
   return written;
 }
@@ -1336,28 +1337,28 @@ int recipe_compress(stats_handle *h, char *recipe_dir, struct recipe *recipe,
   */
 
   if (!recipe) {
-    LOGE("No recipe provided.\n");
+    LOGE("No recipe provided.");
     return -1;
   }
   if (!in) {
-    LOGE("No input provided.\n");
+    LOGE("No input provided.");
     return -1;
   }
   if (!out) {
-    LOGE("No output buffer provided.\n");
+    LOGE("No output buffer provided.");
     return -1;
   }
 
   // Make new range coder with 1KB of space
   range_coder *c = range_new_coder(1024);
   if (!c) {
-    LOGE("Could not instantiate range coder.\n");
+    LOGE("Could not instantiate range coder.");
     return -1;
   }
 
   // Write form hash first
   int i;
-  LOGI("form hash = %02x%02x%02x%02x%02x%02x\n", recipe->formhash[0],
+  LOGI("form hash = %02x%02x%02x%02x%02x%02x", recipe->formhash[0],
        recipe->formhash[1], recipe->formhash[2], recipe->formhash[3],
        recipe->formhash[4], recipe->formhash[5]);
   for (i = 0; i < sizeof(recipe->formhash); i++)
@@ -1365,12 +1366,15 @@ int recipe_compress(stats_handle *h, char *recipe_dir, struct recipe *recipe,
 
   struct record *record = parse_stripped_with_subforms(in, in_len);
   if (!record) {
+    range_coder_free(c);
     return -1;
   }
 
   int out_count =
       compress_record_with_subforms(recipe_dir, recipe, record, c, h);
+  record_free(record);
   if (out_count < 0) {
+    range_coder_free(c);
     return -1;
   }
 
@@ -1379,14 +1383,14 @@ int recipe_compress(stats_handle *h, char *recipe_dir, struct recipe *recipe,
   int bytes = (c->bits_used / 8) + ((c->bits_used & 7) ? 1 : 0);
   if (bytes > out_size) {
     range_coder_free(c);
-    LOGE("Compressed data too big for output buffer\n");
+    LOGE("Compressed data too big for output buffer");
     return -1;
   }
 
   bcopy(c->bit_stream, out, bytes);
-  range_coder_free(c);
+  LOGI("Used %d bits (%d bytes).", c->bits_used, bytes);
 
-  LOGI("Used %d bits (%d bytes).\n", c->bits_used, bytes);
+  range_coder_free(c);
 
   return bytes;
 }
@@ -1397,20 +1401,20 @@ int recipe_compress_file(stats_handle *h, char *recipe_dir, char *input_file,
 
   int fd = open(input_file, O_RDONLY);
   if (fd == -1) {
-    LOGE("Could not open uncompressed file '%s'\n", input_file);
+    LOGE("Could not open uncompressed file '%s'", input_file);
     return -1;
   }
 
   struct stat stat;
   if (fstat(fd, &stat) == -1) {
-    LOGE("Could not stat uncompressed file '%s'\n", input_file);
+    LOGE("Could not stat uncompressed file '%s'", input_file);
     close(fd);
     return -1;
   }
 
   buffer = mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer == MAP_FAILED) {
-    LOGE("Could not memory map uncompressed file '%s'\n", input_file);
+    LOGE("Could not memory map uncompressed file '%s'", input_file);
     close(fd);
     return -1;
   }
@@ -1440,18 +1444,18 @@ int recipe_compress_file(stats_handle *h, char *recipe_dir, char *input_file,
 
   if (!formid[0]) {
     LOGE(
-        "stripped file contains no formid field to identify matching recipe\n");
+        "stripped file contains no formid field to identify matching recipe");
     return -1;
   }
 
   char recipe_file[1024];
 
   sprintf(recipe_file, "%s/%s.recipe", recipe_dir, formid);
-  LOGI("Trying to load '%s' as a recipe\n", recipe_file);
+  LOGI("Trying to load '%s' as a recipe", recipe_file);
   struct recipe *recipe = recipe_read_from_file(recipe_file);
   // A form can be given in place of the recipe directory
   if (!recipe) {
-    LOGI("Trying to load '%s' as a form specification to convert to recipe\n",
+    LOGI("Trying to load '%s' as a form specification to convert to recipe",
          recipe_dir);
     char form_spec_text[1048576];
     int form_spec_len =
@@ -1464,6 +1468,7 @@ int recipe_compress_file(stats_handle *h, char *recipe_dir, char *input_file,
   unsigned char out_buffer[1024];
   int r = recipe_compress(h, recipe_dir, recipe, (char *)stripped, stripped_len,
                           out_buffer, 1024);
+  recipe_free(recipe);
 
   munmap(buffer, stat.st_size);
   close(fd);
@@ -1473,13 +1478,13 @@ int recipe_compress_file(stats_handle *h, char *recipe_dir, char *input_file,
 
   FILE *f = fopen(output_file, "w");
   if (!f) {
-    LOGE("Could not write succinct data compressed file '%s'\n", output_file);
+    LOGE("Could not write succinct data compressed file '%s'", output_file);
     return -1;
   }
   int wrote = fwrite(out_buffer, r, 1, f);
   fclose(f);
   if (wrote != 1) {
-    LOGE("Could not write %d bytes of compressed succinct data into '%s'\n", r,
+    LOGE("Could not write %d bytes of compressed succinct data into '%s'", r,
          output_file);
     return -1;
   }
@@ -1495,10 +1500,10 @@ int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
   // return.
   char recipe_file[1024];
   snprintf(recipe_file, 1024, "%s/%s.recipe", recipe_dir, recipe_name);
-  LOGE("Reading recipe from '%s' for CSV generation.\n", recipe_file);
+  LOGE("Reading recipe from '%s' for CSV generation.", recipe_file);
 
   if (csv_out_size < 8192) {
-    LOGE("Not enough space to extract CSV line.\n");
+    LOGE("Not enough space to extract CSV line.");
     return -1;
   }
 
@@ -1543,27 +1548,31 @@ int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
 
   struct recipe *r = recipe_read_from_file(recipe_file);
   if (!r) {
-    LOGE("Failed to read recipe file '%s' during CSV extraction.\n",
+    LOGE("Failed to read recipe file '%s' during CSV extraction.",
          recipe_file);
     return -1;
   }
 
   int n = 0;
-  int f;
 
-  for (f = 0; f < r->field_count; f++) {
+  struct field *field_def = r->field_list;
+  while(field_def){
     char *v = "";
-    struct field *field = r->field_list;
     for (i = 0; i < field_count; i++) {
-      if (!strcasecmp(fieldnames[i], field->name)) {
+      if (!strcasecmp(fieldnames[i], field_def->name)) {
         v = values[i];
         break;
       }
-      field = field->next;
     }
-    n += snprintf(&csv_out[n], 8192 - n, "%s%s", f ? "," : "", v);
+    n += snprintf(&csv_out[n], 8192 - n, "%s%s", n ? "," : "", v);
+    field_def = field_def->next;
   }
   recipe_free(r);
+
+  for (i = 0; i < field_count; i++) {
+    free(fieldnames[i]);
+    free(values[i]);
+  }
 
   csv_out[n++] = '\n';
   csv_out[n] = 0;
@@ -1580,20 +1589,20 @@ int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
 
   int fd = open(input_file, O_RDONLY);
   if (fd == -1) {
-    LOGE("Could not open succinct data file '%s'\n", input_file);
+    LOGE("Could not open succinct data file '%s'", input_file);
     return -1;
   }
 
   struct stat st;
   if (fstat(fd, &st) == -1) {
-    LOGE("Could not stat succinct data file '%s'\n", input_file);
+    LOGE("Could not stat succinct data file '%s'", input_file);
     close(fd);
     return -1;
   }
 
   buffer = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer == MAP_FAILED) {
-    LOGE("Could not memory map succinct data file '%s'\n", input_file);
+    LOGE("Could not memory map succinct data file '%s'", input_file);
     close(fd);
     return -1;
   }
@@ -1612,20 +1621,20 @@ int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
   LOGI("Got back from recipe_decompress: r=%d, fd=%d, st.st_size=%d, buffer=%p",
        r, fd, (int)st.st_size, buffer);
 
-  LOGI("%s:%d\n", __FILE__, __LINE__);
+  LOGI("%s:%d", __FILE__, __LINE__);
   munmap(buffer, st.st_size);
-  LOGI("%s:%d\n", __FILE__, __LINE__);
+  LOGI("%s:%d", __FILE__, __LINE__);
   close(fd);
-  LOGI("%s:%d\n", __FILE__, __LINE__);
+  LOGI("%s:%d", __FILE__, __LINE__);
 
   if (r < 0) {
-    LOGI("%s:%d\n", __FILE__, __LINE__);
+    LOGI("%s:%d", __FILE__, __LINE__);
     // LOGE("Could not find matching recipe file for
-    // %s.\n",input_file);
-    LOGI("Could not find matching recipe file for %s.\n", input_file);
+    // %s.",input_file);
+    LOGI("Could not find matching recipe file for %s.", input_file);
     return -1;
   }
-  LOGI("%s:%d\n", __FILE__, __LINE__);
+  LOGI("%s:%d", __FILE__, __LINE__);
 
   char stripped_name[80];
   MD5_CTX md5;
@@ -1644,8 +1653,7 @@ int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
   mkdir(output_file, 0777);
 
   // now write stripped file out
-  LOGE("Writing stripped data to %s\n", stripped_name);
-  LOGI("Writing stripped data to %s\n", stripped_name);
+  LOGI("Writing stripped data to %s", stripped_name);
   snprintf(output_file, 1024, "%s/%s/%s.stripped", output_directory,
            recipe_name, stripped_name);
 
@@ -1661,32 +1669,30 @@ int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
       mkdir(csv_file, 0777);
       snprintf(csv_file, 1024, "%s/csv/%s.csv", output_directory, recipe_name);
       FILE *f = fopen(csv_file, "a");
-      LOGE("Appending CSV line: %s\n", line);
-      LOGI("Appending CSV line: %s\n", line);
+      LOGI("Appending CSV line: %s", line);
       if (f) {
         int wrote = fwrite(line, strlen(line), 1, f);
         if (wrote < strlen(line)) {
-          LOGE("Failed to produce CSV line (short write)\n");
+          LOGE("Failed to produce CSV line (short write)");
         }
       }
       fclose(f);
     } else {
-      LOGE("Failed to produce CSV line.\n");
+      LOGE("Failed to produce CSV line.");
     }
   } else {
-    LOGE("Not writing CSV line for form, as we have already seen it.\n");
-    LOGI("Not writing CSV line for form, as we have already seen it.\n");
+    LOGE("Not writing CSV line for form, as we have already seen it.");
   }
 
   FILE *f = fopen(output_file, "w");
   if (!f) {
-    LOGE("Could not write decompressed file '%s'\n", output_file);
+    LOGE("Could not write decompressed file '%s'", output_file);
     return -1;
   }
   int wrote = fwrite(out_buffer, r, 1, f);
   fclose(f);
   if (wrote != 1) {
-    LOGE("Could not write %d bytes of decompressed data into '%s'\n", r,
+    LOGE("Could not write %d bytes of decompressed data into '%s'", r,
          output_file);
     return -1;
   }
@@ -1700,7 +1706,7 @@ int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
   int template_len =
       recipe_load_file(template_file, template, sizeof(template));
   if (template_len < 1) {
-    LOGE("Could not read template file '%s'\n", template_file);
+    LOGE("Could not read template file '%s'", template_file);
     return -1;
   }
   char xml[65536];
@@ -1712,17 +1718,17 @@ int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
            stripped_name);
   f = fopen(xml_file, "w");
   if (!f) {
-    LOGE("Could not write xml file '%s'\n", xml_file);
+    LOGE("Could not write xml file '%s'", xml_file);
     return -1;
   }
   wrote = fwrite(xml, x, 1, f);
   fclose(f);
   if (wrote != 1) {
-    LOGE("Could not write %d bytes of XML data into '%s'\n", x, xml_file);
+    LOGE("Could not write %d bytes of XML data into '%s'", x, xml_file);
     return -1;
   }
 
-  LOGI("Finished extracting succinct data file.\n");
+  LOGI("Finished extracting succinct data file.");
   if (r != -1) {
     // Mark file as processed, so that we can clean up after ourselves
     char file[8192];
@@ -1731,82 +1737,101 @@ int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
     if (fd != -1)
       close(fd);
   } else {
-    LOGE("Decompression of SD file result code = %d\n", r);
+    LOGE("Decompression of SD file result code = %d", r);
   }
   return r;
 }
 
-int recipe_main(int argc, char *argv[], stats_handle *h) {
+int recipe_main(int argc, char *argv[]) {
   if (argc <= 2) {
-    LOGE("'smac recipe' command requires further arguments.\n");
+    LOGE("'smac recipe' command requires further arguments.");
     return -1;
   }
 
   if (!strcasecmp(argv[2], "parse")) {
     if (argc <= 3) {
-      LOGE("'smac recipe parse' requires name of recipe to load.\n");
+      LOGE("'smac recipe parse' requires name of recipe to load.");
       return (-1);
     }
     struct recipe *recipe = recipe_read_from_file(argv[3]);
     if (!recipe) {
       return (-1);
     }
-    printf("recipe=%p\n", recipe);
-    printf("recipe->field_count=%d\n", recipe->field_count);
+    LOGI("recipe=%p", recipe);
+    LOGI("recipe->field_count=%d", recipe->field_count);
   } else if (!strcasecmp(argv[2], "compress")) {
     if (argc <= 5) {
       LOGE("'smac recipe compress' requires recipe directory, input "
-           "and output files.\n");
+           "and output files.");
       return (-1);
     }
-    printf(
-        "Test-Dialog: About to compress the stripped data file: %s into: %s \n",
+    stats_handle *h=stats_new_handle("stats.dat");
+    if (!h) {
+      char working_dir[1024];
+      getcwd(working_dir,1024);
+      LOGE("Could not read stats.dat (pwd='%s').",working_dir);
+      return -1;
+    }
+    /* Preload tree for speed */
+    stats_load_tree(h);
+
+    LOGI(
+        "Test-Dialog: About to compress the stripped data file: %s into: %s ",
         argv[4], argv[5]);
-    if (recipe_compress_file(h, argv[3], argv[4], argv[5]) == -1) {
-      return (-1);
-    } else
-      return 0;
+
+    int r = recipe_compress_file(h, argv[3], argv[4], argv[5]);
+    stats_handle_free(h);
+    return r;
   } else if (!strcasecmp(argv[2], "map")) {
     if (argc <= 4) {
-      LOGE("usage: smac map <recipe directory> <output directory>\n");
+      LOGE("usage: smac map <recipe directory> <output directory>");
       return (-1);
     }
     return generateMaps(argv[3], argv[4]);
   } else if (!strcasecmp(argv[2], "encrypt")) {
     if (argc <= 6) {
       LOGE("usage: smac encrypt <file> <MTU> <output directory> "
-           "<public key hex>\n");
+           "<public key hex>");
       return (-1);
     }
     return encryptAndFragment(argv[3], atoi(argv[4]), argv[5], argv[6]);
   } else if (!strcasecmp(argv[2], "decrypt")) {
     if (argc <= 5) {
       LOGE("usage: smac decrypt <input directory> <output "
-           "directory> <pass phrase>\n");
+           "directory> <pass phrase>");
       return (-1);
     }
     return defragmentAndDecrypt(argv[3], argv[4], argv[5]);
   } else if (!strcasecmp(argv[2], "create")) {
     if (argc <= 3) {
-      LOGE("usage: smac recipe create <XML form> \n");
+      LOGE("usage: smac recipe create <XML form> ");
       return (-1);
     }
     return recipe_create(argv[3]);
   } else if (!strcasecmp(argv[2], "xhcreate")) {
     if (argc <= 4) {
-      LOGE("usage: smac recipe xhcreate <recipe directory> <XHTML form>\n");
+      LOGE("usage: smac recipe xhcreate <recipe directory> <XHTML form>");
       return (-1);
     }
-    printf("Test-Dialog: About to XHCreate/Create recipe file(s) from the "
-           "XHTML form %s \n",
+    LOGI("Test-Dialog: About to XHCreate/Create recipe file(s) from the "
+           "XHTML form %s ",
            argv[3]);
     return xhtml_recipe_create(argv[3], argv[4]);
   } else if (!strcasecmp(argv[2], "decompress")) {
     if (argc <= 5) {
       LOGE("usage: smac recipe decompress <recipe directory> "
-           "<succinct data message> <output directory>\n");
+           "<succinct data message> <output directory>");
       return (-1);
     }
+    stats_handle *h=stats_new_handle("stats.dat");
+    if (!h) {
+      char working_dir[1024];
+      getcwd(working_dir,1024);
+      LOGE("Could not read stats.dat (pwd='%s').",working_dir);
+      return -1;
+    }
+    /* Preload tree for speed */
+    stats_load_tree(h);
     // If succinct data message is a directory, try decompressing all files in
     // it.
     struct stat st;
@@ -1822,47 +1847,46 @@ int recipe_main(int argc, char *argv[], stats_handle *h) {
       int e = 0;
       while ((de = readdir(dir)) != NULL) {
         snprintf(filename, 1024, "%s/%s", argv[4], de->d_name);
-        LOGI("Trying to decompress %s as succinct data message\n", filename);
-        printf("Trying to decompress %s as succinct data message\n", filename);
+        LOGI("Trying to decompress %s as succinct data message", filename);
         if (recipe_decompress_file(h, argv[3], filename, argv[5]) == -1) {
-          LOGI("Failed to decompress %s as succinct data message\n", filename);
+          LOGI("Failed to decompress %s as succinct data message", filename);
           e++;
         } else {
-          LOGE("Decompressed %s\n", filename);
-          LOGI("Decompressed succinct data message %s\n", filename);
+          LOGE("Decompressed %s", filename);
+          LOGI("Decompressed succinct data message %s", filename);
         }
       }
       closedir(dir);
-      LOGI("Finished extracting files.  %d failures.\n", e);
+      LOGI("Finished extracting files.  %d failures.", e);
+      stats_handle_free(h);
       if (e)
         return 1;
       else
         return 0;
     } else {
-      printf("Test-Dialog: About to decompress the succinct data (SD) file: %s "
-             "into: %s \n",
+      LOGI("Test-Dialog: About to decompress the succinct data (SD) file: %s "
+             "into: %s",
              argv[4], argv[5]);
-      if (recipe_decompress_file(h, argv[3], argv[4], argv[5]) == -1) {
-        return (-1);
-      } else
-        return 0;
+      int r = recipe_decompress_file(h, argv[3], argv[4], argv[5]);
+      stats_handle_free(h);
+      return r;
     }
   } else if (!strcasecmp(argv[2], "strip")) {
     char stripped[65536];
     char xml_data[1048576];
     int xml_len = 0;
     if (argc < 4) {
-      LOGE("usage: smac recipe strip <xml input> [stripped output].\n");
+      LOGE("usage: smac recipe strip <xml input> [stripped output].");
       return -1;
     }
-    printf("Test-Dialog: About to strip the XML record: %s into the following "
-           "file: %s \n",
+    LOGI("Test-Dialog: About to strip the XML record: %s into the following "
+           "file: %s",
            argv[3], argv[4]);
     xml_len = recipe_load_file(argv[3], xml_data, sizeof(xml_data));
     int stripped_len =
         xml2stripped(NULL, xml_data, xml_len, stripped, sizeof(stripped));
     if (stripped_len < 0) {
-      LOGE("Failed to strip '%s'\n", argv[3]);
+      LOGE("Failed to strip '%s'", argv[3]);
       return -1;
     }
     if (argv[4] == NULL)
@@ -1870,7 +1894,7 @@ int recipe_main(int argc, char *argv[], stats_handle *h) {
     else {
       FILE *f = fopen(argv[4], "w");
       if (!f) {
-        LOGE("Failed to write stripped output to '%s'\n", argv[4]);
+        LOGE("Failed to write stripped output to '%s'", argv[4]);
         return -1;
       }
       fprintf(f, "%s", stripped);
@@ -1884,26 +1908,26 @@ int recipe_main(int argc, char *argv[], stats_handle *h) {
     int template_len = 0;
     char xml[65536];
     if (argc < 5) {
-      LOGE("usage: smac recipe rexml <stripped> <template> [xml output].\n");
+      LOGE("usage: smac recipe rexml <stripped> <template> [xml output].");
       return -1;
     }
     stripped_len = recipe_load_file(argv[3], stripped, sizeof(stripped));
     if (stripped_len < 0) {
-      LOGE("Failed to read '%s'\n", argv[3]);
+      LOGE("Failed to read '%s'", argv[3]);
       return -1;
     }
     template_len = recipe_load_file(argv[4], template, sizeof(template));
     if (template_len < 0) {
-      LOGE("Failed to read '%s'\n", argv[4]);
+      LOGE("Failed to read '%s'", argv[4]);
       return -1;
     }
-    printf("Test-Dialog: About to rexml the stripped file: %s into the "
-           "following file: %s \n",
+    LOGI("Test-Dialog: About to rexml the stripped file: %s into the "
+           "following file: %s ",
            argv[3], argv[5]);
     int xml_len = stripped2xml(stripped, stripped_len, template, template_len,
                                xml, sizeof(xml));
     if (xml_len < 0) {
-      LOGE("Failed to rexml '%s'\n", argv[3]);
+      LOGE("Failed to rexml '%s'", argv[3]);
       return -1;
     }
     if (argv[5] == NULL)
@@ -1911,7 +1935,7 @@ int recipe_main(int argc, char *argv[], stats_handle *h) {
     else {
       FILE *f = fopen(argv[5], "w");
       if (!f) {
-        LOGE("Failed to write rexml output to '%s'\n", argv[5]);
+        LOGE("Failed to write rexml output to '%s'", argv[5]);
         return -1;
       }
       fprintf(f, "%s", xml);
@@ -1920,7 +1944,7 @@ int recipe_main(int argc, char *argv[], stats_handle *h) {
     }
 
   } else {
-    LOGE("unknown 'smac recipe' sub-command '%s'.\n", argv[2]);
+    LOGE("unknown 'smac recipe' sub-command '%s'.", argv[2]);
     return -1;
   }
 
