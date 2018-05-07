@@ -62,17 +62,17 @@ HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h subfo
 all: smac arithmetic gen_stats
 
 clean:
-	rm -rf gen_stats smac
+	rm -rf gen_stats smac *.o
 
 arithmetic:	arithmetic.c arithmetic.h
 # Build for running tests
-	gcc $(CFLAGS) -DTESTMODE -o arithmetic arithmetic.c
+	gcc $(CFLAGS) -DTESTMODE -o arithmetic arithmetic.c $(LIBS)
 
 extract_tweets:	extract_tweets.o
 	gcc $(CFLAGS) -o extract_tweets extract_tweets.o
 
 gen_stats:	gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
-	gcc $(CFLAGS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
+	gcc $(CFLAGS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o $(LIBS)
 
 smac:	$(OBJS)
 	gcc -g -Wall -o smac $(OBJS) $(LIBS)

@@ -27,6 +27,9 @@ struct fragment_set {
 };
 
 int crypto_scalarmult_curve25519_ref_base(unsigned char *q,const unsigned char *n);
+int crypto_box_public_from_private(
+                                   unsigned char *pk,
+                                   unsigned char *sk);
 
 void randombytes(unsigned char *buf,unsigned long long len)
 {
@@ -272,7 +275,6 @@ int encryptAndFragmentBuffer(unsigned char *in_buffer,int in_len,
   if (out_len%bytes_per_fragment) frag_count++;
   assert(frag_count<=62);
 
-  int frag_number=0;
   for(int i=0;i<out_len;i+=bytes_per_fragment)
     {
       if ((*fragment_count)>=MAX_FRAGMENTS) return -1;

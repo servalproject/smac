@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include <stdio.h>
 #include <strings.h>
+#include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
@@ -650,7 +651,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   {
     range_coder *c=range_new_coder(8192);
     {
-      int lengths[1024];
+      int lengths[1025];
       int tally=0;
       int cumulative=0;
       for(i=0;i<=1024;i++) {
@@ -797,7 +798,7 @@ int main(int argc,char **argv)
 
   int lineCount=0;
   int wordPosn=-1;
-  char word[1024];
+  char word[1025];
 
   int wordCase[8]; for(i=0;i<8;i++) wordCase[i]=0;
   int wordCount=0;
