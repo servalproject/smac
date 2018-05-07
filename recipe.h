@@ -2,6 +2,7 @@
 #define SUCCINCT_RECIPE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "packed_stats.h"
 #include "arithmetic.h"
@@ -67,10 +68,30 @@ struct recipe {
   char formname[];
 };
 
-int recipe_main(int argc,char *argv[]);
+int recipe_create(char *input);
+int xhtml_recipe_create(char *recipe_dir, char *input);
 struct recipe *recipe_read_from_file(char *filename);
 struct recipe *recipe_read(char *formname,char *buffer,int buffer_size);
 void recipe_free(struct recipe *recipe);
+int recipe_load_file(char *filename, char *out, int out_size);
+struct recipe *recipe_read_from_specification(char *xmlform_c);
+struct recipe *recipe_find_recipe(char *recipe_dir, unsigned char *formhash);
+
+int recipe_parse_fieldtype(const char *name);
+const char *recipe_field_type_name(int f);
+
+int recipe_compress_file(stats_handle *h, char *recipe_dir, char *input_file, char *output_file);
+int encryptAndFragment(char *filename, int mtu, char *outputdir,
+                       char *publickeyhex);
+int recipe_encode_field(struct field *field, stats_handle *stats, range_coder *c, char *value);
+
+int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
+                           char *output_directory);
+int defragmentAndDecrypt(char *inputdir, char *outputdir, char *passphrase);
+int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
+                      char *out, int out_size, char *recipe_name,
+                      range_coder *c, bool is_subform, bool is_record);
+
 int stripped2xml(char *stripped,int stripped_len,char *template,int template_len,char *xml,int xml_size);
 int xml2stripped(const char *form_name, const char *xml,int xml_len,char *stripped,int stripped_size);
 
@@ -82,8 +103,5 @@ int xmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
 		char *recipetext,int *recipeLen,
 		char *templatetext,int *templateLen);
 
-int recipe_encode_field(struct field *field, stats_handle *stats, range_coder *c, char *value);
-int recipe_parse_fieldtype(const char *name);
-const char *recipe_field_type_name(int f);
 
 #endif

@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <sys/types.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 #include "charset.h"
 #include "visualise.h"
@@ -31,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "packed_stats.h"
 #include "smac.h"
 #include "recipe.h"
+#include "log.h"
 
 int processFile(FILE *f,FILE *contentXML,stats_handle *h);
 
@@ -95,6 +98,215 @@ int usage()
 	  "  smac babble\n"
 	  "  smac test <files>\n");
   exit(-1);
+}
+
+static int recipe_main(int argc, char *argv[]) {
+  if (argc <= 2) {
+    LOGE("'smac recipe' command requires further arguments.");
+    return -1;
+  }
+
+  if (!strcasecmp(argv[2], "parse")) {
+    if (argc <= 3) {
+      LOGE("'smac recipe parse' requires name of recipe to load.");
+      return (-1);
+    }
+    struct recipe *recipe = recipe_read_from_file(argv[3]);
+    if (!recipe) {
+      return (-1);
+    }
+    LOGI("recipe=%p", recipe);
+    LOGI("recipe->field_count=%d", recipe->field_count);
+  } else if (!strcasecmp(argv[2], "compress")) {
+    if (argc <= 5) {
+      LOGE("'smac recipe compress' requires recipe directory, input "
+           "and output files.");
+      return (-1);
+    }
+    stats_handle *h=stats_new_handle("stats.dat");
+    if (!h) {
+      char working_dir[1024];
+      getcwd(working_dir,1024);
+      LOGE("Could not read stats.dat (pwd='%s').",working_dir);
+      return -1;
+    }
+    /* Preload tree for speed */
+    stats_load_tree(h);
+
+    LOGI(
+        "Test-Dialog: About to compress the stripped data file: %s into: %s ",
+        argv[4], argv[5]);
+
+    int r = recipe_compress_file(h, argv[3], argv[4], argv[5]);
+    stats_handle_free(h);
+    return r;
+  } else if (!strcasecmp(argv[2], "map")) {
+    if (argc <= 4) {
+      LOGE("usage: smac map <recipe directory> <output directory>");
+      return (-1);
+    }
+    return generateMaps(argv[3], argv[4]);
+  } else if (!strcasecmp(argv[2], "encrypt")) {
+    if (argc <= 6) {
+      LOGE("usage: smac encrypt <file> <MTU> <output directory> "
+           "<public key hex>");
+      return (-1);
+    }
+    return encryptAndFragment(argv[3], atoi(argv[4]), argv[5], argv[6]);
+  } else if (!strcasecmp(argv[2], "decrypt")) {
+    if (argc <= 5) {
+      LOGE("usage: smac decrypt <input directory> <output "
+           "directory> <pass phrase>");
+      return (-1);
+    }
+    return defragmentAndDecrypt(argv[3], argv[4], argv[5]);
+  } else if (!strcasecmp(argv[2], "create")) {
+    if (argc <= 3) {
+      LOGE("usage: smac recipe create <XML form> ");
+      return (-1);
+    }
+    return recipe_create(argv[3]);
+  } else if (!strcasecmp(argv[2], "xhcreate")) {
+    if (argc <= 4) {
+      LOGE("usage: smac recipe xhcreate <recipe directory> <XHTML form>");
+      return (-1);
+    }
+    LOGI("Test-Dialog: About to XHCreate/Create recipe file(s) from the "
+           "XHTML form %s ",
+           argv[3]);
+    return xhtml_recipe_create(argv[3], argv[4]);
+  } else if (!strcasecmp(argv[2], "decompress")) {
+    if (argc <= 5) {
+      LOGE("usage: smac recipe decompress <recipe directory> "
+           "<succinct data message> <output directory>");
+      return (-1);
+    }
+    stats_handle *h=stats_new_handle("stats.dat");
+    if (!h) {
+      char working_dir[1024];
+      getcwd(working_dir,1024);
+      LOGE("Could not read stats.dat (pwd='%s').",working_dir);
+      return -1;
+    }
+    /* Preload tree for speed */
+    stats_load_tree(h);
+    // If succinct data message is a directory, try decompressing all files in
+    // it.
+    struct stat st;
+    if (stat(argv[4], &st)) {
+      perror("Could not stat succinct data file/directory.");
+      return (-1);
+    }
+    if (st.st_mode & S_IFDIR) {
+      // Directory: so process each file inside
+      DIR *dir = opendir(argv[4]);
+      struct dirent *de = NULL;
+      char filename[1024];
+      int e = 0;
+      while ((de = readdir(dir)) != NULL) {
+        snprintf(filename, 1024, "%s/%s", argv[4], de->d_name);
+        LOGI("Trying to decompress %s as succinct data message", filename);
+        if (recipe_decompress_file(h, argv[3], filename, argv[5]) == -1) {
+          LOGI("Failed to decompress %s as succinct data message", filename);
+          e++;
+        } else {
+          LOGE("Decompressed %s", filename);
+          LOGI("Decompressed succinct data message %s", filename);
+        }
+      }
+      closedir(dir);
+      LOGI("Finished extracting files.  %d failures.", e);
+      stats_handle_free(h);
+      if (e)
+        return 1;
+      else
+        return 0;
+    } else {
+      LOGI("Test-Dialog: About to decompress the succinct data (SD) file: %s "
+             "into: %s",
+             argv[4], argv[5]);
+      int r = recipe_decompress_file(h, argv[3], argv[4], argv[5]);
+      stats_handle_free(h);
+      return r;
+    }
+  } else if (!strcasecmp(argv[2], "strip")) {
+    char stripped[65536];
+    char xml_data[1048576];
+    int xml_len = 0;
+    if (argc < 4) {
+      LOGE("usage: smac recipe strip <xml input> [stripped output].");
+      return -1;
+    }
+    LOGI("Test-Dialog: About to strip the XML record: %s into the following "
+           "file: %s",
+           argv[3], argv[4]);
+    xml_len = recipe_load_file(argv[3], xml_data, sizeof(xml_data));
+    int stripped_len =
+        xml2stripped(NULL, xml_data, xml_len, stripped, sizeof(stripped));
+    if (stripped_len < 0) {
+      LOGE("Failed to strip '%s'", argv[3]);
+      return -1;
+    }
+    if (argv[4] == NULL)
+      printf("%s", stripped);
+    else {
+      FILE *f = fopen(argv[4], "w");
+      if (!f) {
+        LOGE("Failed to write stripped output to '%s'", argv[4]);
+        return -1;
+      }
+      fprintf(f, "%s", stripped);
+      fclose(f);
+      return 0;
+    }
+  } else if (!strcasecmp(argv[2], "rexml")) {
+    char stripped[8192];
+    int stripped_len = 0;
+    char template[65536];
+    int template_len = 0;
+    char xml[65536];
+    if (argc < 5) {
+      LOGE("usage: smac recipe rexml <stripped> <template> [xml output].");
+      return -1;
+    }
+    stripped_len = recipe_load_file(argv[3], stripped, sizeof(stripped));
+    if (stripped_len < 0) {
+      LOGE("Failed to read '%s'", argv[3]);
+      return -1;
+    }
+    template_len = recipe_load_file(argv[4], template, sizeof(template));
+    if (template_len < 0) {
+      LOGE("Failed to read '%s'", argv[4]);
+      return -1;
+    }
+    LOGI("Test-Dialog: About to rexml the stripped file: %s into the "
+           "following file: %s ",
+           argv[3], argv[5]);
+    int xml_len = stripped2xml(stripped, stripped_len, template, template_len,
+                               xml, sizeof(xml));
+    if (xml_len < 0) {
+      LOGE("Failed to rexml '%s'", argv[3]);
+      return -1;
+    }
+    if (argv[5] == NULL)
+      printf("%s", xml);
+    else {
+      FILE *f = fopen(argv[5], "w");
+      if (!f) {
+        LOGE("Failed to write rexml output to '%s'", argv[5]);
+        return -1;
+      }
+      fprintf(f, "%s", xml);
+      fclose(f);
+      return 0;
+    }
+
+  } else {
+    LOGE("unknown 'smac recipe' sub-command '%s'.", argv[2]);
+    return -1;
+  }
+
+  return 0;
 }
 
 int main(int argc,char *argv[])

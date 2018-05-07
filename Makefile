@@ -8,6 +8,8 @@ OBJS=	main.o \
 	smac.o \
 	\
 	recipe.o \
+	recipe_compress.o \
+	recipe_decompress.o \
 	xml2recipe.o \
 	xhtml2recipe.o \
 	map.o \

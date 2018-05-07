@@ -6,6 +6,7 @@
 */
 
 #include <stdio.h>
+#include <string.h>
 #include <strings.h>
 #include <dirent.h>
 #include <sys/stat.h>
