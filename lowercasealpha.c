@@ -16,20 +16,10 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef UNDER_CONTROL
-#define UNDER_CONTROL
-#define COMMON
-#undef FUNC
-#undef ENCODING
-#define FUNC(Y) decode ## Y
-#include "lowercasealpha.c"
-#undef COMMON
-#undef FUNC
-#define ENCODING
-#define FUNC(Y) encode ## Y
-#endif
 
-#ifdef COMMON
+#ifndef COMMON_DEFS
+#define COMMON_DEFS
+
 #include <stdio.h>
 #include <strings.h>
 #include <math.h>
@@ -56,6 +46,17 @@ int strncmp816(char *s1,unsigned short *s2,int len)
   return 0;
 }
 
+#endif
+
+#ifndef UNDER_CONTROL
+#define UNDER_CONTROL
+#undef FUNC
+#undef ENCODING
+#define FUNC(Y) decode ## Y
+#include "lowercasealpha.c"
+#undef FUNC
+#define ENCODING
+#define FUNC(Y) encode ## Y
 #endif
 
 /*

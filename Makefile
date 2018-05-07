@@ -66,9 +66,9 @@ all: smac arithmetic gen_stats gsinterpolative extract_tweets
 clean:
 	rm -rf gen_stats smac
 
-arithmetic:	arithmetic.c arithmetic.h
+arithmetic:	arithmetic.o arithmetic_tests.o
 # Build for running tests
-	$(CC) $(CFLAGS) $(LIBS) -DTESTMODE -o arithmetic arithmetic.c
+	$(CC) $(CFLAGS) $(LIBS) -o arithmetic arithmetic_tests.o arithmetic.o
 
 extract_tweets:	extract_tweets.o
 	$(CC) $(CFLAGS) -o extract_tweets extract_tweets.o
@@ -79,8 +79,8 @@ gen_stats:	gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o u
 smac:	$(OBJS)
 	$(CC) $(CFLAGS) $(LIBS) -o smac $(OBJS)
 
-gsinterpolative:	gsinterpolative.c arithmetic.o
-	$(CC) $(CFLAGS) $(LIBS) -DTESTMODE -o gsinterpolative gsinterpolative.c arithmetic.o
+gsinterpolative:	gsinterpolative.o gsinterpolative_tests.o arithmetic.o
+	$(CC) $(CFLAGS) $(LIBS) -o gsinterpolative gsinterpolative_tests.o gsinterpolative.o arithmetic.o
 
 %.o:	%.c $(HDRS)
 	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@

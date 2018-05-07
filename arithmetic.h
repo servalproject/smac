@@ -19,6 +19,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef SUCCINCT_ARITHMETIC_H
 #define SUCCINCT_ARITHMETIC_H
 
+#define MAXVALUE 0xffffff
+#define MAXVALUEPLUS1 (MAXVALUE+1)
+
 typedef struct range_coder {
   unsigned int low;
   unsigned int high;
@@ -65,4 +68,10 @@ int ic_decode_recursive(int *list,
 			int list_length,
 			int max_value,
 			range_coder *c);
+
+char *asbits(unsigned int v);
+int _range_check(range_coder *c,int line);
+#define range_check(C) _range_check(C, __LINE__)
+char *range_coder_lastbits(range_coder *c,int count);
+
 #endif
