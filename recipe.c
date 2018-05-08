@@ -5,17 +5,13 @@
   values can be specified to further aid compression.
 */
 
-#include <dirent.h>
-#include <fcntl.h>
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
 #include <time.h>
-#include <unistd.h>
 
 #include "log.h"
 
@@ -25,7 +21,6 @@
 #include "packed_stats.h"
 #include "recipe.h"
 #include "smac.h"
-#include "subforms.h"
 #include "visualise.h"
 
 
@@ -107,23 +102,19 @@ const char *recipe_field_type_name(int f)
 }
 
 void recipe_free(struct recipe *recipe) {
-  while (recipe) {
-    struct field *field = recipe->field_list;
-    while (field) {
-      struct enum_value *val = field->enum_value;
-      while (val) {
-        struct enum_value *v = val;
-        val = val->next;
-        free(v);
-      }
-      struct field *f = field;
-      field = field->next;
-      free(f);
+  struct field *field = recipe->field_list;
+  while (field) {
+    struct enum_value *val = field->enum_value;
+    while (val) {
+      struct enum_value *v = val;
+      val = val->next;
+      free(v);
     }
-    struct recipe *r = recipe;
-    recipe = recipe->next;
-    free(r);
+    struct field *f = field;
+    field = field->next;
+    free(f);
   }
+  free(recipe);
 }
 
 int recipe_form_hash(char *recipe_file, unsigned char *formhash,
@@ -291,43 +282,6 @@ struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
   return recipe;
 }
 
-int recipe_load_file(char *filename, char *out, int out_size) {
-  unsigned char *buffer;
-
-  int fd = open(filename, O_RDONLY);
-  if (fd == -1) {
-    LOGE("Could not open file '%s'", filename);
-    return -1;
-  }
-
-  struct stat stat;
-  if (fstat(fd, &stat) == -1) {
-    LOGE("Could not stat file '%s'", filename);
-    close(fd);
-    return -1;
-  }
-
-  if (stat.st_size > out_size) {
-    LOGE("File '%s' is too long (must be <= %d bytes)", filename, out_size);
-    close(fd);
-    return -1;
-  }
-
-  buffer = mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
-  if (buffer == MAP_FAILED) {
-    LOGE("Could not memory map file '%s'", filename);
-    close(fd);
-    return -1;
-  }
-
-  bcopy(buffer, out, stat.st_size);
-
-  munmap(buffer, stat.st_size);
-  close(fd);
-
-  return stat.st_size;
-}
-
 struct recipe *recipe_read_from_specification(char *xmlform_c) {
   int magpi_mode = 0;
   if (xmlform_c && (!strncasecmp("<html", xmlform_c, 5)))
@@ -379,75 +333,168 @@ struct recipe *recipe_read_from_specification(char *xmlform_c) {
   }
 }
 
-struct recipe *recipe_read_from_file(char *filename) {
-  struct recipe *recipe = NULL;
-
-  unsigned char *buffer;
-
-  int fd = open(filename, O_RDONLY);
-  if (fd == -1) {
-    LOGE("Could not open recipe file '%s'", filename);
-    return NULL;
+int record_free(struct record *r) {
+  LOGI("record_free(%p)\n", r);
+  if (!r)
+    return -1;
+  for (int i = 0; i < r->field_count; i++) {
+    if (r->fields[i].key)
+      free(r->fields[i].key);
+    r->fields[i].key = NULL;
+    if (r->fields[i].value)
+      free(r->fields[i].value);
+    r->fields[i].value = NULL;
+    if (r->fields[i].subrecord)
+      record_free(r->fields[i].subrecord);
+    r->fields[i].subrecord = NULL;
   }
-
-  struct stat stat;
-  if (fstat(fd, &stat) == -1) {
-    LOGE("Could not stat recipe file '%s'", filename);
-    close(fd);
-    return NULL;
-  }
-
-  buffer = mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
-  if (buffer == MAP_FAILED) {
-    LOGE("Could not memory map recipe file '%s'", filename);
-    close(fd);
-    return NULL;
-  }
-
-  recipe = recipe_read(filename, (char *)buffer, stat.st_size);
-
-  munmap(buffer, stat.st_size);
-  close(fd);
-
-  if (recipe && recipe->field_count == 0) {
-    recipe_free(recipe);
-    LOGE("Recipe contains no field definitions");
-    return NULL;
-  }
-
-  return recipe;
+  free(r);
+  return 0;
 }
 
-struct recipe *recipe_find_recipe(char *recipe_dir, unsigned char *formhash) {
-  DIR *dir = opendir(recipe_dir);
-  struct dirent *de;
-  if (!dir)
-    return NULL;
-  while ((de = readdir(dir)) != NULL) {
-    if (strlen(de->d_name) > strlen(".recipe")) {
-      if (!strcasecmp(&de->d_name[strlen(de->d_name) - strlen(".recipe")],
-                      ".recipe")) {
-        char recipe_path[1024];
-        snprintf(recipe_path, 1024, "%s/%s", recipe_dir, de->d_name);
-        struct recipe *r = recipe_read_from_file(recipe_path);
-        if (0)
-          LOGE("Is %s a recipe?", recipe_path);
-        if (r) {
-          if (1) {
-            LOGE("Considering form %s (formhash %02x%02x%02x%02x%02x%02x)",
-                 recipe_path, r->formhash[0], r->formhash[1], r->formhash[2],
-                 r->formhash[3], r->formhash[4], r->formhash[5]);
-          }
-          if (!memcmp(formhash, r->formhash, 6)) {
-            return r;
-          }
-          recipe_free(r);
+#define INDENT(X) &"                    "[20 - X]
+void dump_record_r(struct record *r, int offset) {
+  if (!r)
+    return;
+
+  LOGI("%sRecord @ %p:\n", INDENT(offset), r);
+  for (int i = 0; i < r->field_count; i++) {
+    if (r->fields[i].key) {
+      LOGI("%s  [%s]=[%s]\n", INDENT(offset), r->fields[i].key,
+           r->fields[i].value);
+    } else {
+      dump_record_r(r->fields[i].subrecord, offset + 2);
+    }
+  }
+}
+
+void dump_record(struct record *r) { dump_record_r(r, 0); }
+
+struct record *parse_stripped_with_subforms(char *in, int in_len) {
+  struct record *record = calloc(sizeof(struct record), 1);
+  assert(record);
+  LOGI("record is %p\n", record);
+  struct record *current_record = record;
+  int i;
+  char line[1024];
+  char key[1024], value[1024];
+  int line_number = 1;
+  int l = 0;
+
+  for (i = 0; i <= in_len; i++) {
+    if ((i == in_len) || (in[i] == '\n') || (in[i] == '\r')) {
+      // Process key=value line
+      if (l >= 1000)
+        l = 0; // ignore long lines
+      line[l] = 0;
+      LOGI(">> processing line @ %d '%s'\n", i, line);
+      if (line[0] == '{') {
+        // Start of sub-form
+        // Move current record down into a new sub-record at this point
+
+        if (current_record->field_count >= MAX_FIELDS) {
+          LOGE("line:%d:Too many data lines (must be <=%d, or increase "
+               "MAX_FIELDS).\n",
+               line_number, MAX_FIELDS);
+          record_free(record);
+          return NULL;
         }
+
+        {
+          struct record *sub_record = calloc(sizeof(struct record), 1);
+          assert(sub_record);
+          sub_record->parent = current_record;
+
+          current_record->fields[current_record->field_count].subrecord =
+              sub_record;
+          current_record->field_count++;
+          current_record = sub_record;
+          LOGI("Nesting down to sub-record at %p\n", current_record);
+        }
+      } else if (line[0] == '}') {
+        // End of sub-form
+        if (!current_record->parent) {
+          LOGE("line:%d:} without matching {.\n", line_number);
+          record_free(record);
+          return NULL;
+        }
+        LOGI("Popping up to parent record at %p\n", current_record->parent);
+
+        // Find the question field name, so that we can promote it to our caller
+        char *question = NULL;
+        for (int i = 0; i < current_record->field_count; i++) {
+          if (current_record->fields[i].key)
+            if (!strcmp("question", current_record->fields[i].key)) {
+              // Found it
+              question = current_record->fields[i].value;
+            }
+        }
+        if ((!question) && (current_record->parent)) {
+          // question field in typically in the surrounding enclosure
+          for (int i = 0; i < current_record->parent->field_count; i++) {
+            if (current_record->parent->fields[i].key)
+              if (!strcmp("question", current_record->parent->fields[i].key)) {
+                // Found it
+                question = current_record->parent->fields[i].value;
+              }
+          }
+        }
+        if (!question) {
+          LOGE("line:%d:No 'question' value in sub-form.\n", line_number);
+          record_free(record);
+          return NULL;
+        }
+
+        // Step back up to parent
+        current_record = current_record->parent;
+
+      } else if ((l > 0) && (line[0] != '#')) {
+        if (sscanf(line, "%[^=]=%[^\n]", key, value) == 2) {
+          if (current_record->field_count >= MAX_FIELDS) {
+            LOGE("line:%d:Too many data lines (must be <=%d, or increase "
+                 "MAX_FIELDS).\n",
+                 line_number, MAX_FIELDS);
+            record_free(record);
+            return NULL;
+          }
+          LOGI("[%s]=[%s]\n", key, value);
+          current_record->fields[current_record->field_count].key = strdup(key);
+          current_record->fields[current_record->field_count].value =
+              strdup(value);
+          current_record->field_count++;
+        } else {
+          LOGE("line:%d:Malformed data line (%s:%d): '%s'\n", line_number,
+               __FILE__, __LINE__, line);
+          record_free(record);
+          return NULL;
+        }
+      }
+      line_number++;
+      l = 0;
+    } else {
+      if (l < 1000) {
+        line[l++] = in[i];
+      } else {
+        if (l == 1000) {
+          LOGE("line:%d:Line too long -- ignoring (must be < 1000 "
+               "characters).\n",
+               line_number);
+        }
+        l++;
       }
     }
   }
-  return NULL;
+
+  if (current_record->parent) {
+    LOGE("line:%d:End of input, but } expected.\n", line_number);
+    record_free(record);
+    return NULL;
+  }
+
+  LOGI("Read %d data lines, %d values.\n", line_number, record->field_count);
+
+  // dump_record(record);
+
+  return record;
 }
-
-
 

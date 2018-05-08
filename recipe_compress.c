@@ -14,7 +14,6 @@
 #include "packed_stats.h"
 #include "smac.h"
 #include "log.h"
-#include "subforms.h"
 
 int recipe_parse_boolean(char *b) {
   if (!b)
@@ -425,7 +424,88 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
   return -1;
 }
 
-int recipe_compress(stats_handle *h, char *recipe_dir, struct recipe *recipe,
+int compress_record_with_subforms(find_recipe find_recipe, void *context, struct recipe *recipe,
+				  struct record *record, range_coder *c, stats_handle *h){
+  int i;
+  struct field *field = recipe->field_list;
+  while (field) {
+    // look for this field in keys[]
+    if (!strncasecmp(field->name, "subform/", strlen("subform/"))) {
+      LOGI("Spotted subform '%s'\n", field->name);
+      const char *formid = &field->name[strlen("subform/")];
+      struct recipe *recipe = find_recipe(formid, context);
+      if (!recipe)
+        return -1;
+
+      /* We are now set to encode however many instances of this sub-form
+         occur for this question.
+         We use a binary decision before each.
+         But first, we have to find the correct field in the record
+      */
+      for (i = 0; i < record->field_count; i++) {
+        if (record->fields[i].subrecord) {
+          struct record *s = record->fields[i].subrecord;
+          // Here is a sub-record enclosure. Is it the right one?
+          // Look for a formid= key pair, and check the value
+          int found = 0;
+          for (int j = 0; j < s->field_count; j++)
+            if (s->fields[j].key)
+              if (!strcasecmp(s->fields[j].key, "formid"))
+                if (!strcasecmp(s->fields[j].value, formid)) {
+                  // Bingo, we have found it.
+                  found = 1;
+                  break;
+                }
+          if (found) {
+            LOGI("Found enclosure for this sub-form in %p\n", s);
+            for (int j = 0; j < s->field_count; j++) {
+              if (s->fields[j].subrecord) {
+                LOGI("  Found sub-record in field #%d\n", j);
+                struct record *ss = s->fields[j].subrecord;
+                range_encode_equiprobable(c, 2, 1);
+                compress_record_with_subforms(find_recipe, context, recipe, ss, c, h);
+              }
+            }
+          }
+        }
+      }
+      // Mark end of list of instances of sub-records for this question
+      range_encode_equiprobable(c, 2, 0);
+
+    } else {
+      for (i = 0; i < record->field_count; i++) {
+        if (record->fields[i].key)
+          if (!strcasecmp(record->fields[i].key, field->name))
+            break;
+      }
+      if (i < record->field_count) {
+        // Field present
+        LOGI("Found field ('%s', value '%s')\n", field->name,
+             record->fields[i].key);
+        // Record that the field is present.
+        range_encode_equiprobable(c, 2, 1);
+        // Now, based on type of field, encode it.
+        if (recipe_encode_field(field, h, c, record->fields[i].value)) {
+          range_coder_free(c);
+          LOGE("Could not record value '%s' for field '%s' (type %d)\n",
+               record->fields[i].key, field->name, field->type);
+          return -1;
+        }
+        LOGI(" ... encoded value '%s'", record->fields[i].key);
+      } else {
+        // Field missing: record this fact and nothing else.
+        LOGI("No field ('%s')\n", field->name);
+        range_encode_equiprobable(c, 2, 0);
+      }
+    }
+    field = field->next;
+  }
+
+  // Successfully compressed -- return
+  return 0;
+}
+
+int recipe_compress(stats_handle *h, find_recipe find_recipe, void *context, struct recipe *recipe,
                     char *in, int in_len, unsigned char *out, int out_size) {
   /*
     Eventually we want to support full skip logic, repeatable sections and so
@@ -472,7 +552,7 @@ int recipe_compress(stats_handle *h, char *recipe_dir, struct recipe *recipe,
   }
 
   int out_count =
-      compress_record_with_subforms(recipe_dir, recipe, record, c, h);
+      compress_record_with_subforms(find_recipe, context, recipe, record, c, h);
   record_free(record);
   if (out_count < 0) {
     range_coder_free(c);
@@ -496,99 +576,3 @@ int recipe_compress(stats_handle *h, char *recipe_dir, struct recipe *recipe,
   return bytes;
 }
 
-int recipe_compress_file(stats_handle *h, char *recipe_dir, char *input_file,
-                         char *output_file) {
-  unsigned char *buffer;
-
-  int fd = open(input_file, O_RDONLY);
-  if (fd == -1) {
-    LOGE("Could not open uncompressed file '%s'", input_file);
-    return -1;
-  }
-
-  struct stat stat;
-  if (fstat(fd, &stat) == -1) {
-    LOGE("Could not stat uncompressed file '%s'", input_file);
-    close(fd);
-    return -1;
-  }
-
-  buffer = mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
-  if (buffer == MAP_FAILED) {
-    LOGE("Could not memory map uncompressed file '%s'", input_file);
-    close(fd);
-    return -1;
-  }
-
-  // Parse formid from stripped file so that we know which recipe to use
-  char formid[1024] = "";
-  for (int i = 0; i < stat.st_size; i++) {
-    if (sscanf((const char *)&buffer[i], "formid=%[^\n]", formid) == 1)
-      break;
-  }
-
-  unsigned char *stripped = buffer;
-  int stripped_len = stat.st_size;
-
-  if (!formid[0]) {
-    // Input file is not a stripped file. Perhaps it is a record to be
-    // compressed?
-    stripped = calloc(65536, 1);
-    stripped_len = xml2stripped(NULL, (const char *)buffer, stat.st_size,
-                                (char *)stripped, 65536);
-
-    for (int i = 0; i < stripped_len; i++) {
-      if (sscanf((const char *)&stripped[i], "formid=%[^\n]", formid) == 1)
-        break;
-    }
-  }
-
-  if (!formid[0]) {
-    LOGE(
-        "stripped file contains no formid field to identify matching recipe");
-    return -1;
-  }
-
-  char recipe_file[1024];
-
-  sprintf(recipe_file, "%s/%s.recipe", recipe_dir, formid);
-  LOGI("Trying to load '%s' as a recipe", recipe_file);
-  struct recipe *recipe = recipe_read_from_file(recipe_file);
-  // A form can be given in place of the recipe directory
-  if (!recipe) {
-    LOGI("Trying to load '%s' as a form specification to convert to recipe",
-         recipe_dir);
-    char form_spec_text[1048576];
-    int form_spec_len =
-        recipe_load_file(recipe_dir, form_spec_text, sizeof(form_spec_text));
-    recipe = recipe_read_from_specification(form_spec_text);
-  }
-  if (!recipe)
-    return -1;
-
-  unsigned char out_buffer[1024];
-  int r = recipe_compress(h, recipe_dir, recipe, (char *)stripped, stripped_len,
-                          out_buffer, 1024);
-  recipe_free(recipe);
-
-  munmap(buffer, stat.st_size);
-  close(fd);
-
-  if (r < 0)
-    return -1;
-
-  FILE *f = fopen(output_file, "w");
-  if (!f) {
-    LOGE("Could not write succinct data compressed file '%s'", output_file);
-    return -1;
-  }
-  int wrote = fwrite(out_buffer, r, 1, f);
-  fclose(f);
-  if (wrote != 1) {
-    LOGE("Could not write %d bytes of compressed succinct data into '%s'", r,
-         output_file);
-    return -1;
-  }
-
-  return r;
-}

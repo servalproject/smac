@@ -61,12 +61,30 @@ struct field {
 };
 
 struct recipe {
-  struct recipe *next;
   unsigned char formhash[6];
   struct field *field_list;
   int field_count;
   char formname[];
 };
+
+
+struct record_field {
+  char *key;
+  char *value;
+  struct record *subrecord;
+};
+
+#define MAX_FIELDS 1024
+struct record {
+  int field_count;
+  struct record_field fields[MAX_FIELDS];
+  struct record *parent;
+};
+
+typedef struct recipe *(*find_recipe) (const char *formid, void *data);
+
+int record_free(struct record *r);
+struct record *parse_stripped_with_subforms(char *in,int in_len);
 
 int recipe_create(char *input);
 int xhtml_recipe_create(char *recipe_dir, char *input);
@@ -84,6 +102,10 @@ int recipe_compress_file(stats_handle *h, char *recipe_dir, char *input_file, ch
 int encryptAndFragment(char *filename, int mtu, char *outputdir,
                        char *publickeyhex);
 int recipe_encode_field(struct field *field, stats_handle *stats, range_coder *c, char *value);
+int compress_record_with_subforms(find_recipe find_recipe, void *context, struct recipe *recipe,
+				  struct record *r, range_coder *c, stats_handle *h);
+int recipe_compress(stats_handle *h, find_recipe find_recipe, void *context, struct recipe *recipe,
+                    char *in, int in_len, unsigned char *out, int out_size);
 
 int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
                            char *output_directory);

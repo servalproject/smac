@@ -10,12 +10,12 @@ OBJS=	main.o \
 	recipe.o \
 	recipe_compress.o \
 	recipe_decompress.o \
+	recipe_file.o \
 	xml2recipe.o \
 	xhtml2recipe.o \
 	map.o \
 	dexml.o \
 	md5.o \
-	subforms.o \
 	\
 	unicode.o \
 	case.o \
@@ -59,7 +59,7 @@ OBJS=	main.o \
         \
 	timegm.o
 
-HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h subforms.h Makefile
+HDRS=	charset.h arithmetic.h packed_stats.h unicode.h visualise.h recipe.h Makefile
 
 all: smac arithmetic gen_stats gsinterpolative extract_tweets
 
