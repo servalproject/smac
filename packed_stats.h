@@ -52,7 +52,7 @@ typedef struct compressed_stats_handle {
   unsigned char *mmap;
   int fileLength;
   int dummyOffset;
-  unsigned char *buffer;
+  const unsigned char *buffer;
   unsigned char *bufferBitmap;  
 
   unsigned int rootNodeAddress;
@@ -96,8 +96,9 @@ int dumpNode(struct node *n);
 
 void stats_handle_free(stats_handle *h);
 stats_handle *stats_new_handle(char *file);
+stats_handle *stats_mapped_file(const unsigned char *buffer, size_t len);
 int stats_load_tree(stats_handle *h);
-unsigned char *getCompressedBytes(stats_handle *h,int start,int count);
+const unsigned char *getCompressedBytes(stats_handle *h,int start,int count);
 int *getUnicodeStatistics(stats_handle *h,int codePage);
 int unicodeVectorReport(char *name,int *counts,int previousCodePage,
 			int codePage,unsigned short s);

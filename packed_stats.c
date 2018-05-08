@@ -48,7 +48,7 @@ void node_free(struct node *n)
 void stats_handle_free(stats_handle *h)
 {
   if (h->mmap) munmap(h->mmap,h->fileLength);
-  if (h->buffer) free(h->buffer);
+  if (h->buffer && h->bufferBitmap) free((void*)h->buffer);
   if (h->bufferBitmap) free(h->bufferBitmap);
   if (h->tree) node_free_recursive(h->tree);
 
@@ -60,91 +60,114 @@ void stats_handle_free(stats_handle *h)
   return;
 }
 
-unsigned int read24bits(FILE *f)
+unsigned int read24bits(const unsigned char **ptr)
 {
   int i;
   int v=0;
-  for(i=0;i<3;i++) v=(v<<8)|(unsigned char)fgetc(f);
+  for(i=0;i<3;i++)
+    v=(v<<8) | *(*ptr)++;
   return v;
 }
 
-stats_handle *stats_new_handle(char *file)
-{
+static int load_headers(stats_handle *h){
   int i,j;
-  stats_handle *h=calloc(sizeof(stats_handle),1);
-  h->file=fopen(file,"r");
-  if(!h->file) {
-    free(h);
-    return NULL;
-  }
-  
-  /* Get size of file */
-  fseek(h->file,0,SEEK_END);
-  h->fileLength=ftello(h->file);
+  const unsigned char *ptr = getCompressedBytes(h, 4, (3 * 4) + 1 + (1 + 2 + 4 + 80 + 160 + 1) * 3 + 4096);
 
-  fseek(h->file,4,SEEK_SET);
-  for(i=0;i<4;i++) h->rootNodeAddress=(h->rootNodeAddress<<8)
-		     |(unsigned char)fgetc(h->file);
-  for(i=0;i<4;i++) h->totalCount=(h->totalCount<<8)
-		     |(unsigned char)fgetc(h->file);
-  for(i=0;i<4;i++) h->unicodeAddress=(h->unicodeAddress<<8)
-		     |(unsigned char)fgetc(h->file);
-  h->maximumOrder=fgetc(h->file);
+  for(i=0;i<4;i++) h->rootNodeAddress=(h->rootNodeAddress<<8) | *ptr++;
+  for(i=0;i<4;i++) h->totalCount=(h->totalCount<<8) | *ptr++;
+  for(i=0;i<4;i++) h->unicodeAddress=(h->unicodeAddress<<8)| *ptr++;
+  h->maximumOrder=*ptr++;
   if (1)
     LOGE("rootNodeAddress=0x%x, totalCount=%d, unicodeAddress=0x%x, maximumOrder=%d",
 	    h->rootNodeAddress,h->totalCount,h->unicodeAddress,h->maximumOrder);
 
-#define CHECK(X) if (h->X==0||h->X>0xfffffe) { LOGE("P(uppercase|%s) = 0x%x",#X,h->X); return NULL; }
+#define CHECK(X) if (h->X==0||h->X>0xfffffe) { LOGE("P(uppercase|%s) = 0x%x",#X,h->X); return -1; }
 
   /* Read in letter case prediction statistics */
-  h->casestartofmessage[0][0]=read24bits(h->file);
+  h->casestartofmessage[0][0]=read24bits(&ptr);
   CHECK(casestartofmessage[0][0]);
   for(i=0;i<2;i++)
     {
-      h->casestartofword2[i][0]=read24bits(h->file);
+      h->casestartofword2[i][0]=read24bits(&ptr);
       CHECK(casestartofword2[i][0]);
     }
   for(i=0;i<2;i++)
     for(j=0;j<2;j++) {
-      h->casestartofword3[i][j][0]=read24bits(h->file);
+      h->casestartofword3[i][j][0]=read24bits(&ptr);
       CHECK(casestartofword3[i][j][0]);
     }
   for(i=0;i<80;i++) {
-    h->caseposn1[i][0]=read24bits(h->file);
+    h->caseposn1[i][0]=read24bits(&ptr);
     CHECK(caseposn1[0][0]);
   }
   for(i=1;i<80;i++)
     for(j=0;j<2;j++) {
-      h->caseposn2[j][i][0]=read24bits(h->file);
+      h->caseposn2[j][i][0]=read24bits(&ptr);
       CHECK(caseposn2[j][i][0]);
     }
   /* Read in message length stats */
   {
     /* 1024 x 24 bit values interpolative coded cannot
        exceed 4KB (typically around 1.3KB) */
-    int tally=read24bits(h->file);
-    range_coder *c=range_new_coder(4096);
-    fread(c->bit_stream,4096,1,h->file);
+    int tally=read24bits(&ptr);
+    range_coder *c=range_new_coder(0);
+    c->bit_stream = (unsigned char *)ptr;
     c->bit_stream_length=4096*8;
-    c->low=0; c->high=0;
+    c->low=0;
+    c->high=0;
     range_decode_prefetch(c);
     ic_decode_recursive(h->messagelengths,1024,tally,c);
+    c->bit_stream = NULL;
     range_coder_free(c);
     for(i=0;i<1024;i++) 
       h->messagelengths[i]=h->messagelengths[i]*1.0*0xffffff/tally;
   }
   LOGE("Read case and message length statistics.");
 
+  return 0;
+}
+
+stats_handle *stats_new_handle(char *file)
+{
+  stats_handle *h=calloc(sizeof(stats_handle),1);
+  bzero(h, sizeof(stats_handle));
+  h->file=fopen(file,"r");
+  if(!h->file) {
+    free(h);
+    return NULL;
+  }
+
+  /* Get size of file */
+  fseek(h->file, 0, SEEK_END);
+  h->fileLength = ftello(h->file);
+
   /* Try to mmap() */
   h->mmap=mmap(NULL, h->fileLength, PROT_READ, MAP_SHARED, fileno(h->file), 0);
-  if (h->mmap!=MAP_FAILED) return h;
-  
-  /* mmap failed, so create buffer and bitmap for keeping track of which parts have 
-     been loaded. */
-  h->mmap=NULL;
+  if (h->mmap==MAP_FAILED){
+    /* mmap failed, so create buffer and bitmap for keeping track of which parts have
+       been loaded. */
+    h->mmap=NULL;
 
-  h->buffer=malloc(h->fileLength);
-  h->bufferBitmap=calloc((h->fileLength+1)>>10,1);
+    h->buffer=malloc(h->fileLength);
+    h->bufferBitmap=calloc((h->fileLength+1)>>10,1);
+  }
+
+  if (load_headers(h)==-1){
+    free(h);
+    return NULL;
+  }
+  return h;
+}
+
+stats_handle *stats_mapped_file(const unsigned char *buffer, size_t len){
+  stats_handle *h=calloc(sizeof(stats_handle),1);
+  bzero(h, sizeof(stats_handle));
+  h->buffer = buffer;
+  h->fileLength = len;
+  if (load_headers(h)==-1){
+    free(h);
+    return NULL;
+  }
   return h;
 }
 
@@ -155,29 +178,30 @@ int stats_load_tree(stats_handle *h)
   return 0;
 }
 
-unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
+const unsigned char *getCompressedBytes(stats_handle *h,int start,int count)
 {
-  if (!h) { LOGE("failed test at line #%d\n",__LINE__); return NULL; }
-  if (!h->file) 
-    { LOGE("failed test at line #%d\n",__LINE__); return NULL; }
-  if (start<0||start>=h->fileLength) 
-    { LOGE("failed test at line #%d\n",__LINE__); return NULL; }
+  if (start<0||start>=h->fileLength) {
+    LOGE("failed test");
+    return NULL;
+  }
 
   if ((start+count)>h->fileLength) 
     count=h->fileLength-start;
 
   /* If file is memory mapped, just return the address to the piece in question */
-  if (h->mmap) return &h->mmap[start-h->dummyOffset];
-  
-  /* not memory mapped, so pull in the appropriate part of the file as required */
-  int i;
-  for(i=((start)>>10);i<=((start+count)>>10);i++)
-    {
+  if (h->mmap)
+    return &h->mmap[start-h->dummyOffset];
+
+  if (h->file && h->bufferBitmap){
+    /* not memory mapped, so pull in the appropriate part of the file as required */
+    int i;
+    for(i=((start)>>10);i<=((start+count)>>10);i++){
       if (!h->bufferBitmap[i]) {
-	fread(&h->buffer[i<<10],1024,1,h->file);
+	fread((void*)&h->buffer[i<<10],1024,1,h->file);
 	h->bufferBitmap[i]=1;
       }
     }
+  }
   return &h->buffer[start];
 }
 
@@ -202,10 +226,11 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
   }
  
   range_coder *c=range_new_coder(0);
-  c->bit_stream=getCompressedBytes(h,nodeAddress,1024);
+  c->bit_stream=(unsigned char *)getCompressedBytes(h,nodeAddress,1024);
   c->bit_stream_length=1024*8;
   c->bits_used=0;
-  c->low=0; c->high=0xffffffff;
+  c->low=0;
+  c->high=0xffffffff;
   range_decode_prefetch(c);
 
   unsigned int totalCount=range_decode_equiprobable(c,count+1);
@@ -299,10 +324,9 @@ struct node *extractNodeAt(unsigned short *s,int len,unsigned int nodeAddress,
     dumpNode(ret);
   }
 
-  /* c->bit_stream is provided locally, so we must free the range coder manually,
-     instead of using range_coder_free() */
+  /* c->bit_stream is provided locally, so we must clear it again */
   c->bit_stream=NULL;
-  free(c);
+  range_coder_free(c);
 
   return ret;
 }
