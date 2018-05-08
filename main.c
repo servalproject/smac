@@ -355,7 +355,7 @@ int main(int argc,char *argv[])
 	range_decode_prefetch(c);
 	char out[2048];
 	int lenout;
-	stats3_decompress_bits(c,(unsigned char *)out,&lenout,h,NULL);
+	stats3_decompress_bits(c,out,&lenout,h,NULL);
 	printf("%s\n",out);
       }
 #endif
@@ -444,7 +444,7 @@ int processFile(FILE *f,FILE *contentXML,stats_handle *h)
     double entropyLog[1025];
     range_coder *c=range_new_coder(2048);
     now = current_time_us();
-    stats3_compress_bits(c,(unsigned char *)m,strlen(m),h,entropyLog);
+    stats3_compress_bits(c,m,strlen(m),h,entropyLog);
     stats3_compress_us+=current_time_us()-now;
     
     if (total_messages<1000)
@@ -487,7 +487,7 @@ int processFile(FILE *f,FILE *contentXML,stats_handle *h)
       
       now=current_time_us();
       range_decode_prefetch(d);
-      stats3_decompress_bits(d,(unsigned char *)mout,&lenout,h,NULL);
+      stats3_decompress_bits(d,mout,&lenout,h,NULL);
       stats3_decompress_us+=current_time_us()-now;
 
       if (lenout!=strlen(m)) {	

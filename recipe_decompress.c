@@ -66,8 +66,7 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
       // out of range value, so decode it as a string.
       LOGE("FIELDTYPE_INTEGER: Illegal value - decoding string "
            "representation.");
-      r = stats3_decompress_bits(c, (unsigned char *)value, &value_size, stats,
-                                 NULL);
+      r = stats3_decompress_bits(c, value, &value_size, stats, NULL);
     } else
       sprintf(value, "%d", normalised_value + minimum);
     return 0;
@@ -170,8 +169,7 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
     return 0;
     break;
   case FIELDTYPE_TEXT:
-    r = stats3_decompress_bits(c, (unsigned char *)value, &value_size, stats,
-                               NULL);
+    r = stats3_decompress_bits(c, value, &value_size, stats, NULL);
     return 0;
   case FIELDTYPE_TIMEDATE:
     // time is 32-bit seconds since 1970.
@@ -313,8 +311,8 @@ int recipe_decode_field(struct field *field, stats_handle *stats,
   return 0;
 }
 
-int recipe_decompress_with_hash(stats_handle *h, char *recipe_dir,
-                                unsigned char *in, int in_len, char *out,
+int recipe_decompress_with_hash(stats_handle *h, const char *recipe_dir,
+                                const unsigned char *in, int in_len, char *out,
                                 int out_size, char *recipe_name) {
 
   if (!recipe_dir) {
@@ -363,7 +361,7 @@ int recipe_decompress_with_hash(stats_handle *h, char *recipe_dir,
   return r;
 }
 
-int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
+int recipe_decompress(stats_handle *h, struct recipe *recipe, const char *recipe_dir,
                       char *out, int out_size, char *recipe_name,
                       range_coder *c, bool is_subform, bool is_record) {
 
@@ -472,8 +470,8 @@ int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
 
   return written;
 }
-int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
-                                char *output_dir, char *stripped,
+int recipe_stripped_to_csv_line(const char *recipe_dir, const char *recipe_name,
+                                const char *output_dir, const char *stripped,
                                 int stripped_data_len, char *csv_out,
                                 int csv_out_size) {
   // Read recipe, CSV encode each field if present, append fields to line,
@@ -560,8 +558,8 @@ int recipe_stripped_to_csv_line(char *recipe_dir, char *recipe_name,
   return 0;
 }
 
-int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
-                           char *output_directory) {
+int recipe_decompress_file(stats_handle *h, const char *recipe_dir, const char *input_file,
+                           const char *output_directory) {
   // struct recipe *recipe=recipe_read_from_file(recipe_file);
   // if (!recipe) return -1;
 

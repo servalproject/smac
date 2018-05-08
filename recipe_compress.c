@@ -15,7 +15,7 @@
 #include "smac.h"
 #include "log.h"
 
-int recipe_parse_boolean(char *b) {
+int recipe_parse_boolean(const char *b) {
   if (!b)
     return 0;
   switch (b[0]) {
@@ -40,12 +40,12 @@ int parseHexDigit(int c) {
   return 0;
 }
 
-int parseHexByte(char *hex) {
+int parseHexByte(const char *hex) {
   return (parseHexDigit(hex[0]) << 4) | parseHexDigit(hex[1]);
 }
 
 int recipe_encode_field(struct field *field, stats_handle *stats,
-                        range_coder *c, char *value) {
+                        range_coder *c, const char *value) {
   int normalised_value;
   int minimum;
   int maximum;
@@ -73,8 +73,7 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
            atoi(value));
       range_encode_equiprobable(c, maximum - minimum + 2,
                                 maximum - minimum + 1);
-      int r = stats3_compress_append(c, (unsigned char *)value, strlen(value),
-                                     stats, NULL);
+      int r = stats3_compress_append(c, value, strlen(value), stats, NULL);
       return r;
     }
     return range_encode_equiprobable(c, maximum - minimum + 2,
@@ -356,12 +355,12 @@ int recipe_encode_field(struct field *field, stats_handle *stats,
   case FIELDTYPE_TEXT: {
     int before = c->bits_used;
     // Trim to precision specified length if non-zero
+    size_t len = strlen(value);
     if (field->precision > 0) {
-      if (strlen(value) > field->precision)
-        value[field->precision] = 0;
+      if (len > field->precision)
+        len = field->precision;
     }
-    int r = stats3_compress_append(c, (unsigned char *)value, strlen(value),
-                                   stats, NULL);
+    int r = stats3_compress_append(c, value, len, stats, NULL);
     LOGI("'%s' encoded in %d bits", value, c->bits_used - before);
     if (r)
       return -1;
@@ -506,7 +505,7 @@ int compress_record_with_subforms(find_recipe find_recipe, void *context, struct
 }
 
 int recipe_compress(stats_handle *h, find_recipe find_recipe, void *context, struct recipe *recipe,
-                    char *in, int in_len, unsigned char *out, int out_size) {
+                    const char *in, int in_len, unsigned char *out, int out_size) {
   /*
     Eventually we want to support full skip logic, repeatable sections and so
     on. For now we will allow skip sections by indicating missing fields. This

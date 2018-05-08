@@ -16,7 +16,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-int utf16toutf8(unsigned short *in,int in_len,unsigned char *out,int *out_len)
+int utf16toutf8(unsigned short *in,int in_len,char *out,int *out_len)
 {
   int i; *out_len=0;
   for(i=0;i<in_len;i++) {
@@ -38,7 +38,7 @@ int utf16toutf8(unsigned short *in,int in_len,unsigned char *out,int *out_len)
   return 0;
 }
 
-int utf8toutf16(unsigned char *in,int in_len,unsigned short *out,int *out_len)
+int utf8toutf16(char *in,int in_len,unsigned short *out,int *out_len)
 {
   int i; *out_len=0;
   for(i=0;i<in_len;i++)
@@ -57,13 +57,13 @@ int utf8toutf16(unsigned char *in,int in_len,unsigned short *out,int *out_len)
       } else {
 	// UTF character
 	int unicode=0;
-	if (in[i]<0xe0) {
+	if ((in[i]&0xFF)<0xe0) {
 	  if (in_len-i<1) return -1; // string ends mid-way through a UTF8 sequence
 	  // 2 bytes
 	  unicode=((in[i]&0x1f)<<6)|(in[i+1]&0x3f);
 	  i++;
 	  out[(*out_len)++]=unicode;	  
-	} else if (in[i]<0xf8) {
+	} else if ((in[i]&0xFF)<0xf8) {
 	  if (in_len-i<2) return -1; // string ends mid-way through a UTF8 sequence
 	  // 3 bytes
 	  unicode=((in[i]&0x0f)<<12)|((in[i+1]&0x3f)<<6)|(in[i+2]&0x3f);
@@ -88,7 +88,7 @@ unsigned short *ascii2utf16(char *in)
   return ret;
 }
 
-int unEscape(unsigned char *utf8line,int *utf8len)
+int unEscape(char *utf8line,int *utf8len)
 {
   int outLen=0;
   int i;

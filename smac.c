@@ -57,12 +57,10 @@ int decodeNonAlpha(range_coder *c,int nonAlphaPositions[],
 int decodeCaseModel1(range_coder *c,unsigned short *line,int len,stats_handle *h);
 int decodeLCAlphaSpace(range_coder *c,unsigned short *s,int length,stats_handle *h,
 		       double *entropyLog);
-int decodePackedASCII(range_coder *c, unsigned char *m,int encodedLength);
-int encodePackedASCII(range_coder *c,unsigned char *m);
 
 unsigned int probPackedASCII=0.05*0xffffff;
 
-int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
+int stats3_decompress_bits(range_coder *c,char m[1025],int *len_out,
 			   stats_handle *h,double *entropyLog)
 {
   int i;
@@ -153,7 +151,7 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   return 0;
 }
 
-int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outlen,
+int stats3_decompress(const unsigned char *in,int inlen,char *out, int *outlen,
 		      stats_handle *h)
 {
   range_coder *c=range_new_coder(inlen*2);
@@ -174,7 +172,7 @@ int stats3_decompress(unsigned char *in,int inlen,unsigned char *out, int *outle
   return 0;
 }
 
-int stats3_compress_radix_append(range_coder *c,unsigned char *m_in,int m_in_len,
+int stats3_compress_radix_append(range_coder *c,const char *m_in,int m_in_len,
 				 stats_handle *h,double *entropyLog)
 {
   range_encode_equiprobable(c,2,1); // not raw ASCII
@@ -184,7 +182,7 @@ int stats3_compress_radix_append(range_coder *c,unsigned char *m_in,int m_in_len
   return encodePackedASCII(c,m_in);       
 }
 
-int stats3_compress_model1_append(range_coder *c,unsigned char *m_in,int m_in_len,
+int stats3_compress_model1_append(range_coder *c,const char *m_in,int m_in_len,
 				  stats_handle *h,double *entropyLog)
 {
   int len;
@@ -249,7 +247,7 @@ int stats3_compress_model1_append(range_coder *c,unsigned char *m_in,int m_in_le
   return 0;
 }
 
-int stats3_compress_uncompressed_append(range_coder *c,unsigned char *m_in,int m_in_len,
+int stats3_compress_uncompressed_append(range_coder *c,const char *m_in,int m_in_len,
 					stats_handle *h,double *entropyLog)
 {
   // As any of these encodes might trigger a rescale,
@@ -271,7 +269,7 @@ int stats3_compress_uncompressed_append(range_coder *c,unsigned char *m_in,int m
   return 0;
 }
 
-int stats3_compress_append(range_coder *c,unsigned char *m_in,int m_in_len,
+int stats3_compress_append(range_coder *c,const char *m_in,int m_in_len,
 			   stats_handle *h,double *entropyLog)
 {
   int b1,b2,b3;
@@ -304,7 +302,7 @@ int stats3_compress_append(range_coder *c,unsigned char *m_in,int m_in_len,
 }
 
 
-int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
+int stats3_compress_bits(range_coder *c,const char *m_in,int m_in_len,
 			 stats_handle *h,double *entropyLog)
 {
   if (stats3_compress_append(c,m_in,m_in_len,h,entropyLog)) return -1;
@@ -315,7 +313,7 @@ int stats3_compress_bits(range_coder *c,unsigned char *m_in,int m_in_len,
   return 0;
 }
 
-int stats3_compress(unsigned char *in,int inlen,unsigned char *out, int *outlen,stats_handle *h)
+int stats3_compress(const char *in,int inlen,unsigned char *out, int *outlen,stats_handle *h)
 {
   range_coder *c=range_new_coder(inlen*2);
   if (stats3_compress_bits(c,in,inlen,h,NULL)) {

@@ -117,7 +117,7 @@ void recipe_free(struct recipe *recipe) {
   free(recipe);
 }
 
-int recipe_form_hash(char *recipe_file, unsigned char *formhash,
+int recipe_form_hash(const char *recipe_file, unsigned char *formhash,
                      char *formname) {
   MD5_CTX md5;
   unsigned char hash[16];
@@ -156,7 +156,7 @@ int recipe_form_hash(char *recipe_file, unsigned char *formhash,
   return 0;
 }
 
-struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
+struct recipe *recipe_read(const char *formname, const char *buffer, int buffer_size) {
   if (buffer_size < 1 || buffer_size > 1048576) {
     LOGE("Recipe file empty or too large (>1MB).");
     return NULL;
@@ -282,7 +282,7 @@ struct recipe *recipe_read(char *formname, char *buffer, int buffer_size) {
   return recipe;
 }
 
-struct recipe *recipe_read_from_specification(char *xmlform_c) {
+struct recipe *recipe_read_from_specification(const char *xmlform_c) {
   int magpi_mode = 0;
   if (xmlform_c && (!strncasecmp("<html", xmlform_c, 5)))
     magpi_mode = 1;
@@ -370,7 +370,7 @@ void dump_record_r(struct record *r, int offset) {
 
 void dump_record(struct record *r) { dump_record_r(r, 0); }
 
-struct record *parse_stripped_with_subforms(char *in, int in_len) {
+struct record *parse_stripped_with_subforms(const char *in, int in_len) {
   struct record *record = calloc(sizeof(struct record), 1);
   assert(record);
   LOGI("record is %p\n", record);

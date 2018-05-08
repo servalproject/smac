@@ -408,7 +408,7 @@ struct probability_vector *extractVector(unsigned short *string,int len,
   
   if (0)
     {
-      unsigned char s[1025];
+      char s[1025];
       int out_len=0;
       utf16toutf8(string,len,s,&out_len);
       LOGE("extractVector('%s',%d,...)\n",

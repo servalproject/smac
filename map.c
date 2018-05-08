@@ -209,7 +209,7 @@ struct stripped *parse_stripped(char *filename)
   return s;
 }
 
-int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
+int generateMap(const char *recipeDir,const char *recipe_name, const char *outputDir)
 {
   char filename[1024];
 
@@ -311,7 +311,7 @@ int generateMap(char *recipeDir,char *recipe_name, char *outputDir)
 }
 
 
-int generateMaps(char *recipeDir, char *outputDir)
+int generateMaps(const char *recipeDir, const char *outputDir)
 {
   DIR *d=opendir(recipeDir);
 

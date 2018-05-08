@@ -84,44 +84,43 @@ struct record {
 typedef struct recipe *(*find_recipe) (const char *formid, void *data);
 
 int record_free(struct record *r);
-struct record *parse_stripped_with_subforms(char *in,int in_len);
+struct record *parse_stripped_with_subforms(const char *in,int in_len);
 
-int recipe_create(char *input);
-int xhtml_recipe_create(char *recipe_dir, char *input);
-struct recipe *recipe_read_from_file(char *filename);
-struct recipe *recipe_read(char *formname,char *buffer,int buffer_size);
+int recipe_create(const char *input);
+int xhtml_recipe_create(const char *recipe_dir, const char *input);
+struct recipe *recipe_read_from_file(const char *filename);
+struct recipe *recipe_read(const char *formname,const char *buffer,int buffer_size);
 void recipe_free(struct recipe *recipe);
-int recipe_load_file(char *filename, char *out, int out_size);
-struct recipe *recipe_read_from_specification(char *xmlform_c);
-struct recipe *recipe_find_recipe(char *recipe_dir, unsigned char *formhash);
+int recipe_load_file(const char *filename, char *out, int out_size);
+struct recipe *recipe_read_from_specification(const char *xmlform_c);
+struct recipe *recipe_find_recipe(const char *recipe_dir, const unsigned char *formhash);
 
 int recipe_parse_fieldtype(const char *name);
 const char *recipe_field_type_name(int f);
 
-int recipe_compress_file(stats_handle *h, char *recipe_dir, char *input_file, char *output_file);
-int encryptAndFragment(char *filename, int mtu, char *outputdir,
-                       char *publickeyhex);
-int recipe_encode_field(struct field *field, stats_handle *stats, range_coder *c, char *value);
+int recipe_compress_file(stats_handle *h, const char *recipe_dir, const char *input_file, const char *output_file);
+int encryptAndFragment(const char *filename, int mtu, const char *outputdir, const char *publickeyhex);
+int recipe_encode_field(struct field *field, stats_handle *stats, range_coder *c, const char *value);
 int compress_record_with_subforms(find_recipe find_recipe, void *context, struct recipe *recipe,
 				  struct record *r, range_coder *c, stats_handle *h);
 int recipe_compress(stats_handle *h, find_recipe find_recipe, void *context, struct recipe *recipe,
-                    char *in, int in_len, unsigned char *out, int out_size);
+                    const char *in, int in_len, unsigned char *out, int out_size);
 
-int recipe_decompress_file(stats_handle *h, char *recipe_dir, char *input_file,
-                           char *output_directory);
-int defragmentAndDecrypt(char *inputdir, char *outputdir, char *passphrase);
-int recipe_decompress(stats_handle *h, struct recipe *recipe, char *recipe_dir,
+int recipe_decompress_file(stats_handle *h, const char *recipe_dir, const char *input_file,
+                           const char *output_directory);
+int defragmentAndDecrypt(const char *inputdir, const char *outputdir, const char *passphrase);
+int recipe_decompress(stats_handle *h, struct recipe *recipe, const char *recipe_dir,
                       char *out, int out_size, char *recipe_name,
                       range_coder *c, bool is_subform, bool is_record);
 
-int stripped2xml(char *stripped,int stripped_len,char *template,int template_len,char *xml,int xml_size);
+int stripped2xml(const char *stripped,int stripped_len,const char *template,int template_len,char *xml,int xml_size);
 int xml2stripped(const char *form_name, const char *xml,int xml_len,char *stripped,int stripped_size);
 
-int generateMaps(char *recipeDir, char *outputDir);
+int generateMaps(const char *recipeDir, const char *outputDir);
 
 int xhtmlToRecipe(const char *xmltext, char **template_text, char *recipe_text[1024], char *form_versions[1024]);
 
-int xmlToRecipe(char *xmltext,int size,char *formname,char *formversion,
+int xmlToRecipe(const char *xmltext,int size,char *formname,char *formversion,
 		char *recipetext,int *recipeLen,
 		char *templatetext,int *templateLen);
 

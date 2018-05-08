@@ -9,7 +9,7 @@
 #include "log.h"
 #include "recipe.h"
 
-int recipe_load_file(char *filename, char *out, int out_size) {
+int recipe_load_file(const char *filename, char *out, int out_size) {
   unsigned char *buffer;
 
   int fd = open(filename, O_RDONLY);
@@ -46,7 +46,7 @@ int recipe_load_file(char *filename, char *out, int out_size) {
   return stat.st_size;
 }
 
-struct recipe *recipe_read_from_file(char *filename) {
+struct recipe *recipe_read_from_file(const char *filename) {
   struct recipe *recipe = NULL;
 
   unsigned char *buffer;
@@ -92,7 +92,7 @@ static struct recipe * open_recipe(const char *formid, void *f){
   return recipe_read_from_file(recipe_file);
 }
 
-struct recipe *recipe_find_recipe(char *recipe_dir, unsigned char *formhash) {
+struct recipe *recipe_find_recipe(const char *recipe_dir, const unsigned char *formhash) {
   DIR *dir = opendir(recipe_dir);
   struct dirent *de;
   if (!dir)
@@ -123,8 +123,8 @@ struct recipe *recipe_find_recipe(char *recipe_dir, unsigned char *formhash) {
   return NULL;
 }
 
-int recipe_compress_file(stats_handle *h, char *recipe_dir, char *input_file,
-                         char *output_file) {
+int recipe_compress_file(stats_handle *h, const char *recipe_dir, const char *input_file,
+                         const char *output_file) {
   unsigned char *buffer;
 
   int fd = open(input_file, O_RDONLY);

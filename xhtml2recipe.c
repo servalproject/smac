@@ -451,7 +451,7 @@ static void end_xhtml(void *data,
 }
 
 //Generate the recipe (Spec stripped data) and write it into .recipe and .template file
-int xhtml_recipe_create(char *recipe_dir, char *input) {
+int xhtml_recipe_create(const char *recipe_dir, const char *input) {
     FILE *f = fopen(input, "r");
     char filename[1024] = "";
     size_t size;

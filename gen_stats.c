@@ -737,7 +737,7 @@ double entropyOfSymbol3(unsigned int v[CHARCOUNT],int symbol)
 
 int main(int argc,char **argv)
 {
-  unsigned char utf8line[8192];
+  char utf8line[8192];
   int utf8len;
   unsigned short utf16line[8192];
   int utf16len;
@@ -793,7 +793,8 @@ int main(int argc,char **argv)
     argn++;
   }
 
-  utf8line[0]=0; fgets((char *)utf8line,8192,f);
+  utf8line[0]=0;
+  fgets((char *)utf8line,8192,f);
   utf8len=strlen((char *)utf8line);
 
   int lineCount=0;
