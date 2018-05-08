@@ -16,13 +16,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-extern long long total_alpha_bits;
-extern long long total_nonalpha_bits;
-extern long long total_case_bits;
-extern long long total_model_bits;
-extern long long total_length_bits;
-extern long long total_finalisation_bits;
-
 int stats3_compress(const char *in,int inlen,unsigned char *out, int *outlen,
 		    stats_handle *h);
 int stats3_compress_bits(range_coder *c,const char *m,int len,stats_handle *h,

@@ -41,16 +41,7 @@ int lines=0;
 double worstPercent=0,bestPercent=100;
 long long total_compressed_bits=0;
 long long total_uncompressed_bits=0;
-long long total_alpha_bits=0;
-long long total_nonalpha_bits=0;
-long long total_case_bits=0;
-long long total_model_bits=0;
 long long total_length_millibits=0;
-long long total_finalisation_bits=0;
-long long total_length_bits=0;
-
-long long total_unicode_millibits=0;
-long long total_unicode_chars=0;
 
 long long total_messages=0;
 
@@ -392,14 +383,14 @@ int main(int argc,char *argv[])
     printf("       uncompressed bits: %lld\n",total_uncompressed_bits);
     printf("        compressed bytes: %lld\n",total_stats3_bytes);
     printf("         compressed bits: %lld\n",total_compressed_bits);
-    printf("    length-encoding bits: %lld\n",total_length_bits);
-    printf("     model-encoding bits: %lld\n",total_model_bits);
-    printf("      case-encoding bits: %lld\n",total_case_bits);
-    printf("     alpha-encoding bits: %lld\n",total_alpha_bits);
-    if (total_unicode_chars)
+    printf("    length-encoding bits: %lld\n",h->total_length_bits);
+    printf("     model-encoding bits: %lld\n",h->total_model_bits);
+    printf("      case-encoding bits: %lld\n",h->total_case_bits);
+    printf("     alpha-encoding bits: %lld\n",h->total_alpha_bits);
+    if (h->total_unicode_chars)
       printf("   avg unicode bits/char: %.2f\n",
-	     total_unicode_millibits/total_unicode_chars/1000.0);
-    printf("  nonalpha-encoding bits: %lld\n",total_nonalpha_bits);
+	     h->total_unicode_millibits/h->total_unicode_chars/1000.0);
+    printf("  nonalpha-encoding bits: %lld\n",h->total_nonalpha_bits);
     printf("\n");
     printf("stats3 compression time: %lld usecs (%.1f messages/sec, %f MB/sec)\n",
 	   stats3_compress_us,1000000.0/(stats3_compress_us*1.0/total_messages),total_uncompressed_bits*0.125/stats3_compress_us);

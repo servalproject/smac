@@ -33,9 +33,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #undef DEBUG
 
-extern long long total_unicode_millibits;
-extern long long total_unicode_chars;
-
 int strncmp816(char *s1,unsigned short *s2,int len)
 {
   int j;
@@ -118,8 +115,8 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
       double unicodeEntropy=c->entropy-before;
       //      fprintf(stderr,"encoded 0x%04x in %.2f bits\n",
       //	      s[o],unicodeEntropy);
-      total_unicode_millibits+=unicodeEntropy*1000;
-      total_unicode_chars++;
+      h->total_unicode_millibits+=unicodeEntropy*1000;
+      h->total_unicode_chars++;
 #else
       if (firstUnicode) {
 	firstUnicode=0;

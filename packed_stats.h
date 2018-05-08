@@ -80,6 +80,16 @@ typedef struct compressed_stats_handle {
 
   /* Used when not caching vectors for returning vector values */
   struct probability_vector vector;
+
+  // aggregate compression stats
+  long long total_alpha_bits;
+  long long total_nonalpha_bits;
+  long long total_case_bits;
+  long long total_model_bits;
+  long long total_length_bits;
+  long long total_finalisation_bits;
+  long long total_unicode_millibits;
+  long long total_unicode_chars;
 } stats_handle;
 
 void node_free(struct node *n);

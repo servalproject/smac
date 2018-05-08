@@ -205,14 +205,14 @@ int stats3_compress_model1_append(range_coder *c,const char *m_in,int m_in_len,
   range_encode_symbol(c,&probPackedASCII,2,1); // not packed ASCII
 
   // printf("%f bits to encode model\n",c->entropy);
-  total_model_bits+=c->entropy;
+  h->total_model_bits+=c->entropy;
   double lastEntropy=c->entropy;
   
   /* Encode length of message */
   range_encode_symbol(c,(unsigned int *)h->messagelengths,1024,len);
   
   // printf("%f bits to encode length\n",c->entropy-lastEntropy);
-  total_length_bits+=c->entropy-lastEntropy;
+  h->total_length_bits+=c->entropy-lastEntropy;
   lastEntropy=c->entropy;
 
   /* encode any non-ASCII characters */
@@ -222,7 +222,7 @@ int stats3_compress_model1_append(range_coder *c,const char *m_in,int m_in_len,
   stripNonAlpha(utf16,len,alpha,&alpha_len);
 
   //  printf("%f bits (%d emitted) to encode non-alpha\n",c->entropy-lastEntropy,c->bits_used);
-  total_nonalpha_bits+=c->entropy-lastEntropy;
+  h->total_nonalpha_bits+=c->entropy-lastEntropy;
 
   lastEntropy=c->entropy;
 
@@ -231,7 +231,7 @@ int stats3_compress_model1_append(range_coder *c,const char *m_in,int m_in_len,
   encodeLCAlphaSpace(c,lcalpha,alpha_len,h,entropyLog);
 
   // printf("%f bits (%d emitted) to encode chars\n",c->entropy-lastEntropy,c->bits_used);
-  total_alpha_bits+=c->entropy-lastEntropy;
+  h->total_alpha_bits+=c->entropy-lastEntropy;
 
   lastEntropy=c->entropy;
   
@@ -242,7 +242,7 @@ int stats3_compress_model1_append(range_coder *c,const char *m_in,int m_in_len,
   encodeCaseModel1(c,alpha,alpha_len,h);
 
   //  printf("%f bits (%d emitted) to encode case\n",c->entropy-lastEntropy,c->bits_used);
-  total_case_bits+=c->entropy-lastEntropy;
+  h->total_case_bits+=c->entropy-lastEntropy;
 
   return 0;
 }
@@ -308,7 +308,7 @@ int stats3_compress_bits(range_coder *c,const char *m_in,int m_in_len,
   if (stats3_compress_append(c,m_in,m_in_len,h,entropyLog)) return -1;
   range_conclude(c);
   // printf("%d bits actually used after concluding.\n",c->bits_used);
-  total_finalisation_bits+=c->bits_used-c->entropy;
+  h->total_finalisation_bits+=c->bits_used-c->entropy;
 
   return 0;
 }
