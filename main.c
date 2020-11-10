@@ -97,6 +97,8 @@ int usage()
   exit(-1);
 }
 
+char *stats_file="stats.dat";
+
 int main(int argc,char *argv[])
 {
   int i;
@@ -115,7 +117,7 @@ int main(int argc,char *argv[])
 #ifdef ANDROID
   stats_handle *h=stats_new_handle("/sdcard/servalproject/sam/succinct_recipes/smac.dat");
 #else
-  stats_handle *h=stats_new_handle("stats.dat");
+  stats_handle *h=stats_new_handle(getenv("SMAC_DAT")?getenv("SMAC_DAT"):stats_file);
 #endif
   if (!h){
     fprintf(stderr, "Failed to locate statistics file\n");
