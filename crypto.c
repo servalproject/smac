@@ -27,8 +27,7 @@ struct fragment_set {
 };
 
 int crypto_scalarmult_curve25519_ref_base(unsigned char *q,const unsigned char *n);
-int crypto_box_public_from_private(
-                                   unsigned char *pk,
+int crypto_box_public_from_private(unsigned char *pk,
                                    unsigned char *sk);
 
 void randombytes(unsigned char *buf,unsigned long long len)
@@ -188,8 +187,13 @@ unsigned char *private_key_from_passphrase(char *passphrase)
   MD5_Update(&md5,(unsigned char *)"dropbear",8);
   MD5_Update(&md5,(unsigned char *)passphrase,strlen(passphrase));
   MD5_Update(&md5,(unsigned char *)"silvester",9);
-  MD5_Final(&private_key_from_passphrase_buffer[16],&md5);
   
+  MD5_Final(&private_key_from_passphrase_buffer[16],&md5);
+
+  fprintf(stderr,"private key bytes = ");
+  for(int i=0;i<16;i++) fprintf(stderr,"%02X ",private_key_from_passphrase_buffer[i]);
+  fprintf(stderr,"\n");
+
   return private_key_from_passphrase_buffer;
 }
 

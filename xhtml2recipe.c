@@ -326,10 +326,10 @@ void end_xhtml(void *data, const char *el) //This function is called  by the XML
 
 int appendto(char *out,int *used,int max,char *stuff);
 
-int xhtml_recipe_create(char *input)
+int xhtml_recipe_create(char *recipe_dir, char *input)
 {
   FILE *f=fopen(input,"r");
-  char filename[512] = "";
+  char filename[1024] = "";
   size_t size;
   char *xmltext;
   
@@ -361,14 +361,14 @@ int xhtml_recipe_create(char *input)
   }
 
   //Create output for RECIPE
-  snprintf(filename,512,"%s.recipe",formversion);
+  snprintf(filename,sizeof filename,"%s/%s.recipe", recipe_dir, formversion);
   fprintf(stderr,"Writing recipe to '%s'\n",filename);
   f=fopen(filename,"w");
   fprintf(f,"%s",recipetext);
   fclose(f);
 
   //Create output for TEMPLATE
-  snprintf(filename,512,"%s.template",formversion);
+  snprintf(filename,sizeof filename,"%s/%s.template", recipe_dir, formversion);
   fprintf(stderr,"Writing template to '%s'\n",filename);
   f=fopen(filename,"w");
   fprintf(f,"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<form>\n<meta>\n");

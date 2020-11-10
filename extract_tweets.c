@@ -107,4 +107,4 @@ int main(int argc,char **argv)
     line[0]=0; fgets(line,8192,stdin);
   }
   return 0;
-/}
+}

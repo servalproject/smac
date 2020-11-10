@@ -40,7 +40,7 @@
 int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex);
 int defragmentAndDecrypt(char *inputdir,char *outputdir,char *passphrase);
 int recipe_create(char *input);
-int xhtml_recipe_create(char *input);
+int xhtml_recipe_create(char *recipe_dir, char *input);
 
 #ifdef ANDROID
 time_t timegm(struct tm *tm)
@@ -484,6 +484,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     // time encodes each field precisely, allowing years 0 - 9999
     // Format as yyyy-mm-dd hh:mm:ss
     {
+      // time_t t=range_decode_equiprobable(c,0x7fffffff);
       struct tm tm;
       bzero(&tm,sizeof(tm));
 
@@ -1481,6 +1482,15 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   }
 
   LOGI("Finished extracting succinct data file.\n");
+  if (r!=-1) {
+    // Mark file as processed, so that we can clean up after ourselves
+    char file[8192];
+    snprintf(file,8192,"%s.processed",input_file);
+    int fd = open(file, O_RDWR|O_CREAT, 0777);
+    if (fd!=-1) close(fd);
+  } else {
+    fprintf(stderr,"Decompression of SD file result code = %d\n",r);
+  }
   return r;
 }
 
@@ -1539,11 +1549,11 @@ int recipe_main(int argc,char *argv[], stats_handle *h)
     }      
     return recipe_create(argv[3]);
   } else if (!strcasecmp(argv[2],"xhcreate")) {
-    if (argc<=3) {
-      fprintf(stderr,"usage: smac recipe create <XHTML form> \n");
+    if (argc<=4) {
+      fprintf(stderr,"usage: smac recipe xhcreate <recipe directory> <XHTML form>\n");
       return(-1);
     }      
-    return xhtml_recipe_create(argv[3]);
+    return xhtml_recipe_create(argv[3], argv[4]);
   } else if (!strcasecmp(argv[2],"decompress")) {
     if (argc<=5) {
       fprintf(stderr,"usage: smac recipe decompress <recipe directory> <succinct data message> <output directory>\n");

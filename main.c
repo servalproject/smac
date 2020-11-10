@@ -115,6 +115,11 @@ int main(int argc,char *argv[])
 #else
   stats_handle *h=stats_new_handle("stats.dat");
 #endif
+  if (!h){
+    fprintf(stderr, "Failed to locate statistics file\n");
+    exit(-1);
+  }
+
 
   // Load complete tree
   stats_load_tree(h);
