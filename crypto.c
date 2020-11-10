@@ -330,7 +330,8 @@ int encryptAndFragment(char *filename,int mtu,char *outputdir,char *publickeyhex
   // Now write fragments out to files
   for(int j=0;j<fragment_count;j++) {
     char filename[1024], prefix[11];
-    for(int i=0;i<10;i++) prefix[i]=fragments[j][i]; prefix[10]=0;
+    for(int i=0;i<10;i++) prefix[i]=fragments[j][i]; 
+    prefix[10]=0;
     snprintf(filename,1024,"%s/%s",outputdir,prefix);
     FILE *f=fopen(filename,"w");
     if (f) {
@@ -485,7 +486,8 @@ int defragmentAndDecrypt(char *inputdir,char *outputdir,char *privatekeypassphra
       if (!f) continue;
       int r=fread(message,1,32768,f);
       fclose(f);
-      if (r<0) r=0; if (r>32767) r=32767;
+      if (r<0) r=0; 
+      if (r>32767) r=32767;
       message[r]=0;
       
       printf("Found fragment #%d/%d of %s\n",frag_num,frag_count,this_prefix);

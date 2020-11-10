@@ -462,7 +462,7 @@ double entropyOfSymbol(struct probability_vector *v,int s)
   }
   if (s<CHARCOUNT-1) high=v->v[s];
   double p=(high-low)*1.00/0x1000000;
-  return -log(p)/log(2);
+  return extra-log(p)/log(2);
 }
 
 int vectorReportShort(char *name,struct probability_vector *v,int s)

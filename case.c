@@ -93,11 +93,11 @@ int FUNC(CaseModel1)(range_coder *c,unsigned short *line,int len,stats_handle *h
 	if (wordPosn<0) wordNumber++;
 	wordPosn++;
 	int upper=-1;
-	int caseEnd=0;
+//	int caseEnd=0;
 
 	/* note if end of word (which includes end of message,
 	   implicitly detected here by finding null at end of string */
-	if (!charInWord(line[i+1])) caseEnd=1;
+//	if (!charInWord(line[i+1])) caseEnd=1;
 	if (wordPosn==0) {
 	  /* first letter of word, so can only use 1st-order model */
 	  unsigned int frequencies[1]={h->caseposn1[0][0]};

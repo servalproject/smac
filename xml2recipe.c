@@ -282,7 +282,7 @@ int appendto(char *out,int *used,int max,char *stuff)
 int recipe_create(char *input)
 {
     FILE *f=fopen(input,"r");
-    char filename[512] = "";
+    char filename[2500] = "";
     size_t size;
     char *xmltext;
 
@@ -314,14 +314,14 @@ int recipe_create(char *input)
     }
 
     //Create output for RECIPE
-    snprintf(filename,512,"%s.%s.recipe",formname,formversion);
+    snprintf(filename,sizeof filename,"%s.%s.recipe",formname,formversion);
     fprintf(stderr,"Writing recipe to '%s'\n",filename);
     f=fopen(filename,"w");
     fprintf(f,"%s",recipetext);
     fclose(f);
 
     //Create output for TEMPLATE
-    snprintf(filename,512,"%s.%s.template",formname,formversion);
+    snprintf(filename,sizeof filename,"%s.%s.template",formname,formversion);
     fprintf(stderr,"Writing template to '%s'\n",filename);
     f=fopen(filename,"w");
     fprintf(f,"%s",templatetext);

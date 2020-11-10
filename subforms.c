@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <stdlib.h>
 #include <unistd.h>
 #include <strings.h>
+#include <string.h>
 #include<sys/types.h>
 #include<sys/time.h>
 
@@ -48,8 +49,10 @@ int record_free(struct record *r)
   if (!r) return -1;
   for(int i=0;i<r->field_count;i++)
     {
-      if (r->fields[i].key) free(r->fields[i].key); r->fields[i].key=NULL;
-      if (r->fields[i].value) free(r->fields[i].value); r->fields[i].value=NULL;
+      if (r->fields[i].key) free(r->fields[i].key); 
+      r->fields[i].key=NULL;
+      if (r->fields[i].value) free(r->fields[i].value);
+      r->fields[i].value=NULL;
       if (r->fields[i].subrecord)
 	record_free(r->fields[i].subrecord);
       r->fields[i].subrecord=NULL;
@@ -78,7 +81,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	// Move current record down into a new sub-record at this point
 
 	if (current_record->field_count>=MAX_FIELDS) {
-	  snprintf(recipe_error,1024,"line:%d:Too many data lines (must be <=%d, or increase MAX_FIELDS).\n",
+	  snprintf(recipe_error,2048,"line:%d:Too many data lines (must be <=%d, or increase MAX_FIELDS).\n",
 		   line_number,MAX_FIELDS);
 	  record_free(record);
 	  return NULL;
@@ -91,7 +94,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
       } else if (line[0]=='}') {
 	// End of sub-form
 	if (!current_record->fields[record->field_count].subrecord->parent) {
-	    snprintf(recipe_error,1024,"line:%d:} without matching {.\n",
+	    snprintf(recipe_error,2048,"line:%d:} without matching {.\n",
 		     line_number);
 	  record_free(record);
 	  return NULL;
@@ -105,7 +108,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	  }
 	}
 	if (!question) {
-	    snprintf(recipe_error,1024,"line:%d:No 'question' value in sub-form.\n",
+	    snprintf(recipe_error,2048,"line:%d:No 'question' value in sub-form.\n",
 		     line_number);
 	  record_free(record);
 	  return NULL;
@@ -121,7 +124,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
       } else if ((l>0)&&(line[0]!='#')) {
 	if (sscanf(line,"%[^=]=%[^\n]",key,value)==2) {
 	  if (current_record->field_count>=MAX_FIELDS) {
-	    snprintf(recipe_error,1024,"line:%d:Too many data lines (must be <=%d, or increase MAX_FIELDS).\n",
+	    snprintf(recipe_error,2048,"line:%d:Too many data lines (must be <=%d, or increase MAX_FIELDS).\n",
 		     line_number,MAX_FIELDS);
 	  record_free(record);
 	  return NULL;
@@ -130,7 +133,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
 	  current_record->fields[current_record->field_count].key=strdup(value);
 	  current_record->field_count++;
 	} else {
-	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d): '%s'\n",
+	  snprintf(recipe_error,2048,"line:%d:Malformed data line (%s:%d): '%s'\n",
 		   line_number,__FILE__,__LINE__,line);	  
 	  record_free(record);
 	  return NULL;
@@ -151,7 +154,7 @@ struct record *parse_stripped_with_subforms(char *in,int in_len)
   }
 
   if (current_record->fields[record->field_count].subrecord->parent) {
-    snprintf(recipe_error,1024,"line:%d:End of input, but } expected.\n",
+    snprintf(recipe_error,2048,"line:%d:End of input, but } expected.\n",
 	     line_number);
     record_free(record);
     return NULL;

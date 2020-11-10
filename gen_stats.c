@@ -654,7 +654,7 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
       int lengths[1025];
       int tally=0;
       int cumulative=0;
-      for(i=0;i<=1024;i++) {
+      for(i=0;i<1024;i++) {
 	if (!messagelengths[i]) messagelengths[i]=1;
 	tally+=messagelengths[i];
       }
@@ -663,10 +663,11 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
 	exit(-1);
       }
       write24bit(out,tally);
-      for(i=0;i<=1024;i++) {
+      for(i=0;i<1024;i++) {
 	cumulative+=messagelengths[i];
 	lengths[i]=cumulative;
       }	
+      lengths[1024]=cumulative;
       ic_encode_recursive(lengths,1024,tally,c);
     }
     range_conclude(c);
@@ -713,12 +714,16 @@ int dumpVariableOrderStats(int maximumOrder,int frequencyThreshold)
   // vectorReport("http",v,charIdx(':'));
   v=extractVector(ascii2utf16(""),strlen(""),h);
 
+  if (!v) fprintf(stderr,"WARNING: v=NULL after extractVector()\n");
+
   stats_load_tree(h);
 
   v=extractVector(ascii2utf16("http"),strlen("http"),h);
   // vectorReport("http",v,charIdx(':'));
   v=extractVector(ascii2utf16(""),strlen(""),h);
+  if (!v) fprintf(stderr,"WARNING: v=NULL after extractVector()\n");
   int *codePage=getUnicodeStatistics(h,0x0400/0x80);
+  if (!codePage) fprintf(stderr,"WARNING: Could not retrieve default code page.\n");
 
   stats_handle_free(h);
 
@@ -775,13 +780,6 @@ int main(int argc,char **argv)
   int argn=3;
   FILE *f=stdin;
   int maximumOrder=atoi(argv[1]); 
-  int wordModel=0;
-  switch (argv[2][0])
-    {
-    case '0': wordModel=0; break;
-    case '3': wordModel=3; break;
-    case 'v': wordModel=99; break;
-    }
 
   if (argc>3) {
     f=fopen(argv[argn],"r");
@@ -798,7 +796,6 @@ int main(int argc,char **argv)
 
   int lineCount=0;
   int wordPosn=-1;
-  char word[1025];
 
   int wordCase[8]; for(i=0;i<8;i++) wordCase[i]=0;
   int wordCount=0;
@@ -845,8 +842,6 @@ int main(int argc,char **argv)
 	} else {
 	  if (isalpha(utf16line[i])) {
 	    wordPosn++;
-	    word[wordPosn]=tolower(utf16line[i]);
-	    word[wordPosn+1]=0;
 	    int upper=0;
 	    if (isupper((char)utf16line[i])) upper=1;
 	    if (wordPosn<80) caseposn1[wordPosn][upper]++;

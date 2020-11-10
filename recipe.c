@@ -108,7 +108,7 @@ char *recipe_field_type_name(int f)
   }
 }
 
-char recipe_error[1024]="No error.\n";
+char recipe_error[2048]="No error.\n";
 
 void recipe_free(struct recipe *recipe)
 {
@@ -163,13 +163,13 @@ int recipe_form_hash(char *recipe_file,unsigned char *formhash,
 struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 {
   if (buffer_size<1||buffer_size>1048576) {
-    snprintf(recipe_error,1024,"Recipe file empty or too large (>1MB).\n");
+    snprintf(recipe_error,2048,"Recipe file empty or too large (>1MB).\n");
     return NULL;
   }
 
   struct recipe *recipe=calloc(sizeof(struct recipe),1);
   if (!recipe) {
-    snprintf(recipe_error,1024,"Allocation of recipe structure failed.\n");
+    snprintf(recipe_error,2048,"Allocation of recipe structure failed.\n");
     return NULL;
   }
 
@@ -187,11 +187,11 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 
   for(i=0;i<=buffer_size;i++) {
     if (l>16380) { 
-      snprintf(recipe_error,1024,"line:%d:Line too long.\n",line_number);
+      snprintf(recipe_error,2048,"line:%d:Line too long.\n",line_number);
       recipe_free(recipe); return NULL; }
     if ((i==buffer_size)||(buffer[i]=='\n')||(buffer[i]=='\r')) {
       if (recipe->field_count>1000) {
-	snprintf(recipe_error,1024,"line:%d:Too many field definitions (must be <=1000).\n",line_number);
+	snprintf(recipe_error,2048,"line:%d:Too many field definitions (must be <=1000).\n",line_number);
 	recipe_free(recipe); return NULL;
       }
       // Process recipe line
@@ -202,7 +202,8 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 		   name,type,&min,&max,&precision,enumvalues)>=5) {
 	  int fieldtype=recipe_parse_fieldtype(type);
 	  if (fieldtype==-1) {
-	    snprintf(recipe_error,1024,"line:%d:Unknown or misspelled field type '%s'.\n",line_number,type);
+            if (strlen(type)>1024) type[1024]=0;
+	    snprintf(recipe_error,2048,"line:%d:Unknown or misspelled field type '%s'.\n",line_number,type);
 	    recipe_free(recipe); return NULL;
 	  } else {
 	    // Store parsed field
@@ -222,7 +223,7 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 		  // End of field
 		  enum_value[e]=0;
 		  if (en>=MAX_ENUM_VALUES) {
-		    snprintf(recipe_error,1024,"line:%d:enum has too many values (max=32)\n",line_number);
+		    snprintf(recipe_error,2048,"line:%d:enum has too many values (max=32)\n",line_number);
 		    recipe_free(recipe);
 		    return NULL;
 		  }
@@ -236,7 +237,7 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 		}
 	      }
 	      if (en<1) {
-		snprintf(recipe_error,1024,"line:%d:Malformed enum field definition: must contain at least one value option.\n",line_number);
+		snprintf(recipe_error,2048,"line:%d:Malformed enum field definition: must contain at least one value option.\n",line_number);
 		recipe_free(recipe); return NULL;
 	      }
 	      recipe->fields[recipe->field_count].enum_count=en;
@@ -245,7 +246,7 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 	    recipe->field_count++;
 	  }
 	} else {
-	  snprintf(recipe_error,1024,"line:%d:Malformed field definition.\n",line_number);
+	  snprintf(recipe_error,2048,"line:%d:Malformed field definition.\n",line_number);
 	  recipe_free(recipe); return NULL;
 	}
       }
@@ -263,25 +264,25 @@ int recipe_load_file(char *filename,char *out,int out_size)
 
   int fd=open(filename,O_RDONLY);
   if (fd==-1) {
-    snprintf(recipe_error,1024,"Could not open file '%s'\n",filename);
+    snprintf(recipe_error,2048,"Could not open file '%s'\n",filename);
     return -1;
   }
 
   struct stat stat;
   if (fstat(fd, &stat) == -1) {
-    snprintf(recipe_error,1024,"Could not stat file '%s'\n",filename);
+    snprintf(recipe_error,2048,"Could not stat file '%s'\n",filename);
     close(fd); return -1;
   }
 
   if (stat.st_size>out_size) {
-    snprintf(recipe_error,1024,"File '%s' is too long (must be <= %d bytes)\n",
+    snprintf(recipe_error,2048,"File '%s' is too long (must be <= %d bytes)\n",
 	     filename,out_size);
     close(fd); return -1;
   }
 
   buffer=mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer==MAP_FAILED) {
-    snprintf(recipe_error,1024,"Could not memory map file '%s'\n",filename);
+    snprintf(recipe_error,2048,"Could not memory map file '%s'\n",filename);
     close(fd); return -1; 
   }
 
@@ -338,19 +339,19 @@ struct recipe *recipe_read_from_file(char *filename)
 
   int fd=open(filename,O_RDONLY);
   if (fd==-1) {
-    snprintf(recipe_error,1024,"Could not open recipe file '%s'\n",filename);
+    snprintf(recipe_error,2048,"Could not open recipe file '%s'\n",filename);
     return NULL;
   }
 
   struct stat stat;
   if (fstat(fd, &stat) == -1) {
-    snprintf(recipe_error,1024,"Could not stat recipe file '%s'\n",filename);
+    snprintf(recipe_error,2048,"Could not stat recipe file '%s'\n",filename);
     close(fd); return NULL;
   }
 
   buffer=mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer==MAP_FAILED) {
-    snprintf(recipe_error,1024,"Could not memory map recipe file '%s'\n",filename);
+    snprintf(recipe_error,2048,"Could not memory map recipe file '%s'\n",filename);
     close(fd); return NULL; 
   }
 
@@ -361,7 +362,7 @@ struct recipe *recipe_read_from_file(char *filename)
   
   if (recipe&&recipe->field_count==0) {
     recipe_free(recipe);
-    snprintf(recipe_error,1024,"Recipe contains no field definitions\n");
+    snprintf(recipe_error,2048,"Recipe contains no field definitions\n");
     return NULL;
   }
 
@@ -387,8 +388,6 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
   int maximum;
   int precision;
 
-  int r;
-  
   precision=recipe->fields[fieldnumber].precision;
 
   switch (recipe->fields[fieldnumber].type) {
@@ -399,7 +398,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     if (normalised_value==(maximum-minimum+1)) {
       // out of range value, so decode it as a string.
       fprintf(stderr,"FIELDTYPE_INTEGER: Illegal value - decoding string representation.\n");
-      r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
+      stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
     } else 
       sprintf(value,"%d",normalised_value+minimum);
     return 0;
@@ -461,7 +460,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
     return 0;
     break;
   case FIELDTYPE_TEXT:
-    r=stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
+    stats3_decompress_bits(c,(unsigned char *)value,&value_size,stats,NULL);
     return 0;
   case FIELDTYPE_TIMEDATE:
     // time is 32-bit seconds since 1970.
@@ -582,7 +581,7 @@ int recipe_decode_field(struct recipe *recipe,stats_handle *stats, range_coder *
       return 0;
     }
   default:
-    snprintf(recipe_error,1024,"Attempting decompression of unsupported field type of '%s'.\n",recipe_field_type_name(recipe->fields[fieldnumber].type));
+    snprintf(recipe_error,2048,"Attempting decompression of unsupported field type of '%s'.\n",recipe_field_type_name(recipe->fields[fieldnumber].type));
     return -1;
   }
 
@@ -942,23 +941,23 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
 		      char *recipe_name)
 {
   if (!recipe_dir) {
-    snprintf(recipe_error,1024,"No recipe directory provided.\n");
+    snprintf(recipe_error,2048,"No recipe directory provided.\n");
     LOGI("%s",recipe_error);
     return -1;
   }
 
   if (!in) {
-    snprintf(recipe_error,1024,"No input provided.\n");
+    snprintf(recipe_error,2048,"No input provided.\n");
     LOGI("%s",recipe_error);
     return -1;
   }
   if (!out) {
-    snprintf(recipe_error,1024,"No output buffer provided.\n");
+    snprintf(recipe_error,2048,"No output buffer provided.\n");
     LOGI("%s",recipe_error);
     return -1;
   }
   if (in_len>=1024) {
-    snprintf(recipe_error,1024,"Input must be <1KB.\n");
+    snprintf(recipe_error,2048,"Input must be <1KB.\n");
     LOGI("%s",recipe_error);
     return -1;
   }
@@ -982,7 +981,7 @@ int recipe_decompress(stats_handle *h, char *recipe_dir,
   struct recipe *recipe=recipe_find_recipe(recipe_dir,formhash);
 
   if (!recipe) {
-    snprintf(recipe_error,1024,"No recipe provided.\n");
+    snprintf(recipe_error,2048,"No recipe provided.\n");
     LOGI("%s:%d: %s",__FILE__,__LINE__,recipe_error);
     range_coder_free(c);
     return -1;
@@ -1040,22 +1039,22 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 
   
   if (!recipe) {
-    snprintf(recipe_error,1024,"No recipe provided.\n");
+    snprintf(recipe_error,2048,"No recipe provided.\n");
     return -1;
   }
   if (!in) {
-    snprintf(recipe_error,1024,"No input provided.\n");
+    snprintf(recipe_error,2048,"No input provided.\n");
     return -1;
   }
   if (!out) {
-    snprintf(recipe_error,1024,"No output buffer provided.\n");
+    snprintf(recipe_error,2048,"No output buffer provided.\n");
     return -1;
   }
 
   // Make new range coder with 1KB of space
   range_coder *c=range_new_coder(1024);
   if (!c) {
-    snprintf(recipe_error,1024,"Could not instantiate range coder.\n");
+    snprintf(recipe_error,2048,"Could not instantiate range coder.\n");
     return -1;
   }
 
@@ -1083,7 +1082,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
   for(i=0;i<=in_len;i++) {
     if ((i==in_len)||(in[i]=='\n')||(in[i]=='\r')) {
       if (value_count>1000) {
-	snprintf(recipe_error,1024,"line:%d:Too many data lines (must be <=1000).\n",line_number);
+	snprintf(recipe_error,2048,"line:%d:Too many data lines (must be <=1000).\n",line_number);
 	return -1;
       }
       // Process key=value line
@@ -1095,7 +1094,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
 	  values[value_count]=strdup(value);
 	  value_count++;
 	} else {
-	  snprintf(recipe_error,1024,"line:%d:Malformed data line (%s:%d): '%s'\n",
+	  snprintf(recipe_error,2048,"line:%d:Malformed data line (%s:%d): '%s'\n",
 		   line_number,__FILE__,__LINE__,line);	  
 	  return -1;
 	}
@@ -1134,7 +1133,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
       if (recipe_encode_field(recipe,h,c,field,values[i]))
 	{
 	  range_coder_free(c);
-	  snprintf(recipe_error,1024,"Could not record value '%s' for field '%s' (type %d)\n",
+	  snprintf(recipe_error,2048,"Could not record value '%s' for field '%s' (type %d)\n",
 		   values[i],recipe->fields[field].name,
 		   recipe->fields[field].type);
 	  return -1;
@@ -1153,7 +1152,7 @@ int recipe_compress(stats_handle *h,struct recipe *recipe,
   int bytes=(c->bits_used/8)+((c->bits_used&7)?1:0);
   if (bytes>out_size) {
     range_coder_free(c);
-    snprintf(recipe_error,1024,"Compressed data too big for output buffer\n");
+    snprintf(recipe_error,2048,"Compressed data too big for output buffer\n");
     return -1;
   }
   
@@ -1171,19 +1170,19 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
 
   int fd=open(input_file,O_RDONLY);
   if (fd==-1) {
-    snprintf(recipe_error,1024,"Could not open uncompressed file '%s'\n",input_file);
+    snprintf(recipe_error,2048,"Could not open uncompressed file '%s'\n",input_file);
     return -1;
   }
 
   struct stat stat;
   if (fstat(fd, &stat) == -1) {
-    snprintf(recipe_error,1024,"Could not stat uncompressed file '%s'\n",input_file);
+    snprintf(recipe_error,2048,"Could not stat uncompressed file '%s'\n",input_file);
     close(fd); return -1;
   }
 
   buffer=mmap(NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer==MAP_FAILED) {
-    snprintf(recipe_error,1024,"Could not memory map uncompressed file '%s'\n",input_file);
+    snprintf(recipe_error,2048,"Could not memory map uncompressed file '%s'\n",input_file);
     close(fd); return -1; 
   }
 
@@ -1237,13 +1236,13 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
   
   FILE *f=fopen(output_file,"w");
   if (!f) {
-    snprintf(recipe_error,1024,"Could not write succinct data compressed file '%s'\n",output_file);
+    snprintf(recipe_error,2048,"Could not write succinct data compressed file '%s'\n",output_file);
     return -1;
   }
   int wrote=fwrite(out_buffer,r,1,f);
   fclose(f);
   if (wrote!=1) {
-    snprintf(recipe_error,1024,"Could not write %d bytes of compressed succinct data into '%s'\n",r,output_file);
+    snprintf(recipe_error,2048,"Could not write %d bytes of compressed succinct data into '%s'\n",r,output_file);
     return -1;
   }
 
@@ -1339,21 +1338,21 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 
   int fd=open(input_file,O_RDONLY);
   if (fd==-1) {
-    snprintf(recipe_error,1024,"Could not open succinct data file '%s'\n",input_file);
+    snprintf(recipe_error,2048,"Could not open succinct data file '%s'\n",input_file);
     LOGI("%s",recipe_error);
     return -1;
   }
 
   struct stat st;
   if (fstat(fd, &st) == -1) {
-    snprintf(recipe_error,1024,"Could not stat succinct data file '%s'\n",input_file);
+    snprintf(recipe_error,2048,"Could not stat succinct data file '%s'\n",input_file);
     LOGI("%s",recipe_error);
     close(fd); return -1;
   }
 
   buffer=mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if (buffer==MAP_FAILED) {
-    snprintf(recipe_error,1024,"Could not memory map succinct data file '%s'\n",input_file);
+    snprintf(recipe_error,2048,"Could not memory map succinct data file '%s'\n",input_file);
     LOGI("%s",recipe_error);
     close(fd); return -1; 
   }
@@ -1436,14 +1435,14 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 
   FILE *f=fopen(output_file,"w");
   if (!f) {
-    snprintf(recipe_error,1024,"Could not write decompressed file '%s'\n",output_file);
+    snprintf(recipe_error,2048,"Could not write decompressed file '%s'\n",output_file);
     LOGI("%s",recipe_error);
     return -1;
   }
   int wrote=fwrite(out_buffer,r,1,f);
   fclose(f);
   if (wrote!=1) {
-    snprintf(recipe_error,1024,"Could not write %d bytes of decompressed data into '%s'\n",r,output_file);
+    snprintf(recipe_error,2048,"Could not write %d bytes of decompressed data into '%s'\n",r,output_file);
     LOGI("%s",recipe_error);
     return -1;
   }
@@ -1456,7 +1455,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   char template[1048576];
   int template_len=recipe_load_file(template_file,template,sizeof(template));
   if (template_len<1) {
-    snprintf(recipe_error,1024,"Could not read template file '%s'\n",template_file);
+    snprintf(recipe_error,2048,"Could not read template file '%s'\n",template_file);
     LOGI("%s",recipe_error);
     return -1;    
   }
@@ -1469,14 +1468,14 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 	   output_directory,recipe_name,stripped_name);
   f=fopen(xml_file,"w");
   if (!f) {
-    snprintf(recipe_error,1024,"Could not write xml file '%s'\n",xml_file);
+    snprintf(recipe_error,2048,"Could not write xml file '%s'\n",xml_file);
     LOGI("%s",recipe_error);
     return -1;
   }
   wrote=fwrite(xml,x,1,f);
   fclose(f);
   if (wrote!=1) {
-    snprintf(recipe_error,1024,"Could not write %d bytes of XML data into '%s'\n",x,xml_file);
+    snprintf(recipe_error,2048,"Could not write %d bytes of XML data into '%s'\n",x,xml_file);
     LOGI("%s",recipe_error);
     return -1;
   }

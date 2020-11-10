@@ -329,7 +329,7 @@ int appendto(char *out,int *used,int max,char *stuff);
 int xhtml_recipe_create(char *recipe_dir, char *input)
 {
   FILE *f=fopen(input,"r");
-  char filename[1024] = "";
+  char filename[2048] = "";
   size_t size;
   char *xmltext;
   

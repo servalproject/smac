@@ -104,7 +104,8 @@ int stats3_decompress_bits(range_coder *c,unsigned char m[1025],int *len_out,
   int notPackedASCII=range_decode_symbol(c,&probPackedASCII,2);
 
   int encodedLength=range_decode_symbol(c,(unsigned int *)h->messagelengths,1024);
-  for(i=0;i<encodedLength;i++) m[i]='?'; m[i]=0;
+  for(i=0;i<encodedLength;i++) m[i]='?'; 
+  m[i]=0;
 
   if (notPackedASCII==0) {
     /* packed ASCII -- copy from input to output */

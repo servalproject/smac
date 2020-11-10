@@ -60,9 +60,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <strings.h>
 #include "arithmetic.h"
 
-inline void encode_bits(int code_bits,unsigned int value,range_coder *c);
-inline void decode_bits(int code_bits,unsigned int *value,range_coder *c);
-inline void decode_few_bits(int code_bits,unsigned int *value,range_coder *c);
+// inline void encode_bits(int code_bits,unsigned int value,range_coder *c);
+// inline void decode_bits(int code_bits,unsigned int *value,range_coder *c);
+// inline void decode_few_bits(int code_bits,unsigned int *value,range_coder *c);
 
 int biggest_power_of_2(int v)
 {
@@ -137,7 +137,7 @@ int ENCODE(ic_,_recursive_r)(int *list,
 			     int hi,
 			     int step)
 {
-  int doc_number;
+//  int doc_number;
   int doc_low;
   int doc_high;
 
@@ -147,7 +147,7 @@ int ENCODE(ic_,_recursive_r)(int *list,
      coding as their values are known */
   if (p<list_length)
     {
-      doc_number=list[p];
+ //     doc_number=list[p];
       
       /* Work out initial constraint on this value */
       if (lo>-1) doc_low=list[lo]+1; else doc_low=0;

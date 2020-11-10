@@ -68,7 +68,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
 {
   int o;
   int lastCodePage=0x0080/0x80;
-  int lastLastCodePage=0x0080/0x80;
+//  int lastLastCodePage=0x0080/0x80;
   int firstUnicode=1;
 
   for(o=0;o<length;o++) {
@@ -108,7 +108,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
 	// character is not in current code page
 	range_encode_symbol(c,counts,128+512,128+s[o]/0x80);      
 	switchedPage=1;
-	lastLastCodePage=lastCodePage;
+//	lastLastCodePage=lastCodePage;
 	lastCodePage=s[o]/0x80;
       }
       // now character must be in code page, so encode
@@ -129,7 +129,7 @@ int FUNC(LCAlphaSpace)(range_coder *c,unsigned short *s,int length,stats_handle 
 	symbol=range_decode_symbol(c,counts,128+512);      
       }
       if (symbol>127) {
-	lastLastCodePage=lastCodePage;
+//	lastLastCodePage=lastCodePage;
 	lastCodePage=symbol-128;
 	unsigned int *counts=(unsigned int *)getUnicodeStatistics(h,lastCodePage);
 	if (counts) symbol=range_decode_symbol(c,counts,128);
