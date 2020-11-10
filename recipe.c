@@ -202,8 +202,10 @@ struct recipe *recipe_read(char *formname,char *buffer,int buffer_size)
 		   name,type,&min,&max,&precision,enumvalues)>=5) {
 	  int fieldtype=recipe_parse_fieldtype(type);
 	  if (fieldtype==-1) {
-            if (strlen(type)>1024) type[1024]=0;
-	    snprintf(recipe_error,2048,"line:%d:Unknown or misspelled field type '%s'.\n",line_number,type);
+            char type1024[1024];
+            if (strlen(type)>1023) type[1023]=0;
+	    bcopy(type,type1024,1024);
+	    snprintf(recipe_error,2048,"line:%d:Unknown or misspelled field type '%s'.\n",line_number,type1024);
 	    recipe_free(recipe); return NULL;
 	  } else {
 	    // Store parsed field
@@ -1210,9 +1212,9 @@ int recipe_compress_file(stats_handle *h,char *recipe_dir,char *input_file,char 
     return -1;
   }
   
-  char recipe_file[1024];
+  char recipe_file[1500];
   
-  sprintf(recipe_file,"%s/%s.recipe",recipe_dir,formid);
+  snprintf(recipe_file,1500,"%s/%s.recipe",recipe_dir,formid);
   printf("Trying to load '%s' as a recipe\n",recipe_file);
   struct recipe *recipe=recipe_read_from_file(recipe_file);
   // A form can be given in place of the recipe directory
@@ -1382,7 +1384,7 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   char stripped_name[80];
   MD5_CTX md5;
   unsigned char hash[16];
-  char output_file[1024];
+  char output_file[1500];
 
   MD5_Init(&md5);
   MD5_Update(&md5,out_buffer,r);
@@ -1392,13 +1394,13 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
 	   hash[5],hash[6],hash[7],hash[8],hash[9]);
 
   // make directories if required
-  snprintf(output_file,1024,"%s/%s",output_directory,recipe_name);
+  snprintf(output_file,1500,"%s/%s",output_directory,recipe_name);
   mkdir(output_file,0777);
 
   // now write stripped file out
   fprintf(stderr,"Writing stripped data to %s\n",stripped_name);
   LOGI("Writing stripped data to %s\n",stripped_name);
-  snprintf(output_file,1024,"%s/%s/%s.stripped",
+  snprintf(output_file,1500,"%s/%s/%s.stripped",
 	   output_directory,recipe_name,stripped_name);
 
   if (stat(output_file,&st)) {
@@ -1407,12 +1409,12 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
     if (!recipe_stripped_to_csv_line(recipe_dir,recipe_name,output_directory,
 				     out_buffer,r,line,8192))
       {
-	char csv_file[1024];
+	char csv_file[1500];
 	snprintf(csv_file,1024,"%s",output_directory);
 	mkdir(csv_file,0777);
 	snprintf(csv_file,1024,"%s/csv",output_directory);
 	mkdir(csv_file,0777);
-	snprintf(csv_file,1024,"%s/csv/%s.csv",output_directory,
+	snprintf(csv_file,1500,"%s/csv/%s.csv",output_directory,
 		 recipe_name);
 	FILE *f=fopen(csv_file,"a");
 	fprintf(stderr,"Appending CSV line: %s\n",line);
@@ -1450,8 +1452,8 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   // now produce the XML.
   // We need to give it the template file.  Fortunately, we know the recipe name, 
   // so we can build the template path from that.
-  char template_file[1024];
-  snprintf(template_file,1024,"%s/%s.template",recipe_dir,recipe_name);
+  char template_file[1500];
+  snprintf(template_file,1500,"%s/%s.template",recipe_dir,recipe_name);
   char template[1048576];
   int template_len=recipe_load_file(template_file,template,sizeof(template));
   if (template_len<1) {
@@ -1463,8 +1465,8 @@ int recipe_decompress_file(stats_handle *h,char *recipe_dir,char *input_file,cha
   
   int x=stripped2xml(out_buffer,r,template,template_len,xml,sizeof(xml));
 
-  char xml_file[1024];
-  snprintf(xml_file,1024,"%s/%s/%s.xml",
+  char xml_file[1500];
+  snprintf(xml_file,1500,"%s/%s/%s.xml",
 	   output_directory,recipe_name,stripped_name);
   f=fopen(xml_file,"w");
   if (!f) {
