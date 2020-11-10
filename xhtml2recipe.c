@@ -87,7 +87,7 @@ int      xhtml2recipeLen = 0;
 
 int      xhtml_in_instance = 0;
 
-char    *selects[1024];
+extern char    *selects[1024];
 int      xhtmlSelectsLen = 0;
 char    *xhtmlSelectElem = NULL;
 int      xhtmlSelectFirst = 1;
