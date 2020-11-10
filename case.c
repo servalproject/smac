@@ -118,7 +118,7 @@ int FUNC(CaseModel1)(range_coder *c,unsigned short *line,int len,stats_handle *h
 	  if (0) printf("case of first letter of word/message @ %d: p=%f\n",
 			i,(frequencies[0]*1.0)/0x1000000);
 #ifdef ENCODING
-	  upper=isupper(line[i]);
+	  upper=isupper(line[i])?1:0;
 	  range_encode_symbol(c,frequencies,2,upper);
 #else
 	  upper=range_decode_symbol(c,frequencies,2);
@@ -135,7 +135,7 @@ int FUNC(CaseModel1)(range_coder *c,unsigned short *line,int len,stats_handle *h
 	  int pos=wordPosn;
 	  while ((!h->caseposn2[lastCase][pos][0])&&pos) pos--;
 #ifdef ENCODING
-	  upper=isupper(line[i]);
+	  upper=isupper(line[i])?1:0;
 	  range_encode_symbol(c,h->caseposn2[lastCase][pos],2,upper);
 #else
 	  upper=range_decode_symbol(c,h->caseposn2[lastCase][pos],2);
