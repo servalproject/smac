@@ -3,8 +3,7 @@ CFLAGS=-g -Wall -O3 -Inacl/include -std=gnu99 -I. -DHAVE_BCOPY=1 -DHAVE_MEMMOVE=
 LIBS=-lm
 DEFS=
 
-OBJS=	main.o \
-	\
+OBJS=	\
 	smac.o \
 	\
 	recipe.o \
@@ -74,8 +73,11 @@ extract_tweets:	extract_tweets.o
 gen_stats:	gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
 	gcc $(CFLAGS) $(LIBS) -o gen_stats gen_stats.o arithmetic.o packed_stats.o gsinterpolative.o charset.o unicode.o
 
-smac:	$(OBJS)
-	gcc $(CFLAGS) $(LIBS) -o smac $(OBJS)
+smac:	$(OBJS) main.o
+	gcc $(CFLAGS) $(LIBS) -o smac $(OBJS) main.o
+
+libsmac.a:	$(OBJS)
+	ar rc libsmac.a $(OBJS)
 
 gsinterpolative:	gsinterpolative.c arithmetic.o
 	gcc $(CFLAGS) $(LIBS) -DTESTMODE -o gsinterpolative gsinterpolative.c arithmetic.o
