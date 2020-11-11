@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -Wall -O3 -Inacl/include -std=gnu99 -I. -DHAVE_BCOPY=1 -DHAVE_MEMMOVE=1
+CFLAGS=-g -fPIC -Wall -O3 -Inacl/include -std=gnu99 -I. -DHAVE_BCOPY=1 -DHAVE_MEMMOVE=1
 LIBS=-lm
 DEFS=
 
